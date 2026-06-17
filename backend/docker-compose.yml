@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: appraisal-postgres
+    environment:
+      POSTGRES_DB: appraisal
+      POSTGRES_USER: appraisal
+      POSTGRES_PASSWORD: appraisal
+    ports:
+      - "54329:5432"
+    volumes:
+      - appraisal-postgres-data:/var/lib/postgresql/data
+
+volumes:
+  appraisal-postgres-data:
+
