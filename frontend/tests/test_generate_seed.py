@@ -22,6 +22,25 @@ def load_seed():
 
 
 class GenerateSeedTest(unittest.TestCase):
+    def test_admin_people_operation_officer_employee_is_ready(self):
+        run_generator()
+        seed = load_seed()
+
+        employee = next(
+            row for row in seed["employees"] if row["employeeName"] == "Samuel Mbudinma"
+        )
+
+        self.assertEqual(employee["designation"], "Admin/People Operation Officer")
+        self.assertEqual(employee["appraisalRole"], "Admin/People Operation Officer")
+        self.assertEqual(employee["status"], "ready")
+        self.assertEqual(employee["blockers"], [])
+
+        unresolved_designations = [row["designation"] for row in seed["unresolvedDesignations"]]
+        unresolved_employees = [row["employeeName"] for row in seed["unresolvedEmployees"]]
+
+        self.assertNotIn("Admin/People Operation Officer", unresolved_designations)
+        self.assertNotIn("Samuel Mbudinma", unresolved_employees)
+
     def test_quality_control_wholesale_employee_is_ready(self):
         run_generator()
         seed = load_seed()

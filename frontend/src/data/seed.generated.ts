@@ -1422,7 +1422,7 @@ export const generatedSeed = {
       "employeeId": "EMP-043",
       "employeeName": "Samuel Mbudinma",
       "designation": "Admin/People Operation Officer",
-      "appraisalRole": "",
+      "appraisalRole": "Admin/People Operation Officer",
       "department": "Operations",
       "level": "Officer 2",
       "employeeUsername": "samuel.mbudinma",
@@ -1430,13 +1430,11 @@ export const generatedSeed = {
       "reviewerLabel": "",
       "kpiOwnerLabel": "Head of Operations",
       "primaryOwnerLabel": "Head of Operations",
-      "status": "blocked",
-      "blockers": [
-        "No KPI role mapped yet"
-      ],
+      "status": "ready",
+      "blockers": [],
       "excludedThisCycle": false,
       "canSelfAppraise": true,
-      "canViewFinalResult": false
+      "canViewFinalResult": true
     },
     {
       "employeeId": "EMP-044",
@@ -5640,6 +5638,90 @@ export const generatedSeed = {
       "status": "pending"
     },
     {
+      "assignmentId": "EMP-043-KPI-01",
+      "cycle": "2026-H1",
+      "employeeId": "EMP-043",
+      "employeeName": "Samuel Mbudinma",
+      "employeeUsername": "samuel.mbudinma",
+      "jobTitle": "Admin/People Operation Officer",
+      "department": "Operations",
+      "kpiArea": "Recruitment & Talent",
+      "kpiStatement": "Fill approved vacancies within SLA, complete onboarding at 100%, and support employee retention targets.",
+      "weightPercent": 25,
+      "managerLabel": "Head of Operations",
+      "reviewerLabel": "",
+      "kpiOwnerLabel": "Head of Operations",
+      "primaryOwnerLabel": "Head of Operations",
+      "score": 0,
+      "managerComment": "",
+      "evidenceNote": "",
+      "developmentAction": "",
+      "status": "pending"
+    },
+    {
+      "assignmentId": "EMP-043-KPI-02",
+      "cycle": "2026-H1",
+      "employeeId": "EMP-043",
+      "employeeName": "Samuel Mbudinma",
+      "employeeUsername": "samuel.mbudinma",
+      "jobTitle": "Admin/People Operation Officer",
+      "department": "Operations",
+      "kpiArea": "Employee Relations",
+      "kpiStatement": "Resolve employee issues within agreed timelines and execute engagement and disciplinary processes in line with policy.",
+      "weightPercent": 25,
+      "managerLabel": "Head of Operations",
+      "reviewerLabel": "",
+      "kpiOwnerLabel": "Head of Operations",
+      "primaryOwnerLabel": "Head of Operations",
+      "score": 0,
+      "managerComment": "",
+      "evidenceNote": "",
+      "developmentAction": "",
+      "status": "pending"
+    },
+    {
+      "assignmentId": "EMP-043-KPI-03",
+      "cycle": "2026-H1",
+      "employeeId": "EMP-043",
+      "employeeName": "Samuel Mbudinma",
+      "employeeUsername": "samuel.mbudinma",
+      "jobTitle": "Admin/People Operation Officer",
+      "department": "Operations",
+      "kpiArea": "Compliance & Administration",
+      "kpiStatement": "Maintain personnel record accuracy at 100%, keep HMO/statutory documentation current, and sustain staff attendance reporting accuracy above 98%.",
+      "weightPercent": 25,
+      "managerLabel": "Head of Operations",
+      "reviewerLabel": "",
+      "kpiOwnerLabel": "Head of Operations",
+      "primaryOwnerLabel": "Head of Operations",
+      "score": 0,
+      "managerComment": "",
+      "evidenceNote": "",
+      "developmentAction": "",
+      "status": "pending"
+    },
+    {
+      "assignmentId": "EMP-043-KPI-04",
+      "cycle": "2026-H1",
+      "employeeId": "EMP-043",
+      "employeeName": "Samuel Mbudinma",
+      "employeeUsername": "samuel.mbudinma",
+      "jobTitle": "Admin/People Operation Officer",
+      "department": "Operations",
+      "kpiArea": "Performance Management",
+      "kpiStatement": "Ensure performance review completion at 100% and submit KPI tracking and reporting on time.",
+      "weightPercent": 25,
+      "managerLabel": "Head of Operations",
+      "reviewerLabel": "",
+      "kpiOwnerLabel": "Head of Operations",
+      "primaryOwnerLabel": "Head of Operations",
+      "score": 0,
+      "managerComment": "",
+      "evidenceNote": "",
+      "developmentAction": "",
+      "status": "pending"
+    },
+    {
       "assignmentId": "EMP-044-KPI-01",
       "cycle": "2026-H1",
       "employeeId": "EMP-044",
@@ -9572,7 +9654,44 @@ export const generatedSeed = {
       "employeeName": "Samuel Mbudinma",
       "employeeUsername": "samuel.mbudinma",
       "cycle": "2026-H1",
-      "kpiEntries": [],
+      "kpiEntries": [
+        {
+          "assignmentId": "EMP-043-KPI-01",
+          "kpiArea": "Recruitment & Talent",
+          "kpiStatement": "Fill approved vacancies within SLA, complete onboarding at 100%, and support employee retention targets.",
+          "selfScore": 0,
+          "reasonForScore": "",
+          "keyEvidence": "",
+          "challengesFaced": ""
+        },
+        {
+          "assignmentId": "EMP-043-KPI-02",
+          "kpiArea": "Employee Relations",
+          "kpiStatement": "Resolve employee issues within agreed timelines and execute engagement and disciplinary processes in line with policy.",
+          "selfScore": 0,
+          "reasonForScore": "",
+          "keyEvidence": "",
+          "challengesFaced": ""
+        },
+        {
+          "assignmentId": "EMP-043-KPI-03",
+          "kpiArea": "Compliance & Administration",
+          "kpiStatement": "Maintain personnel record accuracy at 100%, keep HMO/statutory documentation current, and sustain staff attendance reporting accuracy above 98%.",
+          "selfScore": 0,
+          "reasonForScore": "",
+          "keyEvidence": "",
+          "challengesFaced": ""
+        },
+        {
+          "assignmentId": "EMP-043-KPI-04",
+          "kpiArea": "Performance Management",
+          "kpiStatement": "Ensure performance review completion at 100% and submit KPI tracking and reporting on time.",
+          "selfScore": 0,
+          "reasonForScore": "",
+          "keyEvidence": "",
+          "challengesFaced": ""
+        }
+      ],
       "overallAchievements": "",
       "majorChallenges": "",
       "supportNeeded": "",
@@ -11184,12 +11303,6 @@ export const generatedSeed = {
   "customRolePacks": [],
   "unresolvedDesignations": [
     {
-      "designation": "Admin/People Operation Officer",
-      "suggestedAppraisalRole": "",
-      "lineManagerLabel": "Head of Operations",
-      "notes": "Reporting line supplied manually by user; KPI role still needs mapping"
-    },
-    {
       "designation": "Growth Lead",
       "suggestedAppraisalRole": "",
       "lineManagerLabel": "Chief of Staff",
@@ -11197,15 +11310,6 @@ export const generatedSeed = {
     }
   ],
   "unresolvedEmployees": [
-    {
-      "employeeName": "Samuel Mbudinma",
-      "designation": "Admin/People Operation Officer",
-      "employeeId": "EMP-043",
-      "status": "blocked",
-      "blockers": [
-        "No KPI role mapped yet"
-      ]
-    },
     {
       "employeeName": "Ololade Shoyemi",
       "designation": "Growth Lead",
