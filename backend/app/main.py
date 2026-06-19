@@ -10,9 +10,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import Engine, select
 from sqlalchemy.orm import Session, selectinload
 
-from app.bootstrap import bootstrap_from_seed
 from app.config import get_settings
-from app.db import Base, engine, get_db
+from app.db import engine, get_db
 from app.deps import get_current_user
 from app.models import (
     AppraisalCycle,
@@ -479,16 +478,9 @@ def recreate_assignment_kpis(
         )
 
 
-def create_app(*, bootstrap: bool = True, db_engine: Engine = engine) -> FastAPI:
+def create_app(*, db_engine: Engine = engine) -> FastAPI:
     @asynccontextmanager
     async def lifespan(_: FastAPI):
-        Base.metadata.create_all(bind=db_engine)
-        if bootstrap:
-            db = next(get_db())
-            try:
-                bootstrap_from_seed(db)
-            finally:
-                db.close()
         yield
 
     app = FastAPI(title=settings.app_title, lifespan=lifespan)

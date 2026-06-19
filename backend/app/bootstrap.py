@@ -27,7 +27,6 @@ from app.security import hash_password
 
 
 BACKEND_SEED_PATH = Path(__file__).with_name("seed.generated.json")
-FRONTEND_SEED_PATH = Path(__file__).resolve().parents[2] / "frontend" / "src" / "data" / "seed.generated.ts"
 
 
 def resolve_seed_path() -> Path:
@@ -39,11 +38,9 @@ def resolve_seed_path() -> Path:
 
     if BACKEND_SEED_PATH.exists():
         return BACKEND_SEED_PATH
-    if FRONTEND_SEED_PATH.exists():
-        return FRONTEND_SEED_PATH
 
     raise FileNotFoundError(
-        f"Seed file not found. Checked: {BACKEND_SEED_PATH}, {FRONTEND_SEED_PATH}"
+        f"Seed file not found. Checked: {BACKEND_SEED_PATH}"
     )
 
 
@@ -84,6 +81,7 @@ def bootstrap_from_seed(db: Session) -> None:
     for user_row in seed["users"]:
         user = User(
             username=user_row["username"],
+            email=user_row.get("email") or None,
             password_hash=hash_password(user_row["password"]),
             display_name=user_row["displayName"],
             is_active=True,

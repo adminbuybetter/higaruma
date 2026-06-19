@@ -24,6 +24,10 @@ def slugify(value: str) -> str:
     return cleaned or "user"
 
 
+def normalize_name(value: str) -> str:
+    return " ".join(value.strip().lower().split())
+
+
 def username_from_name(name: str) -> str:
     parts = [part for part in re.split(r"\s+", name.strip()) if part]
     if not parts:
@@ -46,11 +50,19 @@ def admin_password() -> str:
     return "AppraisalAdmin2026!"
 
 
+PORTAL_URL = "https://appraisal-frontend-staging.up.railway.app"
+EMAIL_SUBJECT = "BuyBetter Appraisal 2026: login details and process"
+
+
 REMOVED_EMPLOYEES = {
     "Obathare Reuben Ejovwo",
     "Umaru Dogari",
     "Luka Ishaka",
     "Stephen Caleb",
+    "David Adjei",
+    "Ibrahim Musa",
+    "Hope Haruna",
+    "Uduak Umoh",
 }
 
 MANAGER_ONLY_EMPLOYEES = {
@@ -63,6 +75,14 @@ ADMIN_CAPABILITY_EMPLOYEES = {
 }
 
 EMPLOYEE_ROLE_OVERRIDES = {
+    "Vivian Udu": {
+        "manager_label": "Chinwe Enemokwu",
+        "kpi_owner_label": "Chinwe Enemokwu",
+    },
+    "Benedicta Chidubem Udeigwe": {
+        "manager_label": "Chinwe Enemokwu",
+        "kpi_owner_label": "Chinwe Enemokwu",
+    },
     "Alice Ochigbo": {
         "appraisal_role": "Inventory Officers & Leads",
         "manager_label": "Growth Lead",
@@ -95,11 +115,181 @@ MANAGER_SCOPE_BY_EMPLOYEE = {
     "Udeh Ifeanyi Clement": ["Head of Inventory"],
 }
 
+EXTRA_USERS = [
+    {
+        "id": "USR-CHINWE-001",
+        "displayName": "Chinwe Enemokwu",
+        "username": "chinwe.enemokwu",
+        "password": "AppraiseCEO2026!",
+        "email": "chinwe@buybetter.ng",
+        "kind": "manager",
+        "capabilities": ["manager", "admin"],
+        "employeeId": None,
+        "managerScopes": ["Chinwe Enemokwu"],
+    }
+]
+
+EMAIL_BY_NAME = {
+    normalize_name("Dare Peters"): "dare@buybetter.ng",
+    normalize_name("Samuel Mbudinma"): "samuel.mbudinma@buybetter.ng",
+    normalize_name("Akintomide Akindele"): "tomide@buybetter.ng",
+    normalize_name("Valentine Unyi Ternenge"): "valentine@buybetter.ng",
+    normalize_name("Mary Favour Okorji"): "maryfavour@buybetter.ng",
+    normalize_name("Chisom Ugoh"): "chisom.ugoh@buybetter.ng",
+    normalize_name("Victoria Daniel Igo"): "victoria@buybetter.ng",
+    normalize_name("Eniola Ojekunle"): "eniola.ojekunle@buybetter.ng",
+    normalize_name("Happiness Oyewale"): "eniola.ojekunle@buybetter.ng",
+    normalize_name("Pamela Edeh"): "pamela@buybetter.ng",
+    normalize_name("Mary Edun Abidemi"): "mary@buybetter.ng",
+    normalize_name("Rose Udoh"): "rose.uka@buybetter.ng",
+    normalize_name("Rose Uka"): "rose.uka@buybetter.ng",
+    normalize_name("Victor Ugwu"): "victor.ugwu@buybetter.ng",
+    normalize_name("Imemba Goodluck Ikechukwu"): "ikechukwu@buybetter.ng",
+    normalize_name("Anyanwu Kelechi Anthony"): "kelechi@buybetter.ng",
+    normalize_name("Olayinka Olabiran"): "olayinka@buybetter.ng",
+    normalize_name("Ugwuogor Nnamdi Samuel"): "nnamdi@buybetter.ng",
+    normalize_name("Ephraim Yisa"): "ephraim@buybetter.ng",
+    normalize_name("Felix Aondoemba Nguuma"): "felix@buybetter.ng",
+    normalize_name("Stephanie Uwaezuoke"): "stephanie@buybetter.ng",
+    normalize_name("Francis Fanen"): "francis@buybetter.ng",
+    normalize_name("Sandra Ihkimioya"): "sandra@buybetter.ng",
+    normalize_name("Okoro Victor"): "victor.okoro@buybetter.ng",
+    normalize_name("Nnamani Chioma Helen"): "chioma@buybetter.ng",
+    normalize_name("Arasi Oluwatobi"): "oluwatobi@buybetter.ng",
+    normalize_name("Lorreta Nwabuaja"): "lorreta.nwabuaju@buybetter.ng",
+    normalize_name("Chiamaka Mbaeru"): "chiamaka.mbaeru@buybetter.ng",
+    normalize_name("Titoluwanimi Ige"): "titoluwanimi@buybetter.ng",
+    normalize_name("Akinyemi Boluwatife"): "bolu@buybetter.ng",
+    normalize_name("Akinyemi Boluwatito"): "bolu@buybetter.ng",
+    normalize_name("Rebecca Lasekan"): "rebecca@buybetter.ng",
+    normalize_name("Ngozika Grace Omaka"): "ngozika@buybetter.ng",
+    normalize_name("Motunrayo Adejumobi"): "motunrayo@buybetter.ng",
+    normalize_name("Kamsi Nwaukwa"): "kamsi@buybetter.ng",
+    normalize_name("Kamsiriochi Nwaukwa"): "kamsi@buybetter.ng",
+    normalize_name("Ojo Bunmi"): "bunmi@buybetter.ng",
+    normalize_name("Adams Temidayo"): "temidayo@buybetter.ng",
+    normalize_name("Ololade Shoyemi"): "lolade@buybetter.ng",
+    normalize_name("Chinemerem Mgbaruike"): "chinemerem@buybetter.ng",
+    normalize_name("Chioma Eze"): "chioma.eze@buybetter.ng",
+    normalize_name("Toluwanimi Yusuff"): "toluwanimi@buybetter.ng",
+    normalize_name("Dexter Onuorah"): "dexter@buybetter.ng",
+    normalize_name("Olorunfemi Adegoke"): "olorunfemi@buybetter.ng",
+    normalize_name("Ajayi Abimbola Opeoluwa"): "ope@buybetter.ng",
+    normalize_name("Patrick Ikegwuonu"): "patrick.ikegwuonu@buybetter.ng",
+    normalize_name("Maureen Kutuh"): "maureen@buybetter.ng",
+    normalize_name("Chinonyerem Onyeaba"): "chinonyerem@buybetter.ng",
+    normalize_name("Udeh Ifeanyi Clement"): "ifeanyi@buybetter.ng",
+    normalize_name("Ebenezer Okechukwu"): "ebenezer@buybetter.ng",
+    normalize_name("Moses Oregbuyide"): "moses.oregbuyide@buybetter.ng",
+    normalize_name("Alice Ochigbo"): "alice@buybetter.ng",
+    normalize_name("Chukwuejim Alexandra"): "alexandra@buybetter.ng",
+    normalize_name("Vivian Udu"): "vivian@buybetter.ng",
+    normalize_name("Benedicta Udeigwe"): "benedicta@buybetter.ng",
+    normalize_name("Benedicta Chidubem Udeigwe"): "benedicta@buybetter.ng",
+    normalize_name("Rofiat Gbemisola"): "rofiat@buybetter.ng",
+    normalize_name("Chinwe Enemokwu"): "chinwe@buybetter.ng",
+    normalize_name("Sandra Dunkwu"): "sandra.dunkwu@buybetter.ng",
+}
+
+DESIGNATION_FIELD_OVERRIDES = {
+    "Growth Lead": {
+        "matched_existing_role": "Growth Lead",
+        "suggested_appraisal_role": "Growth Lead",
+        "department": "Growth",
+        "line_manager": "Chief of Staff",
+        "reviewer": "",
+        "kpi_owner": "Chief of Staff",
+        "self_appraisal_required": "Yes",
+        "needs_clarification": "No",
+        "notes": "Growth Lead KPI pack supplied via Growth KPI Ololade Shoyemi.pdf; reporting line remains Chief of Staff",
+    },
+}
+
+ROLE_KPI_OVERRIDES = {
+    "Growth Lead": [
+        {
+            "kpiArea": "Daily Order Volume Growth",
+            "kpiStatement": "Grow combined daily order volume toward approved targets and reverse recent order decline through repeatable commercial execution.",
+            "weightPercent": 14,
+        },
+        {
+            "kpiArea": "Same-Day Delivery Expansion",
+            "kpiStatement": "Scale same-day delivery order throughput while protecting fulfilment quality and execution consistency.",
+            "weightPercent": 10,
+        },
+        {
+            "kpiArea": "Promotional Cadence Execution",
+            "kpiStatement": "Run the approved free-delivery promotional cadence consistently and on schedule.",
+            "weightPercent": 6,
+        },
+        {
+            "kpiArea": "Promotional Revenue Capture",
+            "kpiStatement": "Convert promotional campaigns into measurable revenue uplift against approved promo targets.",
+            "weightPercent": 5,
+        },
+        {
+            "kpiArea": "Nivea Revenue Growth",
+            "kpiStatement": "Increase the Nivea monthly revenue line against target through focused commercial actions.",
+            "weightPercent": 8,
+        },
+        {
+            "kpiArea": "Beesline Merchandising Performance",
+            "kpiStatement": "Improve Beesline monthly unit movement through strong in-store merchandising and sell-through execution.",
+            "weightPercent": 5,
+        },
+        {
+            "kpiArea": "New Revenue Line Introduction",
+            "kpiStatement": "Launch and stabilise new revenue lines using the brand introduction playbook.",
+            "weightPercent": 5,
+        },
+        {
+            "kpiArea": "Department Revenue Delivery",
+            "kpiStatement": "Deliver all-channel daily department revenue against target and keep the team focused on the highest-yield levers.",
+            "weightPercent": 15,
+        },
+        {
+            "kpiArea": "Core Channel Revenue Growth",
+            "kpiStatement": "Grow the largest channel revenue line against daily target and sustain momentum in the strongest commercial lane.",
+            "weightPercent": 10,
+        },
+        {
+            "kpiArea": "Average Order Value Defense",
+            "kpiStatement": "Maintain average order value at or above the agreed floor through bundling and cross-sell discipline.",
+            "weightPercent": 5,
+        },
+        {
+            "kpiArea": "Same-Day Delivery SLA",
+            "kpiStatement": "Maintain on-time same-day delivery performance at the agreed service level.",
+            "weightPercent": 5,
+        },
+        {
+            "kpiArea": "Top-SKU Stockout Control",
+            "kpiStatement": "Reduce stockout incidents across top SKUs through forecasting follow-up and replenishment coordination.",
+            "weightPercent": 4,
+        },
+        {
+            "kpiArea": "Direct Report KPI Delivery",
+            "kpiStatement": "Drive direct reports to achieve department KPIs through clear cascade, follow-up, and performance management.",
+            "weightPercent": 5,
+        },
+        {
+            "kpiArea": "Wholesale Partner Retention",
+            "kpiStatement": "Maintain target retention across key wholesale partners through joint planning and disciplined relationship management.",
+            "weightPercent": 3,
+        },
+    ],
+}
+
 
 designation_rows = read_csv(DESIGNATION_PATH)
 ownership_rows = read_csv(OWNERSHIP_PATH)
 master_rows = read_csv(MASTER_PATH)
 roster_rows = read_csv(ROSTER_PATH)
+
+for row in designation_rows:
+    override = DESIGNATION_FIELD_OVERRIDES.get((row.get("roster_designation") or "").strip())
+    if override:
+        row.update(override)
 
 designation_map = {row["roster_designation"]: row for row in designation_rows}
 ownership_map = {row["job_title"]: row for row in ownership_rows}
@@ -130,6 +320,9 @@ for items in role_kpis.values():
         seen.add(key)
         deduped.append(item)
     items[:] = deduped
+
+for role_name, items in ROLE_KPI_OVERRIDES.items():
+    role_kpis[role_name] = [dict(item) for item in items]
 
 
 manager_labels = set()
@@ -176,6 +369,30 @@ def effective_role(roster_row, designation_row):
     if suggested:
         return suggested
     return ""
+
+
+def resolve_outreach_email(name: str) -> str:
+    return EMAIL_BY_NAME.get(normalize_name(name), "")
+
+
+def login_email_body(*, display_name: str, username: str, password: str) -> str:
+    return (
+        f"Hello {display_name},\n\n"
+        "The BuyBetter 2026 appraisal cycle is now live.\n\n"
+        "Please log in to complete your self-appraisal before your line manager review begins.\n\n"
+        f"Portal: {PORTAL_URL}\n"
+        f"Username: {username}\n"
+        f"Password: {password}\n\n"
+        "What to do:\n"
+        "1. Sign in with the login details above.\n"
+        "2. Complete your self-appraisal across all assigned KPI areas.\n"
+        "3. Submit the form once you are done.\n"
+        "4. Your line manager will review after submission.\n"
+        "5. HR/Admin will release final results after the review process.\n\n"
+        "Please keep your password private. If you are unable to sign in or notice missing KPI items, reply to HR immediately.\n\n"
+        "Regards,\n"
+        "BuyBetter HR / Appraisal Admin"
+    )
 
 
 for roster_row in roster_rows:
@@ -254,12 +471,14 @@ for roster_row in roster_rows:
     if employee_name in ADMIN_CAPABILITY_EMPLOYEES:
         capabilities.append("admin")
     if capabilities:
+        outreach_email = resolve_outreach_email(employee_name)
         users.append(
             {
                 "id": employee_id,
                 "username": username,
                 "password": employee_password(employee_id),
                 "displayName": employee_name,
+                "email": outreach_email,
                 "kind": capabilities[0],
                 "capabilities": capabilities,
                 "employeeId": employee_id if "employee" in capabilities else None,
@@ -396,6 +615,23 @@ unresolved_designations = [
     item for item in unresolved_designations if item["designation"] in active_designations
 ]
 
+for extra_user in EXTRA_USERS:
+    users.append(dict(extra_user))
+
+email_counts = {}
+for user in users:
+    email = (user.get("email") or "").strip().lower()
+    if email:
+        email_counts[email] = email_counts.get(email, 0) + 1
+
+for user in users:
+    outreach_email = (user.get("email") or "").strip()
+    user["outreachEmail"] = outreach_email
+    if outreach_email and email_counts.get(outreach_email.lower(), 0) == 1:
+        user["email"] = outreach_email
+    else:
+        user["email"] = ""
+
 
 seed = {
     "cycle": {
@@ -426,17 +662,41 @@ generated.write_text(
 credentials_path = APP_DIR / "src" / "data" / "credentials.generated.csv"
 with credentials_path.open("w", newline="", encoding="utf-8") as handle:
     writer = csv.writer(handle)
-    writer.writerow(["primary_kind", "capabilities", "display_name", "username", "password", "employee_id", "manager_scopes"])
+    writer.writerow(["primary_kind", "capabilities", "display_name", "email", "username", "password", "employee_id", "manager_scopes"])
     for user in users:
         writer.writerow(
             [
                 user["kind"],
                 " | ".join(user.get("capabilities", [])),
                 user["displayName"],
+                user.get("outreachEmail", ""),
                 user["username"],
                 user["password"],
                 user.get("employeeId", ""),
                 " | ".join(user.get("managerScopes", [])),
+            ]
+        )
+
+mailmerge_path = APP_DIR / "src" / "data" / "login_mailmerge.generated.csv"
+with mailmerge_path.open("w", newline="", encoding="utf-8") as handle:
+    writer = csv.writer(handle)
+    writer.writerow(["display_name", "email", "username", "password", "subject", "body"])
+    for user in users:
+        outreach_email = user.get("outreachEmail", "")
+        if not outreach_email:
+            continue
+        writer.writerow(
+            [
+                user["displayName"],
+                outreach_email,
+                user["username"],
+                user["password"],
+                EMAIL_SUBJECT,
+                login_email_body(
+                    display_name=user["displayName"],
+                    username=user["username"],
+                    password=user["password"],
+                ),
             ]
         )
 
@@ -463,4 +723,5 @@ with gaps_path.open("w", encoding="utf-8") as handle:
 
 print(f"Generated {generated}")
 print(f"Generated {credentials_path}")
+print(f"Generated {mailmerge_path}")
 print(f"Generated {gaps_path}")

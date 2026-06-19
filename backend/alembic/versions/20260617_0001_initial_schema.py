@@ -17,9 +17,16 @@ depends_on = None
 
 
 def upgrade() -> None:
+    bind = op.get_bind()
+    is_postgres = bind.dialect.name == "postgresql"
+    uuid_type = postgresql.UUID(as_uuid=True) if is_postgres else sa.Uuid(as_uuid=True)
+    json_type = postgresql.JSONB(astext_type=sa.Text()) if is_postgres else sa.JSON()
+    json_array_default = sa.text("'[]'::jsonb") if is_postgres else sa.text("'[]'")
+    json_object_default = sa.text("'{}'::jsonb") if is_postgres else sa.text("'{}'")
+
     op.create_table(
         "users",
-        sa.Column("id", postgresql.UUID(as_uuid=True), nullable=False),
+        sa.Column("id", uuid_type, nullable=False),
         sa.Column("username", sa.String(length=255), nullable=False),
         sa.Column("email", sa.String(length=255), nullable=True),
         sa.Column("password_hash", sa.Text(), nullable=False),
@@ -30,19 +37,27 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id", name=op.f("pk_users")),
         sa.UniqueConstraint("username", name=op.f("uq_users_username")),
     )
-    op.create_index(
-        "uq_users_email_not_null",
-        "users",
-        ["email"],
-        unique=True,
-        postgresql_where=sa.text("email IS NOT NULL"),
-    )
+    if is_postgres:
+        op.create_index(
+            "uq_users_email_not_null",
+            "users",
+            ["email"],
+            unique=True,
+            postgresql_where=sa.text("email IS NOT NULL"),
+        )
+    else:
+        op.create_index(
+            "uq_users_email_not_null",
+            "users",
+            ["email"],
+            unique=True,
+        )
 
     op.create_table(
         "employees",
-        sa.Column("id", postgresql.UUID(as_uuid=True), nullable=False),
+        sa.Column("id", uuid_type, nullable=False),
         sa.Column("employee_code", sa.String(length=64), nullable=False),
-        sa.Column("user_id", postgresql.UUID(as_uuid=True), nullable=True),
+        sa.Column("user_id", uuid_type, nullable=True),
         sa.Column("full_name", sa.String(length=255), nullable=False),
         sa.Column("designation", sa.String(length=255), nullable=False),
         sa.Column("department", sa.String(length=255), nullable=True),
@@ -59,8 +74,8 @@ def upgrade() -> None:
 
     op.create_table(
         "user_capabilities",
-        sa.Column("id", postgresql.UUID(as_uuid=True), nullable=False),
-        sa.Column("user_id", postgresql.UUID(as_uuid=True), nullable=False),
+        sa.Column("id", uuid_type, nullable=False),
+        sa.Column("user_id", uuid_type, nullable=False),
         sa.Column("capability", sa.String(length=32), nullable=False),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], name=op.f("fk_user_capabilities_user_id_users"), ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_user_capabilities")),
@@ -69,8 +84,8 @@ def upgrade() -> None:
 
     op.create_table(
         "manager_scopes",
-        sa.Column("id", postgresql.UUID(as_uuid=True), nullable=False),
-        sa.Column("user_id", postgresql.UUID(as_uuid=True), nullable=False),
+        sa.Column("id", uuid_type, nullable=False),
+        sa.Column("user_id", uuid_type, nullable=False),
         sa.Column("owner_label", sa.String(length=255), nullable=False),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], name=op.f("fk_manager_scopes_user_id_users"), ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_manager_scopes")),
@@ -79,7 +94,7 @@ def upgrade() -> None:
 
     op.create_table(
         "appraisal_cycles",
-        sa.Column("id", postgresql.UUID(as_uuid=True), nullable=False),
+        sa.Column("id", uuid_type, nullable=False),
         sa.Column("code", sa.String(length=64), nullable=False),
         sa.Column("name", sa.String(length=255), nullable=False),
         sa.Column("status", sa.String(length=64), nullable=False),
@@ -93,7 +108,7 @@ def upgrade() -> None:
 
     op.create_table(
         "kpi_packs",
-        sa.Column("id", postgresql.UUID(as_uuid=True), nullable=False),
+        sa.Column("id", uuid_type, nullable=False),
         sa.Column("role_name", sa.String(length=255), nullable=False),
         sa.Column("department", sa.String(length=255), nullable=True),
         sa.Column("source_reference", sa.Text(), nullable=True),
@@ -107,8 +122,8 @@ def upgrade() -> None:
 
     op.create_table(
         "kpi_pack_items",
-        sa.Column("id", postgresql.UUID(as_uuid=True), nullable=False),
-        sa.Column("kpi_pack_id", postgresql.UUID(as_uuid=True), nullable=False),
+        sa.Column("id", uuid_type, nullable=False),
+        sa.Column("kpi_pack_id", uuid_type, nullable=False),
         sa.Column("sort_order", sa.Integer(), nullable=False),
         sa.Column("kpi_area", sa.String(length=255), nullable=False),
         sa.Column("kpi_statement", sa.Text(), nullable=False),
@@ -121,9 +136,9 @@ def upgrade() -> None:
 
     op.create_table(
         "designation_role_mappings",
-        sa.Column("id", postgresql.UUID(as_uuid=True), nullable=False),
+        sa.Column("id", uuid_type, nullable=False),
         sa.Column("designation", sa.String(length=255), nullable=False),
-        sa.Column("kpi_pack_id", postgresql.UUID(as_uuid=True), nullable=True),
+        sa.Column("kpi_pack_id", uuid_type, nullable=True),
         sa.Column("department", sa.String(length=255), nullable=True),
         sa.Column("line_manager_label", sa.String(length=255), nullable=True),
         sa.Column("reviewer_label", sa.String(length=255), nullable=True),
@@ -140,11 +155,11 @@ def upgrade() -> None:
 
     op.create_table(
         "employee_cycle_assignments",
-        sa.Column("id", postgresql.UUID(as_uuid=True), nullable=False),
-        sa.Column("employee_id", postgresql.UUID(as_uuid=True), nullable=False),
-        sa.Column("appraisal_cycle_id", postgresql.UUID(as_uuid=True), nullable=False),
-        sa.Column("designation_mapping_id", postgresql.UUID(as_uuid=True), nullable=True),
-        sa.Column("kpi_pack_id", postgresql.UUID(as_uuid=True), nullable=True),
+        sa.Column("id", uuid_type, nullable=False),
+        sa.Column("employee_id", uuid_type, nullable=False),
+        sa.Column("appraisal_cycle_id", uuid_type, nullable=False),
+        sa.Column("designation_mapping_id", uuid_type, nullable=True),
+        sa.Column("kpi_pack_id", uuid_type, nullable=True),
         sa.Column("appraisal_role_name", sa.String(length=255), nullable=True),
         sa.Column("line_manager_label", sa.String(length=255), nullable=True),
         sa.Column("reviewer_label", sa.String(length=255), nullable=True),
@@ -152,7 +167,7 @@ def upgrade() -> None:
         sa.Column("primary_owner_label", sa.String(length=255), nullable=True),
         sa.Column("status", sa.String(length=64), nullable=False),
         sa.Column("excluded_this_cycle", sa.Boolean(), server_default=sa.text("false"), nullable=False),
-        sa.Column("blockers_json", postgresql.JSONB(astext_type=sa.Text()), server_default=sa.text("'[]'::jsonb"), nullable=False),
+        sa.Column("blockers_json", json_type, server_default=json_array_default, nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
         sa.ForeignKeyConstraint(["employee_id"], ["employees.id"], name=op.f("fk_employee_cycle_assignments_employee_id_employees"), ondelete="CASCADE"),
@@ -165,9 +180,9 @@ def upgrade() -> None:
 
     op.create_table(
         "employee_kpi_assignments",
-        sa.Column("id", postgresql.UUID(as_uuid=True), nullable=False),
-        sa.Column("employee_cycle_assignment_id", postgresql.UUID(as_uuid=True), nullable=False),
-        sa.Column("kpi_pack_item_id", postgresql.UUID(as_uuid=True), nullable=True),
+        sa.Column("id", uuid_type, nullable=False),
+        sa.Column("employee_cycle_assignment_id", uuid_type, nullable=False),
+        sa.Column("kpi_pack_item_id", uuid_type, nullable=True),
         sa.Column("sort_order", sa.Integer(), nullable=False),
         sa.Column("kpi_area", sa.String(length=255), nullable=False),
         sa.Column("kpi_statement", sa.Text(), nullable=False),
@@ -186,8 +201,8 @@ def upgrade() -> None:
 
     op.create_table(
         "self_appraisals",
-        sa.Column("id", postgresql.UUID(as_uuid=True), nullable=False),
-        sa.Column("employee_cycle_assignment_id", postgresql.UUID(as_uuid=True), nullable=False),
+        sa.Column("id", uuid_type, nullable=False),
+        sa.Column("employee_cycle_assignment_id", uuid_type, nullable=False),
         sa.Column("status", sa.String(length=64), server_default=sa.text("'draft'"), nullable=False),
         sa.Column("overall_achievements", sa.Text(), nullable=True),
         sa.Column("major_challenges", sa.Text(), nullable=True),
@@ -204,9 +219,9 @@ def upgrade() -> None:
 
     op.create_table(
         "self_appraisal_items",
-        sa.Column("id", postgresql.UUID(as_uuid=True), nullable=False),
-        sa.Column("self_appraisal_id", postgresql.UUID(as_uuid=True), nullable=False),
-        sa.Column("employee_kpi_assignment_id", postgresql.UUID(as_uuid=True), nullable=False),
+        sa.Column("id", uuid_type, nullable=False),
+        sa.Column("self_appraisal_id", uuid_type, nullable=False),
+        sa.Column("employee_kpi_assignment_id", uuid_type, nullable=False),
         sa.Column("self_score", sa.Integer(), server_default=sa.text("0"), nullable=False),
         sa.Column("reason_for_score", sa.Text(), nullable=True),
         sa.Column("key_evidence", sa.Text(), nullable=True),
@@ -221,8 +236,8 @@ def upgrade() -> None:
 
     op.create_table(
         "final_results",
-        sa.Column("id", postgresql.UUID(as_uuid=True), nullable=False),
-        sa.Column("employee_cycle_assignment_id", postgresql.UUID(as_uuid=True), nullable=False),
+        sa.Column("id", uuid_type, nullable=False),
+        sa.Column("employee_cycle_assignment_id", uuid_type, nullable=False),
         sa.Column("self_summary", sa.Text(), nullable=True),
         sa.Column("manager_summary", sa.Text(), nullable=True),
         sa.Column("final_recommendation", sa.Text(), nullable=True),
@@ -230,7 +245,7 @@ def upgrade() -> None:
         sa.Column("performance_band", sa.String(length=64), server_default=sa.text("'Not rated'"), nullable=False),
         sa.Column("released_to_employee", sa.Boolean(), server_default=sa.text("false"), nullable=False),
         sa.Column("released_at", sa.DateTime(timezone=True), nullable=True),
-        sa.Column("released_by_user_id", postgresql.UUID(as_uuid=True), nullable=True),
+        sa.Column("released_by_user_id", uuid_type, nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
         sa.ForeignKeyConstraint(["employee_cycle_assignment_id"], ["employee_cycle_assignments.id"], name=op.f("fk_final_results_employee_cycle_assignment_id_employee_cycle_assignments"), ondelete="CASCADE"),
@@ -241,12 +256,12 @@ def upgrade() -> None:
 
     op.create_table(
         "audit_events",
-        sa.Column("id", postgresql.UUID(as_uuid=True), nullable=False),
-        sa.Column("actor_user_id", postgresql.UUID(as_uuid=True), nullable=True),
+        sa.Column("id", uuid_type, nullable=False),
+        sa.Column("actor_user_id", uuid_type, nullable=True),
         sa.Column("entity_type", sa.String(length=128), nullable=False),
-        sa.Column("entity_id", postgresql.UUID(as_uuid=True), nullable=False),
+        sa.Column("entity_id", uuid_type, nullable=False),
         sa.Column("event_type", sa.String(length=128), nullable=False),
-        sa.Column("payload_json", postgresql.JSONB(astext_type=sa.Text()), server_default=sa.text("'{}'::jsonb"), nullable=False),
+        sa.Column("payload_json", json_type, server_default=json_object_default, nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
         sa.ForeignKeyConstraint(["actor_user_id"], ["users.id"], name=op.f("fk_audit_events_actor_user_id_users"), ondelete="SET NULL"),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_audit_events")),

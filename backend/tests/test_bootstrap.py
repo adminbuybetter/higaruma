@@ -15,16 +15,13 @@ class BootstrapTest(unittest.TestCase):
             with patch.dict(os.environ, {"APPRAISAL_SEED_PATH": str(seed_path)}, clear=False):
                 self.assertEqual(bootstrap.resolve_seed_path(), seed_path)
 
-    def test_resolve_seed_path_uses_backend_copy_before_frontend_seed(self):
+    def test_resolve_seed_path_uses_backend_copy(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             backend_seed = Path(temp_dir) / "backend-seed.json"
-            frontend_seed = Path(temp_dir) / "frontend-seed.ts"
             backend_seed.write_text("{}", encoding="utf-8")
-            frontend_seed.write_text("{}", encoding="utf-8")
             with patch.dict(os.environ, {}, clear=True):
                 with patch.object(bootstrap, "BACKEND_SEED_PATH", backend_seed):
-                    with patch.object(bootstrap, "FRONTEND_SEED_PATH", frontend_seed):
-                        self.assertEqual(bootstrap.resolve_seed_path(), backend_seed)
+                    self.assertEqual(bootstrap.resolve_seed_path(), backend_seed)
 
 
 if __name__ == "__main__":

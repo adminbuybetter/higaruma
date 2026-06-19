@@ -27,7 +27,7 @@ class ApiTest(unittest.TestCase):
         finally:
             db.close()
 
-        app = create_app(bootstrap=False, db_engine=self.engine)
+        app = create_app(db_engine=self.engine)
 
         def override_get_db():
             db = self.SessionLocal()
@@ -192,7 +192,10 @@ class ApiTest(unittest.TestCase):
         workspace = self.client.get("/admin/workspace", headers={"Authorization": f"Bearer {admin_token}"})
         self.assertEqual(workspace.status_code, 200)
         payload = workspace.json()
-        self.assertTrue(any(item["designation"] == "Growth Lead" for item in payload["unresolved_designations"]))
+        self.assertFalse(any(item["designation"] == "Growth Lead" for item in payload["unresolved_designations"]))
+        ololade = next(item for item in payload["workspaces"] if item["employee"]["employee_code"] == "EMP-056")
+        self.assertEqual(ololade["employee"]["status"], "ready")
+        self.assertGreater(len(ololade["assignments"]), 0)
 
         release = self.client.patch(
             "/admin/final-results/EMP-013",
@@ -201,6 +204,27 @@ class ApiTest(unittest.TestCase):
         )
         self.assertEqual(release.status_code, 200)
         self.assertTrue(release.json()["final_result"]["released_to_employee"])
+
+    def test_chinwe_can_access_admin_and_manager_views_for_aestheticians(self):
+        token = self.login("chinwe.enemokwu", "AppraiseCEO2026!")
+
+        admin_workspace = self.client.get(
+            "/admin/workspace",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        self.assertEqual(admin_workspace.status_code, 200)
+        all_workspaces = admin_workspace.json()["workspaces"]
+        vivian = next(item for item in all_workspaces if item["employee"]["employee_code"] == "EMP-007")
+        self.assertEqual(vivian["employee"]["line_manager_label"], "Chinwe Enemokwu")
+
+        manager_workspace = self.client.get(
+            "/manager/workspace",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        self.assertEqual(manager_workspace.status_code, 200)
+        managed_codes = {item["employee"]["employee_code"] for item in manager_workspace.json()["workspaces"]}
+        self.assertIn("EMP-007", managed_codes)
+        self.assertIn("EMP-008", managed_codes)
 
     def test_admin_can_resolve_designation_setup(self):
         admin_token = self.login("sandra.dunkwu", "Appraise060!")
