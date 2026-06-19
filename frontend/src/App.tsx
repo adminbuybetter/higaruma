@@ -1262,64 +1262,34 @@ function App() {
       ) : null}
 
       {(canUseManagerFlow || canUseAdminFlow) && !reviewLoadState.ready ? (
-        <>
-          {canUseManagerFlow ? (
-            <StepStrip
-              mode="manager"
-              employeeRecord={employeeRecord}
-              finalResult={finalResult}
-            />
-          ) : null}
-          {canUseAdminFlow ? (
-            <StepStrip
-              mode="admin"
-              employeeRecord={employeeRecord}
-              finalResult={finalResult}
-            />
-          ) : null}
-          <section className="surface-card section-card">
-            <p className="subtle">{reviewLoadState.loading ? 'Loading review workspace…' : 'Unable to load review workspace.'}</p>
-            {reviewLoadState.error ? <p className="error-text">{reviewLoadState.error}</p> : null}
-          </section>
-        </>
+        <section className="surface-card section-card">
+          <p className="subtle">{reviewLoadState.loading ? 'Loading review workspace…' : 'Unable to load review workspace.'}</p>
+          {reviewLoadState.error ? <p className="error-text">{reviewLoadState.error}</p> : null}
+        </section>
       ) : null}
 
       {canUseManagerFlow && reviewLoadState.ready ? (
-        <>
-          <StepStrip
-            mode="manager"
-            employeeRecord={employeeRecord}
-            finalResult={finalResult}
-          />
-          <ManagerWorkspace
-            currentUser={currentUser}
-            employees={managedEmployees}
-            selectedEmployee={managedEmployee}
-            assignments={managedAssignments}
-            selfRecord={managedSelfRecord}
-            finalResult={managedFinalResult}
-            onSelectEmployee={setSelectedManagedEmployeeId}
-            onUpdateAssignment={updateAssignment}
-            onUpdateFinalResult={updateFinalResult}
-          />
-        </>
+        <ManagerWorkspace
+          currentUser={currentUser}
+          employees={managedEmployees}
+          selectedEmployee={managedEmployee}
+          assignments={managedAssignments}
+          selfRecord={managedSelfRecord}
+          finalResult={managedFinalResult}
+          onSelectEmployee={setSelectedManagedEmployeeId}
+          onUpdateAssignment={updateAssignment}
+          onUpdateFinalResult={updateFinalResult}
+        />
       ) : null}
 
       {canUseAdminFlow && reviewLoadState.ready ? (
-        <>
-          <StepStrip
-            mode="admin"
-            employeeRecord={employeeRecord}
-            finalResult={finalResult}
-          />
-          <AdminWorkspace
-            state={state}
-            rolePackLibrary={rolePackLibrary}
-            onUpdateFinalResult={updateFinalResult}
-            onResolveDesignationSetup={resolveDesignationSetup}
-            onReset={resetAppraisalData}
-          />
-        </>
+        <AdminWorkspace
+          state={state}
+          rolePackLibrary={rolePackLibrary}
+          onUpdateFinalResult={updateFinalResult}
+          onResolveDesignationSetup={resolveDesignationSetup}
+          onReset={resetAppraisalData}
+        />
       ) : null}
     </div>
   )
@@ -1713,185 +1683,188 @@ function ManagerWorkspace({
   onUpdateFinalResult: (employeeId: string, patch: Partial<FinalResultRecord>) => void
 }) {
   const selfSubmitted = Boolean(selfRecord?.status === 'submitted')
+  const reviewedReports = employees.filter((employee) => employee.status === 'ready').length
+
   return (
-    <main className="calculator-shell">
-      <div className="calculator-main">
-        <section className="surface-card hero-section">
-          <div className="section-head">
-            <div>
-              <div className="eyebrow">Appraisal owner</div>
-              <h2>{currentUser.displayName}</h2>
-            </div>
-          </div>
-          <p className="subtle">
-            Review direct reports, score KPI rows, then prepare the final recommendation.
-          </p>
-        </section>
+    <main className="employee-shell">
+      <div className="employee-top-grid">
+        <div className="employee-left-stack">
+          <StepStrip mode="manager" employeeRecord={selectedEmployee} finalResult={finalResult} />
 
-        <section className="surface-card section-card">
-          <div className="section-head">
-            <div>
-              <div className="eyebrow">Direct reports</div>
-              <h2>Select who to review</h2>
-            </div>
-          </div>
-          <div className="stack">
-            {employees.map((employee) => (
-              <button
-                key={employee.employeeId}
-                className={`list-row ${selectedEmployee?.employeeId === employee.employeeId ? 'is-active' : ''}`}
-                onClick={() => onSelectEmployee(employee.employeeId)}
-              >
-                <div>
-                  <strong>{employee.employeeName}</strong>
-                  <p>{employee.designation}</p>
-                </div>
-                <StatusPill status={employee.status} />
-              </button>
-            ))}
-          </div>
-        </section>
-
-        {selectedEmployee ? (
-          <>
-            <section className="surface-card section-card">
-              <div className="section-head">
-                <div>
-                  <div className="eyebrow">Employee summary</div>
-                  <h2>{selectedEmployee.employeeName}</h2>
-                </div>
+          <section className="surface-card hero-section">
+            <div className="section-head">
+              <div>
+                <div className="eyebrow">Appraisal owner</div>
+                <h2>{currentUser.displayName}</h2>
               </div>
-              <p className="subtle">
-                {selectedEmployee.designation} · {selectedEmployee.appraisalRole || 'Role mapping pending'}
-              </p>
-              {selfRecord ? <TextBlock title="Employee self summary" value={selfRecord.overallAchievements || 'No self summary yet.'} /> : null}
-              {!selfSubmitted ? (
-                <div className="warning-box small">
-                  <strong>Waiting on self appraisal</strong>
-                  <p>Manager review unlocks only after the employee submits their self appraisal.</p>
-                </div>
-              ) : null}
-            </section>
+            </div>
+            <p className="subtle">
+              Review direct reports, score KPI rows, then prepare the final recommendation.
+            </p>
+          </section>
+        </div>
 
-            <section className="surface-card section-card">
-              <div className="section-head">
-                <div>
-                  <div className="eyebrow">Manager scoring</div>
-                  <h2>{assignments.length} KPI rows</h2>
-                </div>
+        <aside className="surface-card summary-card employee-summary-card dashboard-summary-card">
+          <div className="summary-label">Review overview</div>
+          <div className="summary-figure slim">
+            {selectedEmployee ? selectedEmployee.employeeName : `${employees.length} reports`}
+          </div>
+          <div className="summary-subtitle">
+            {selectedEmployee ? selectedEmployee.designation : 'Select a direct report to start reviewing.'}
+          </div>
+          <div className="summary-gap" aria-hidden="true" />
+          <div className="summary-metrics">
+            <Metric label="Reports" value={`${employees.length}`} compact />
+            <Metric label="Ready" value={`${reviewedReports}`} compact />
+            <Metric label="KPI rows" value={`${assignments.length}`} compact />
+            <Metric label="Band" value={finalResult?.performanceBand ?? 'Not rated'} compact />
+          </div>
+        </aside>
+      </div>
+
+      <section className="surface-card section-card full-width-card">
+        <div className="section-head">
+          <div>
+            <div className="eyebrow">Direct reports</div>
+            <h2>Select who to review</h2>
+          </div>
+        </div>
+        <div className="stack">
+          {employees.map((employee) => (
+            <button
+              key={employee.employeeId}
+              className={`list-row ${selectedEmployee?.employeeId === employee.employeeId ? 'is-active' : ''}`}
+              onClick={() => onSelectEmployee(employee.employeeId)}
+            >
+              <div>
+                <strong>{employee.employeeName}</strong>
+                <p>{employee.designation}</p>
               </div>
-              <div className="stack">
-                {assignments.map((assignment) => (
-                  <article key={assignment.assignmentId} className="kpi-card">
-                    <div className="kpi-meta">
-                      <strong>{assignment.kpiArea}</strong>
-                      <span>{assignment.weightPercent}%</span>
-                    </div>
-                    <p>{assignment.kpiStatement}</p>
-                    <div className="kpi-edit-grid">
-                      <label>
-                        <span>Score (1-5)</span>
-                        <input
-                          type="number"
-                          min={0}
-                          max={5}
-                          value={assignment.score}
-                          disabled={!selfSubmitted}
-                          onChange={(event) =>
-                            onUpdateAssignment(assignment.assignmentId, {
-                              score: Number(event.target.value),
-                              status: 'in_review',
-                            })
-                          }
-                        />
-                      </label>
-                      <label>
-                        <span>Evidence note</span>
-                        <input
-                          value={assignment.evidenceNote}
-                          disabled={!selfSubmitted}
-                          onChange={(event) =>
-                            onUpdateAssignment(assignment.assignmentId, {
-                              evidenceNote: event.target.value,
-                            })
-                          }
-                        />
-                      </label>
-                    </div>
+              <StatusPill status={employee.status} />
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {selectedEmployee ? (
+        <>
+          <section className="surface-card section-card full-width-card">
+            <div className="section-head">
+              <div>
+                <div className="eyebrow">Employee summary</div>
+                <h2>{selectedEmployee.employeeName}</h2>
+              </div>
+            </div>
+            <p className="subtle">
+              {selectedEmployee.designation} · {selectedEmployee.appraisalRole || 'Role mapping pending'}
+            </p>
+            {selfRecord ? (
+              <TextBlock
+                title="Employee self summary"
+                value={selfRecord.overallAchievements || 'No self summary yet.'}
+              />
+            ) : null}
+            {!selfSubmitted ? (
+              <div className="warning-box small">
+                <strong>Waiting on self appraisal</strong>
+                <p>Manager review unlocks only after the employee submits their self appraisal.</p>
+              </div>
+            ) : null}
+          </section>
+
+          <section className="surface-card section-card full-width-card">
+            <div className="section-head">
+              <div>
+                <div className="eyebrow">Manager scoring</div>
+                <h2>{assignments.length} KPI rows</h2>
+              </div>
+            </div>
+            <div className="stack">
+              {assignments.map((assignment) => (
+                <article key={assignment.assignmentId} className="kpi-card">
+                  <div className="kpi-meta">
+                    <strong>{assignment.kpiArea}</strong>
+                    <span>{assignment.weightPercent}%</span>
+                  </div>
+                  <p>{assignment.kpiStatement}</p>
+                  <div className="kpi-edit-grid">
                     <label>
-                      <span>Manager comment</span>
-                      <textarea
-                        value={assignment.managerComment}
+                      <span>Score (1-5)</span>
+                      <input
+                        type="number"
+                        min={0}
+                        max={5}
+                        value={assignment.score}
                         disabled={!selfSubmitted}
                         onChange={(event) =>
                           onUpdateAssignment(assignment.assignmentId, {
-                            managerComment: event.target.value,
+                            score: Number(event.target.value),
+                            status: 'in_review',
                           })
                         }
                       />
                     </label>
-                  </article>
-                ))}
-              </div>
-            </section>
-
-            {finalResult ? (
-              <section className="surface-card section-card">
-                <div className="section-head">
-                  <div>
-                    <div className="eyebrow">Closeout</div>
-                    <h2>Draft your recommendation</h2>
+                    <label>
+                      <span>Evidence note</span>
+                      <input
+                        value={assignment.evidenceNote}
+                        disabled={!selfSubmitted}
+                        onChange={(event) =>
+                          onUpdateAssignment(assignment.assignmentId, {
+                            evidenceNote: event.target.value,
+                          })
+                        }
+                      />
+                    </label>
                   </div>
-                  <span className="pill">{finalResult.performanceBand}</span>
-                </div>
-                <TextAreaField
-                  label="Manager summary"
-                  value={finalResult.managerSummary}
-                  disabled={!selfSubmitted}
-                  onChange={(value) => onUpdateFinalResult(selectedEmployee.employeeId, { managerSummary: value })}
-                />
-                <TextAreaField
-                  label="Final recommendation"
-                  value={finalResult.finalRecommendation}
-                  disabled={!selfSubmitted}
-                  onChange={(value) =>
-                    onUpdateFinalResult(selectedEmployee.employeeId, { finalRecommendation: value })
-                  }
-                />
-              </section>
-            ) : null}
-          </>
-        ) : (
-          <section className="surface-card section-card">
-            <p className="subtle">No direct reports assigned to this appraisal owner account yet.</p>
+                  <label>
+                    <span>Manager comment</span>
+                    <textarea
+                      value={assignment.managerComment}
+                      disabled={!selfSubmitted}
+                      onChange={(event) =>
+                        onUpdateAssignment(assignment.assignmentId, {
+                          managerComment: event.target.value,
+                        })
+                      }
+                    />
+                  </label>
+                </article>
+              ))}
+            </div>
           </section>
-        )}
-      </div>
 
-      <aside className="summary-rail">
-        <div className="section-head">
-          <div>
-            <div className="eyebrow">Review status</div>
-            <h2>Summary rail</h2>
-          </div>
-        </div>
-        <section className="surface-card summary-card sticky-card">
-          {selectedEmployee ? (
-            <>
-              <div className="summary-label">Selected employee</div>
-              <div className="summary-figure slim">{selectedEmployee.employeeName}</div>
-              <div className="summary-subtitle">{selectedEmployee.designation}</div>
-              <div className="summary-metrics">
-                <Metric label="KPI rows" value={`${assignments.length}`} compact />
-                <Metric label="Current score" value={`${finalResult?.finalScore ?? 0}`} compact />
-                <Metric label="Band" value={finalResult?.performanceBand ?? 'Not rated'} compact />
+          {finalResult ? (
+            <section className="surface-card section-card full-width-card">
+              <div className="section-head">
+                <div>
+                  <div className="eyebrow">Closeout</div>
+                  <h2>Draft your recommendation</h2>
+                </div>
+                <span className="pill">{finalResult.performanceBand}</span>
               </div>
-            </>
-          ) : (
-            <p className="subtle">Pick a direct report to start reviewing.</p>
-          )}
+              <TextAreaField
+                label="Manager summary"
+                value={finalResult.managerSummary}
+                disabled={!selfSubmitted}
+                onChange={(value) => onUpdateFinalResult(selectedEmployee.employeeId, { managerSummary: value })}
+              />
+              <TextAreaField
+                label="Final recommendation"
+                value={finalResult.finalRecommendation}
+                disabled={!selfSubmitted}
+                onChange={(value) =>
+                  onUpdateFinalResult(selectedEmployee.employeeId, { finalRecommendation: value })
+                }
+              />
+            </section>
+          ) : null}
+        </>
+      ) : (
+        <section className="surface-card section-card full-width-card">
+          <p className="subtle">No direct reports assigned to this appraisal owner account yet.</p>
         </section>
-      </aside>
+      )}
     </main>
   )
 }
@@ -2003,8 +1976,39 @@ function AdminWorkspace({
   }
 
   return (
-    <main className="workspace-grid admin-grid">
-      <section className="surface-card alert-card">
+    <main className="employee-shell">
+      <div className="employee-top-grid">
+        <div className="employee-left-stack">
+          <StepStrip mode="admin" employeeRecord={null} finalResult={null} />
+
+          <section className="surface-card hero-section">
+            <div className="section-head">
+              <div>
+                <div className="eyebrow">HR console</div>
+                <h2>Appraisal control centre</h2>
+              </div>
+            </div>
+            <p className="subtle">
+              Resolve designation gaps, monitor self and manager review progress, then control final result release.
+            </p>
+          </section>
+        </div>
+
+        <aside className="surface-card summary-card employee-summary-card dashboard-summary-card">
+          <div className="summary-label">Cycle overview</div>
+          <div className="summary-figure slim">{activeEmployees.length} staff</div>
+          <div className="summary-subtitle">Only active employees in this appraisal cycle are included here.</div>
+          <div className="summary-gap" aria-hidden="true" />
+          <div className="summary-metrics">
+            <Metric label="Unresolved" value={`${unresolvedKpiCount}`} compact />
+            <Metric label="Blocked" value={`${blockedEmployees}`} compact />
+            <Metric label="Submitted" value={`${selfSubmittedCount}`} compact />
+            <Metric label="Released" value={`${releasedCount}`} compact />
+          </div>
+        </aside>
+      </div>
+
+      <section className={`surface-card section-card full-width-card ${unresolvedKpiCount ? 'alert-card' : ''}`}>
         <div className="section-head">
           <div>
             <div className="eyebrow">HR action required</div>
@@ -2024,7 +2028,7 @@ function AdminWorkspace({
         </div>
       </section>
 
-      <section className="surface-card">
+      <section className="surface-card section-card full-width-card">
         <div className="section-head">
           <div>
             <div className="eyebrow">HR overview</div>
@@ -2071,7 +2075,7 @@ function AdminWorkspace({
         </div>
       </section>
 
-      <section className="surface-card">
+      <section className="surface-card section-card full-width-card">
         <div className="section-head">
           <div>
             <div className="eyebrow">Release control</div>
@@ -2102,7 +2106,7 @@ function AdminWorkspace({
         </div>
       </section>
 
-      <section className="surface-card">
+      <section className="surface-card section-card full-width-card">
         <div className="section-head">
           <div>
             <div className="eyebrow">Review packets</div>
@@ -2129,7 +2133,7 @@ function AdminWorkspace({
         </div>
       </section>
 
-      <section className="surface-card">
+      <section className="surface-card section-card full-width-card">
         <div className="section-head">
           <div>
             <div className="eyebrow">Setup unresolved roles</div>
@@ -2234,7 +2238,7 @@ function AdminWorkspace({
         </div>
       </section>
 
-      <section className="surface-card">
+      <section className="surface-card section-card full-width-card">
         <div className="section-head">
           <div>
             <div className="eyebrow">Unresolved gaps</div>
@@ -2269,7 +2273,7 @@ function AdminWorkspace({
         </div>
       </section>
 
-      <section className="surface-card">
+      <section className="surface-card section-card full-width-card">
         <div className="section-head">
           <div>
             <div className="eyebrow">Excluded this cycle</div>
@@ -2282,25 +2286,6 @@ function AdminWorkspace({
             <div key={item.designation} className="text-block">
               <h3>{item.designation}</h3>
               <p>{item.notes || 'Excluded from this cycle by decision.'}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="surface-card">
-        <div className="section-head">
-          <div>
-            <div className="eyebrow">Generated accounts</div>
-            <h2>Generated credentials</h2>
-          </div>
-        </div>
-        <div className="credential-list dense">
-          {state.users.map((user) => (
-            <div key={user.id} className="credential-row">
-              <strong>{user.displayName}</strong>
-              <span>{user.username}</span>
-              <code>{user.password}</code>
-              <span className="pill">{user.capabilities.join(' · ')}</span>
             </div>
           ))}
         </div>

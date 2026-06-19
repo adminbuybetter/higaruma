@@ -494,6 +494,10 @@ label span {
   min-height: 204px;
 }
 
+.dashboard-summary-card {
+  text-align: left;
+}
+
 .full-width-card {
   width: 100%;
 }
