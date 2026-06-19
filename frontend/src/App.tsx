@@ -18,7 +18,24 @@ import type {
 
 const STORAGE_KEY = 'buybetter-appraisal/v1'
 const LEGACY_STORAGE_KEY = 'buybetter-appraisal-prototype/v1'
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, '') ?? 'http://127.0.0.1:8000'
+
+function resolveApiBaseUrl() {
+  const configured = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.trim()
+  if (configured) {
+    return configured.replace(/\/$/, '')
+  }
+
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      return 'http://127.0.0.1:8000'
+    }
+  }
+
+  return 'https://appraisal-backend-staging.up.railway.app'
+}
+
+const API_BASE_URL = resolveApiBaseUrl()
 
 interface BackendUserResponse {
   id: string
