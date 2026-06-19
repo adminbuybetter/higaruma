@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { generatedSeed } from './data/seed.generated'
 import type {
   AppState,
@@ -418,6 +418,30 @@ function buildSelfAppraisalPayload(record: SelfAppraisalRecord, assignments: Ass
   }
 }
 
+function buildSelfPayloadFromWorkspace(workspace: BackendWorkspaceResponse) {
+  return JSON.stringify({
+    status: workspace.self_appraisal?.status ?? 'draft',
+    overall_achievements: workspace.self_appraisal?.overall_achievements ?? '',
+    major_challenges: workspace.self_appraisal?.major_challenges ?? '',
+    support_needed: workspace.self_appraisal?.support_needed ?? '',
+    development_focus: workspace.self_appraisal?.development_focus ?? '',
+    employee_comments: workspace.self_appraisal?.employee_comments ?? '',
+    items: workspace.assignments.map((assignment) => {
+      const item =
+        workspace.self_appraisal?.items.find(
+          (entry) => entry.employee_kpi_assignment_id === assignment.id,
+        ) ?? null
+      return {
+        employee_kpi_assignment_id: assignment.id,
+        self_score: item?.self_score ?? 0,
+        reason_for_score: item?.reason_for_score ?? '',
+        key_evidence: item?.key_evidence ?? '',
+        challenges_faced: item?.challenges_faced ?? '',
+      }
+    }),
+  })
+}
+
 function toBackendAssignmentPatch(patch: Partial<AssignmentRecord>) {
   return {
     manager_score: patch.score,
@@ -548,7 +572,10 @@ function App() {
   const [sessionUserId, setSessionUserId] = useState<string | null>(null)
   const [loginState, setLoginState] = useState({ username: '', password: '', error: '' })
   const [backendToken, setBackendToken] = useState<string | null>(null)
-  const [workspaceLoadState, setWorkspaceLoadState] = useState({ loading: false, error: '' })
+  const [workspaceLoadState, setWorkspaceLoadState] = useState({ loading: false, error: '', ready: false })
+  const [reviewLoadState, setReviewLoadState] = useState({ loading: false, error: '', ready: false })
+  const lastSyncedSelfPayloadRef = useRef<string | null>(null)
+  const autosaveTimerRef = useRef<number | null>(null)
 
   useEffect(() => {
     saveState(state)
@@ -626,12 +653,15 @@ function App() {
 
   useEffect(() => {
     if (!backendToken || !currentUser || !canUseEmployeeFlow || !currentUser.employeeId) {
-      setWorkspaceLoadState((current) => (current.loading || current.error ? { loading: false, error: '' } : current))
+      setWorkspaceLoadState((current) =>
+        current.loading || current.error || current.ready ? { loading: false, error: '', ready: false } : current,
+      )
+      lastSyncedSelfPayloadRef.current = null
       return
     }
 
     let cancelled = false
-    setWorkspaceLoadState({ loading: true, error: '' })
+    setWorkspaceLoadState({ loading: true, error: '', ready: false })
 
     fetch(`${API_BASE_URL}/employee/me/workspace`, {
       headers: { Authorization: `Bearer ${backendToken}` },
@@ -644,13 +674,14 @@ function App() {
       })
       .then((workspace) => {
         if (cancelled) return
+        lastSyncedSelfPayloadRef.current = buildSelfPayloadFromWorkspace(workspace)
         setState((current) => mergeEmployeeWorkspaceIntoState(current, workspace, currentUser.username))
-        setWorkspaceLoadState({ loading: false, error: '' })
+        setWorkspaceLoadState({ loading: false, error: '', ready: true })
       })
       .catch((error: unknown) => {
         if (cancelled) return
         const message = error instanceof Error ? error.message : 'Failed to load employee workspace.'
-        setWorkspaceLoadState({ loading: false, error: message })
+        setWorkspaceLoadState({ loading: false, error: message, ready: false })
       })
 
     return () => {
@@ -660,10 +691,16 @@ function App() {
 
   useEffect(() => {
     if (!backendToken || !currentUser) return
-    if (!canUseAdminFlow && !canUseManagerFlow) return
+    if (!canUseAdminFlow && !canUseManagerFlow) {
+      setReviewLoadState((current) =>
+        current.loading || current.error || current.ready ? { loading: false, error: '', ready: false } : current,
+      )
+      return
+    }
 
     let cancelled = false
     const endpoint = canUseAdminFlow ? '/admin/workspace' : '/manager/workspace'
+    setReviewLoadState({ loading: true, error: '', ready: false })
 
     fetch(`${API_BASE_URL}${endpoint}`, {
       headers: { Authorization: `Bearer ${backendToken}` },
@@ -683,22 +720,84 @@ function App() {
             ? mergeAdminWorkspaceIntoState(current, payload as BackendAdminWorkspaceResponse)
             : mergeWorkspacesIntoState(current, (payload as BackendWorkspaceCollectionResponse).workspaces),
         )
+        setReviewLoadState({ loading: false, error: '', ready: true })
       })
-      .catch(() => {})
+      .catch((error: unknown) => {
+        if (cancelled) return
+        const message = error instanceof Error ? error.message : 'Failed to load review workspace.'
+        setReviewLoadState({ loading: false, error: message, ready: false })
+      })
 
     return () => {
       cancelled = true
     }
   }, [backendToken, canUseAdminFlow, canUseManagerFlow, currentUser])
 
+  useEffect(() => {
+    if (!backendToken || !currentUser || !canUseEmployeeFlow || !employeeRecord || !selfRecord || !workspaceLoadState.ready) {
+      if (autosaveTimerRef.current) {
+        window.clearTimeout(autosaveTimerRef.current)
+        autosaveTimerRef.current = null
+      }
+      return
+    }
+    if (selfRecord.status !== 'draft') {
+      return
+    }
+
+    const payload = JSON.stringify(buildSelfAppraisalPayload(selfRecord, employeeAssignments))
+    if (!lastSyncedSelfPayloadRef.current || payload === lastSyncedSelfPayloadRef.current) {
+      return
+    }
+
+    if (autosaveTimerRef.current) {
+      window.clearTimeout(autosaveTimerRef.current)
+    }
+
+    autosaveTimerRef.current = window.setTimeout(() => {
+      void (async () => {
+        try {
+          const response = await fetch(`${API_BASE_URL}/employee/me/self-appraisal`, {
+            method: 'PUT',
+            headers: {
+              Authorization: `Bearer ${backendToken}`,
+              'Content-Type': 'application/json',
+            },
+            body: payload,
+          })
+          if (!response.ok) {
+            throw new Error('Failed to autosave self appraisal draft.')
+          }
+          const workspace = (await response.json()) as BackendWorkspaceResponse
+          lastSyncedSelfPayloadRef.current = buildSelfPayloadFromWorkspace(workspace)
+          setState((current) => mergeEmployeeWorkspaceIntoState(current, workspace, currentUser.username))
+          setWorkspaceLoadState((current) => ({ ...current, error: '' }))
+        } catch (error: unknown) {
+          const message = error instanceof Error ? error.message : 'Failed to autosave self appraisal draft.'
+          setWorkspaceLoadState((current) => ({ ...current, error: message }))
+        }
+      })()
+    }, 800)
+
+    return () => {
+      if (autosaveTimerRef.current) {
+        window.clearTimeout(autosaveTimerRef.current)
+        autosaveTimerRef.current = null
+      }
+    }
+  }, [
+    backendToken,
+    canUseEmployeeFlow,
+    currentUser,
+    employeeAssignments,
+    employeeRecord,
+    selfRecord,
+    workspaceLoadState.ready,
+  ])
+
   async function handleLogin(event: React.FormEvent) {
     event.preventDefault()
     const normalizedUsername = loginState.username.trim().toLowerCase()
-    const localMatch = state.users.find(
-      (user) =>
-        user.username === normalizedUsername &&
-        user.password === loginState.password,
-    )
 
     try {
       const response = await fetch(`${API_BASE_URL}/auth/login`, {
@@ -730,25 +829,24 @@ function App() {
 
       setBackendToken(payload.access_token)
       setSessionUserId(matchedUser.id)
+      setWorkspaceLoadState({ loading: false, error: '', ready: false })
+      setReviewLoadState({ loading: false, error: '', ready: false })
+      lastSyncedSelfPayloadRef.current = null
       setLoginState({ username: '', password: '', error: '' })
       return
-    } catch {
-      if (!localMatch) {
-        setLoginState((current) => ({ ...current, error: 'Invalid username or password.' }))
-        return
-      }
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Sign-in failed.'
+      setLoginState((current) => ({ ...current, error: message }))
     }
-
-    setBackendToken(null)
-    setSessionUserId(localMatch.id)
-    setLoginState({ username: '', password: '', error: '' })
   }
 
   function logout() {
     setSessionUserId(null)
     setSelectedManagedEmployeeId(null)
     setBackendToken(null)
-    setWorkspaceLoadState({ loading: false, error: '' })
+    setWorkspaceLoadState({ loading: false, error: '', ready: false })
+    setReviewLoadState({ loading: false, error: '', ready: false })
+    lastSyncedSelfPayloadRef.current = null
   }
 
   function updateSelfAppraisal(employeeId: string, patch: Partial<SelfAppraisalRecord>) {
@@ -766,6 +864,10 @@ function App() {
   }
 
   async function submitSelfAppraisal(employeeId: string) {
+    if (autosaveTimerRef.current) {
+      window.clearTimeout(autosaveTimerRef.current)
+      autosaveTimerRef.current = null
+    }
     updateSelfAppraisal(employeeId, { status: 'submitted' })
     if (!backendToken || !currentUser || currentUser.employeeId !== employeeId || !canUseEmployeeFlow) {
       return
@@ -775,7 +877,7 @@ function App() {
     if (!record) return
     const assignmentsForEmployee = state.assignments.filter((assignment) => assignment.employeeId === employeeId)
 
-    setWorkspaceLoadState({ loading: true, error: '' })
+    setWorkspaceLoadState((current) => ({ ...current, loading: true, error: '' }))
 
     try {
       const response = await fetch(`${API_BASE_URL}/employee/me/self-appraisal`, {
@@ -798,11 +900,12 @@ function App() {
         throw new Error('Failed to submit self appraisal.')
       }
       const workspace = (await response.json()) as BackendWorkspaceResponse
+      lastSyncedSelfPayloadRef.current = buildSelfPayloadFromWorkspace(workspace)
       setState((current) => mergeEmployeeWorkspaceIntoState(current, workspace, currentUser.username))
-      setWorkspaceLoadState({ loading: false, error: '' })
+      setWorkspaceLoadState({ loading: false, error: '', ready: true })
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Failed to submit self appraisal.'
-      setWorkspaceLoadState({ loading: false, error: `${message} Showing local data.` })
+      setWorkspaceLoadState((current) => ({ ...current, error: message }))
     }
   }
 
@@ -1120,7 +1223,14 @@ function App() {
         </div>
       </header>
 
-      {canUseEmployeeFlow && employeeRecord && selfRecord && finalResult ? (
+      {canUseEmployeeFlow && !workspaceLoadState.ready ? (
+        <section className="surface-card section-card">
+          <p className="subtle">{workspaceLoadState.loading ? 'Loading your appraisal workspace…' : 'Unable to load your appraisal workspace.'}</p>
+          {workspaceLoadState.error ? <p className="error-text">{workspaceLoadState.error}</p> : null}
+        </section>
+      ) : null}
+
+      {canUseEmployeeFlow && workspaceLoadState.ready && employeeRecord && selfRecord && finalResult ? (
         <EmployeeWorkspace
           employee={employeeRecord}
           selfRecord={selfRecord}
@@ -1134,7 +1244,30 @@ function App() {
         />
       ) : null}
 
-      {canUseManagerFlow ? (
+      {(canUseManagerFlow || canUseAdminFlow) && !reviewLoadState.ready ? (
+        <>
+          {canUseManagerFlow ? (
+            <StepStrip
+              mode="manager"
+              employeeRecord={employeeRecord}
+              finalResult={finalResult}
+            />
+          ) : null}
+          {canUseAdminFlow ? (
+            <StepStrip
+              mode="admin"
+              employeeRecord={employeeRecord}
+              finalResult={finalResult}
+            />
+          ) : null}
+          <section className="surface-card section-card">
+            <p className="subtle">{reviewLoadState.loading ? 'Loading review workspace…' : 'Unable to load review workspace.'}</p>
+            {reviewLoadState.error ? <p className="error-text">{reviewLoadState.error}</p> : null}
+          </section>
+        </>
+      ) : null}
+
+      {canUseManagerFlow && reviewLoadState.ready ? (
         <>
           <StepStrip
             mode="manager"
@@ -1155,7 +1288,7 @@ function App() {
         </>
       ) : null}
 
-      {canUseAdminFlow ? (
+      {canUseAdminFlow && reviewLoadState.ready ? (
         <>
           <StepStrip
             mode="admin"
@@ -1340,7 +1473,7 @@ function EmployeeWorkspace({
             </button>
           </div>
           {workspaceLoading ? <p className="subtle">Refreshing your appraisal workspace…</p> : null}
-          {workspaceError ? <p className="error-text">{workspaceError} Showing local data.</p> : null}
+          {workspaceError ? <p className="error-text">{workspaceError}</p> : null}
           <div className="stack">
             {assignments.map((assignment) => (
               <article key={assignment.assignmentId} className="kpi-card">
