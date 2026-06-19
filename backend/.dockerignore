@@ -1,0 +1,7 @@
+.venv/
+__pycache__/
+*.pyc
+appraisal.db
+tests/
+appraisal_backend.egg-info/
+.env

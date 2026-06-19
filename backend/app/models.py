@@ -8,21 +8,22 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
+    JSON,
     Numeric,
     String,
     Text,
     UniqueConstraint,
+    Uuid,
     func,
     text,
 )
-from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base
 
 
 def uuid_pk() -> Mapped[uuid.UUID]:
-    return mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    return mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
 
 
 class TimestampMixin:
@@ -172,7 +173,7 @@ class EmployeeCycleAssignment(Base, TimestampMixin):
     primary_owner_label: Mapped[str | None] = mapped_column(String(255), nullable=True)
     status: Mapped[str] = mapped_column(String(64), nullable=False)
     excluded_this_cycle: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default=text("false"))
-    blockers_json: Mapped[dict] = mapped_column(JSONB, nullable=False, default=list, server_default=text("'[]'::jsonb"))
+    blockers_json: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
 
     employee: Mapped["Employee"] = relationship(back_populates="cycle_assignments")
     kpi_assignments: Mapped[list["EmployeeKpiAssignment"]] = relationship(back_populates="employee_cycle_assignment", cascade="all, delete-orphan")
@@ -266,7 +267,7 @@ class AuditEvent(Base):
     id: Mapped[uuid.UUID] = uuid_pk()
     actor_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     entity_type: Mapped[str] = mapped_column(String(128), nullable=False)
-    entity_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    entity_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
     event_type: Mapped[str] = mapped_column(String(128), nullable=False)
-    payload_json: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict, server_default=text("'{}'::jsonb"))
+    payload_json: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())

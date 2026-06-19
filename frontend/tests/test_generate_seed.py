@@ -22,6 +22,27 @@ def load_seed():
 
 
 class GenerateSeedTest(unittest.TestCase):
+    def test_schedule_added_employees_are_ready(self):
+        run_generator()
+        seed = load_seed()
+
+        dexter = next(
+            row for row in seed["employees"] if row["employeeName"] == "Dexter Onuorah"
+        )
+        rofiat = next(
+            row for row in seed["employees"] if row["employeeName"] == "Rofiat Gbemisola"
+        )
+
+        self.assertEqual(dexter["designation"], "Graphics Design")
+        self.assertEqual(dexter["appraisalRole"], "Creative Designer")
+        self.assertEqual(dexter["status"], "ready")
+        self.assertEqual(dexter["blockers"], [])
+
+        self.assertEqual(rofiat["designation"], "Beauty Advisor")
+        self.assertEqual(rofiat["appraisalRole"], "Beauty Attendant")
+        self.assertEqual(rofiat["status"], "ready")
+        self.assertEqual(rofiat["blockers"], [])
+
     def test_admin_people_operation_officer_employee_is_ready(self):
         run_generator()
         seed = load_seed()

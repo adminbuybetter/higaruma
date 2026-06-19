@@ -8,3 +8,5 @@ backend/tests/__pycache__/
 .DS_Store
 .env
 backend/.env
+backend/appraisal.db
+frontend/*.tsbuildinfo

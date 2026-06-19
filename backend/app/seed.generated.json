@@ -1,4 +1,4 @@
-export const generatedSeed = {
+{
   "cycle": {
     "id": "2026-H1",
     "name": "2026 Mid-Year Appraisal",
@@ -11711,4 +11711,4 @@ export const generatedSeed = {
       "notes": "User approved exclusion from this appraisal cycle as non-core"
     }
   ]
-} as const;
+}

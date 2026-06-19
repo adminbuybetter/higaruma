@@ -53,8 +53,8 @@ textarea {
 }
 
 textarea {
-  min-height: 120px;
-  resize: vertical;
+  min-height: 104px;
+  resize: none;
 }
 
 label {
@@ -300,14 +300,72 @@ label span {
 
 .login-shell {
   place-items: center;
+  align-content: center;
+  padding-top: 48px;
+  padding-bottom: 48px;
 }
 
 .login-card {
-  width: min(560px, 100%);
+  width: min(960px, 100%);
 }
 
 .login-submit {
-  margin-top: 6px;
+  margin-top: 2px;
+}
+
+.login-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(320px, 420px);
+  gap: 28px;
+  align-items: stretch;
+}
+
+.login-copy {
+  display: grid;
+  gap: 14px;
+  align-content: start;
+  padding-right: 8px;
+}
+
+.login-copy h1 {
+  font-size: clamp(2rem, 4vw, 3.3rem);
+  line-height: 0.98;
+}
+
+.login-form-panel {
+  align-content: start;
+  padding: 20px;
+  border-radius: 20px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.login-form-intro {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.login-form-intro .subtle {
+  margin: 0;
+}
+
+.auth-field {
+  gap: 10px;
+}
+
+.login-note {
+  display: grid;
+  gap: 6px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.login-note p,
+.login-note strong {
+  margin: 0;
 }
 
 .metric-card,
@@ -500,48 +558,62 @@ label span {
 .overall-reflection-card {
   border: 1px solid var(--line);
   border-radius: 18px;
-  padding: 18px;
+  padding: 14px 16px;
   background: rgba(255, 255, 255, 0.84);
 }
 
 .score-legend-card {
   border: 1px solid var(--line);
   border-radius: 18px;
-  padding: 18px;
-  background: rgba(255, 255, 255, 0.72);
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.78);
 }
 
 .score-legend-grid {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 10px;
-  margin-top: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
 }
 
-.score-legend-grid div {
-  display: grid;
-  gap: 6px;
-  padding: 12px;
-  border-radius: 14px;
+.score-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 0;
+  padding: 8px 10px;
+  border-radius: 999px;
   background: rgba(255, 255, 255, 0.86);
   border: 1px solid var(--line);
 }
 
-.score-legend-grid strong {
-  font-size: 18px;
+.score-legend-item strong {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: rgba(181, 107, 18, 0.12);
+  color: #c8740a;
+  font-size: 12px;
+  line-height: 1;
 }
 
-.score-legend-grid span {
+.score-legend-item span {
   font-size: 12px;
-  line-height: 1.35;
+  line-height: 1.2;
   color: var(--muted);
+  white-space: nowrap;
 }
 
 .detail-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
-  margin-top: 14px;
+}
+
+.detail-grid.compact {
+  gap: 10px 12px;
 }
 
 .detail-item {
@@ -567,8 +639,21 @@ label span {
   gap: 12px;
 }
 
+.self-kpi-focus-card {
+  gap: 16px;
+}
+
 .self-kpi-card h3 {
   margin: 4px 0 0;
+  font-size: 24px;
+  line-height: 1.1;
+}
+
+.self-kpi-prompt {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 160px;
+  gap: 16px;
+  align-items: start;
 }
 
 .score-field {
@@ -577,8 +662,64 @@ label span {
   min-width: 110px;
 }
 
+.self-step-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.step-count,
+.step-type {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.step-count {
+  background: rgba(15, 124, 89, 0.1);
+  color: var(--accent);
+}
+
+.step-type {
+  background: rgba(23, 19, 18, 0.06);
+  color: var(--muted);
+}
+
+.score-field-highlight {
+  padding: 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(15, 124, 89, 0.14);
+  background: rgba(15, 124, 89, 0.05);
+}
+
+.question-card {
+  display: grid;
+  gap: 8px;
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(23, 19, 18, 0.08);
+  background: linear-gradient(180deg, rgba(15, 124, 89, 0.04) 0%, rgba(255, 255, 255, 0.92) 100%);
+}
+
+.question-card p {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
 .drawer-actions {
   margin-top: 18px;
+}
+
+.drawer-actions-split {
+  justify-content: space-between;
 }
 
 .tag-cloud {
@@ -615,6 +756,7 @@ label span {
 .error-text {
   color: var(--danger);
   margin: 0;
+  font-size: 13px;
 }
 
 @media (max-width: 960px) {
@@ -623,8 +765,13 @@ label span {
     grid-template-columns: 1fr;
   }
 
+  .login-layout,
   .employee-top-grid {
     grid-template-columns: 1fr;
+  }
+
+  .login-copy {
+    padding-right: 0;
   }
 
   .side-panel {
@@ -643,8 +790,17 @@ label span {
     grid-template-columns: 1fr;
   }
 
-  .score-legend-grid {
+  .self-kpi-prompt {
     grid-template-columns: 1fr;
+  }
+
+  .score-legend-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .score-legend-item span {
+    white-space: normal;
   }
 
   .credential-row {

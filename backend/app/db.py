@@ -1,3 +1,5 @@
+from collections.abc import Generator
+
 from sqlalchemy import MetaData, create_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
@@ -17,7 +19,24 @@ class Base(DeclarativeBase):
     metadata = MetaData(naming_convention=NAMING_CONVENTION)
 
 
+def _connect_args(database_url: str) -> dict[str, object]:
+    if database_url.startswith("sqlite"):
+        return {"check_same_thread": False}
+    return {}
+
+
 settings = get_settings()
-engine = create_engine(settings.database_url, future=True)
+engine = create_engine(
+    settings.normalized_database_url,
+    future=True,
+    connect_args=_connect_args(settings.normalized_database_url),
+)
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
 
+
+def get_db() -> Generator:
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
