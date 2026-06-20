@@ -610,9 +610,13 @@ export function CasebookHrEmployeesWorkspace({
           </div>
         </div>
 
+        <ListSectionHeader title="Employee appraisal packets" total={filteredEmployees.length} page={employeePage} pageSize={PAGE_SIZE} />
+
         <div className="toolbar">
           <div className="toolbar-row toolbar-row--inline">
-            <div className="filter-pills filter-pills--compact">
+            <div className="filter-group">
+              <div className="filter-group-label">Filters</div>
+              <div className="filter-pills filter-pills--compact">
               <FilterPill label={`All (${employees.length})`} active={filter === 'all'} onClick={() => setFilter('all')} />
               <FilterPill
                 label={`Awaiting self (${employees.filter((employee) => hrWorkflowStateForEmployee(employee, state) === 'awaiting-self').length})`}
@@ -635,19 +639,17 @@ export function CasebookHrEmployeesWorkspace({
                 onClick={() => setFilter('released')}
               />
             </div>
+            </div>
 
             <SearchToolbar
               value={searchQuery}
               loading={searchLoading}
               placeholder="Search by name, employee code, role or department"
               onChange={onSearchChange}
-              resultLabel={`Showing ${filteredEmployees.length} of ${employees.length}`}
               compact
             />
           </div>
         </div>
-
-        <ListSectionHeader title="Employee appraisal packets" total={filteredEmployees.length} page={employeePage} pageSize={PAGE_SIZE} />
         <table className="emp-table">
           <thead>
             <tr>
@@ -1274,14 +1276,12 @@ function SearchToolbar({
   loading,
   placeholder,
   onChange,
-  resultLabel,
   compact = false,
 }: {
   value: string
   loading: boolean
   placeholder: string
   onChange: (query: string) => void
-  resultLabel?: string
   compact?: boolean
 }) {
   return (
@@ -1298,9 +1298,7 @@ function SearchToolbar({
           placeholder={placeholder}
         />
       </div>
-      <span className="search-status">
-        {loading ? 'Searching...' : resultLabel ?? (value.trim() ? 'Filtered across full list' : 'Showing full list')}
-      </span>
+      {loading ? <span className="search-status">Searching...</span> : null}
     </div>
   )
 }
