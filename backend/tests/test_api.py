@@ -58,6 +58,7 @@ class ApiTest(unittest.TestCase):
         payload = response.json()
         self.assertEqual(payload["token_type"], "bearer")
         self.assertEqual(payload["user"]["username"], "francis.fanen")
+        self.assertEqual(payload["user"]["designation"], "Order Processing Officer")
         self.assertIn("employee", payload["user"]["capabilities"])
         self.assertEqual(payload["user"]["employee_code"], "EMP-013")
 
@@ -72,6 +73,7 @@ class ApiTest(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         payload = response.json()
         self.assertEqual(payload["username"], "samuel.mbudinma")
+        self.assertEqual(payload["designation"], "Admin/People Operation Officer")
         self.assertIn("admin", payload["capabilities"])
         self.assertIn("employee", payload["capabilities"])
 

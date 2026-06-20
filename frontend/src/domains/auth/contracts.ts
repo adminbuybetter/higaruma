@@ -4,6 +4,7 @@ export type AuthState = {
   id: string
   username: string
   displayName: string
+  designation?: string
   capabilities: Capability[]
   employeeId?: string
   managerScopes: string[]
@@ -18,6 +19,7 @@ export type SessionResponse = {
   id: string
   username: string
   display_name: string
+  designation: string | null
   capabilities: Capability[]
   employee_code: string | null
   manager_scopes: string[]

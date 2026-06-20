@@ -12,6 +12,7 @@ class UserResponse(BaseModel):
     id: str
     username: str
     display_name: str
+    designation: str | None
     capabilities: list[str]
     employee_code: str | None
     manager_scopes: list[str]

@@ -69,13 +69,14 @@ def _manager_scopes(user: User) -> list[str]:
 
 
 def build_user_response(db: Session, user: User) -> UserResponse:
-    employee_code = db.scalar(select(Employee.employee_code).where(Employee.user_id == user.id))
+    employee = db.scalar(select(Employee).where(Employee.user_id == user.id))
     return UserResponse(
         id=str(user.id),
         username=user.username,
         display_name=user.display_name,
+        designation=employee.designation if employee else None,
         capabilities=sorted(_capabilities(user)),
-        employee_code=employee_code,
+        employee_code=employee.employee_code if employee else None,
         manager_scopes=_manager_scopes(user),
     )
 

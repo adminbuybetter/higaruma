@@ -46,23 +46,22 @@ export function Sidebar({ currentPath, onNavigate, authState }: SidebarProps) {
         ))}
       </nav>
 
-      <button className="nav-item sidebar-logout" type="button" onClick={() => void logout()} disabled={logoutPending}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-          <path d="M10 17l5-5-5-5" />
-          <path d="M15 12H3" />
-          <path d="M13 3h5a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1h-5" />
-        </svg>
-        <span>{logoutPending ? 'Signing out…' : 'Logout'}</span>
-      </button>
-
       <div className="sidebar-footer">
         <div className="avatar">{(authState?.displayName ?? 'A').slice(0, 1).toUpperCase()}</div>
         <div className="sidebar-user-copy">
           <div className="profile-name">{authState?.displayName ?? 'Appraisal user'}</div>
           <div className="profile-role">
-            {authState ? authState.capabilities.join(' · ') : 'Sign in to unlock the appraisal workspace.'}
+            {authState?.designation ?? 'Sign in to unlock the appraisal workspace.'}
           </div>
         </div>
+        <button className="sidebar-footer-logout" type="button" onClick={() => void logout()} disabled={logoutPending} aria-label={logoutPending ? 'Signing out' : 'Logout'}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+            <path d="M10 17l5-5-5-5" />
+            <path d="M15 12H3" />
+            <path d="M13 3h5a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1h-5" />
+          </svg>
+          <span>{logoutPending ? 'Signing out…' : 'Logout'}</span>
+        </button>
       </div>
     </aside>
   )

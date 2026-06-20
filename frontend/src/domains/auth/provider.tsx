@@ -8,6 +8,7 @@ function toAuthState(payload: SessionResponse): AuthState {
     id: payload.id,
     username: payload.username,
     displayName: payload.display_name,
+    designation: payload.designation ?? undefined,
     capabilities: payload.capabilities ?? [],
     employeeId: payload.employee_code ?? undefined,
     managerScopes: payload.manager_scopes ?? [],
