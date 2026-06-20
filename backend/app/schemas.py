@@ -84,6 +84,7 @@ class FinalResultResponse(BaseModel):
 
 class EmployeeWorkspaceResponse(BaseModel):
     cycle_code: str
+    cycle_closes_at: str | None
     employee: EmployeeSummary
     assignments: list[AssignmentResponse]
     self_appraisal: SelfAppraisalResponse | None

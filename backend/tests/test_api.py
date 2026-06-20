@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import tempfile
 import unittest
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -11,6 +12,7 @@ from sqlalchemy.orm import sessionmaker
 from app.bootstrap import bootstrap_from_seed
 from app.db import Base, get_db
 from app.main import create_app
+from app.models import AppraisalCycle
 
 
 class ApiTest(unittest.TestCase):
@@ -113,6 +115,7 @@ class ApiTest(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         payload = response.json()
         self.assertEqual(payload["cycle_code"], "2026-H1")
+        self.assertEqual(payload["cycle_closes_at"], "2026-06-30T23:59:59+01:00")
         self.assertEqual(payload["employee"]["full_name"], "Francis Fanen")
         self.assertEqual(payload["employee"]["designation"], "Order Processing Officer")
         self.assertGreater(len(payload["assignments"]), 0)
@@ -164,6 +167,46 @@ class ApiTest(unittest.TestCase):
             francis["self_appraisal"]["overall_achievements"],
             "Closed all assigned fulfilment escalations on time.",
         )
+
+    def test_employee_self_appraisal_rejected_after_cycle_close(self):
+        db = self.SessionLocal()
+        try:
+            cycle = db.query(AppraisalCycle).filter(AppraisalCycle.code == "2026-H1").one()
+            cycle.closes_at = datetime.now(UTC) - timedelta(days=1)
+            db.commit()
+        finally:
+            db.close()
+
+        employee_token = self.login("francis.fanen", "Appraise013!")
+        employee_workspace = self.client.get(
+            "/employee/me/workspace",
+            headers={"Authorization": f"Bearer {employee_token}"},
+        ).json()
+
+        response = self.client.put(
+            "/employee/me/self-appraisal",
+            headers={"Authorization": f"Bearer {employee_token}"},
+            json={
+                "status": "draft",
+                "overall_achievements": "Late update",
+                "major_challenges": "",
+                "support_needed": "",
+                "development_focus": "",
+                "employee_comments": "",
+                "items": [
+                    {
+                        "employee_kpi_assignment_id": item["employee_kpi_assignment_id"],
+                        "self_score": 4,
+                        "reason_for_score": "Target met",
+                        "key_evidence": "",
+                        "challenges_faced": "",
+                    }
+                    for item in employee_workspace["self_appraisal"]["items"]
+                ],
+            },
+        )
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(response.json()["detail"], "Self appraisal editing is closed for this cycle")
 
     def test_manager_update_assignment_recalculates_final_score(self):
         employee_token = self.login("francis.fanen", "Appraise013!")

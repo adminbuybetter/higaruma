@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import re
+from datetime import datetime
 from decimal import Decimal
 from pathlib import Path
 
@@ -60,7 +61,15 @@ def bootstrap_from_seed(db: Session) -> None:
 
     seed = _load_seed()
 
-    cycle = AppraisalCycle(code=seed["cycle"]["id"], name=seed["cycle"]["name"], status="open")
+    opens_at = seed["cycle"].get("opensAt")
+    closes_at = seed["cycle"].get("closesAt")
+    cycle = AppraisalCycle(
+        code=seed["cycle"]["id"],
+        name=seed["cycle"]["name"],
+        status="open",
+        opens_at=datetime.fromisoformat(opens_at) if opens_at else None,
+        closes_at=datetime.fromisoformat(closes_at) if closes_at else None,
+    )
     db.add(cycle)
     db.flush()
 

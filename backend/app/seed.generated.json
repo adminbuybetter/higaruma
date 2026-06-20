@@ -2,6 +2,8 @@
   "cycle": {
     "id": "2026-H1",
     "name": "2026 Mid-Year Appraisal",
+    "opensAt": "2026-06-16T09:00:00+01:00",
+    "closesAt": "2026-06-30T23:59:59+01:00",
     "prototype": true
   },
   "users": [

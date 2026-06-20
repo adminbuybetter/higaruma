@@ -74,7 +74,6 @@ The seed is regenerated from the CSVs in:
 
 Generated into:
 
-- `src/data/credentials.generated.csv`
-  now under `frontend/src/data/credentials.generated.csv`
+- `frontend/generated/credentials.generated.csv`
 
 And also visible in the HR admin view.

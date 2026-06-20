@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta, timezone
 from decimal import Decimal
 from uuid import UUID
 
@@ -48,6 +48,9 @@ from app.schemas import (
     UserResponse,
     WorkspaceCollectionResponse,
 )
+
+APP_TIMEZONE = timezone(timedelta(hours=1))
+DEFAULT_CYCLE_CLOSES_AT = datetime(2026, 6, 30, 23, 59, 59, tzinfo=APP_TIMEZONE)
 from app.security import create_access_token, verify_password
 
 
@@ -251,6 +254,21 @@ def ensure_manager_can_score(assignment: EmployeeCycleAssignment) -> None:
         )
 
 
+def effective_cycle_closes_at(cycle: AppraisalCycle) -> datetime:
+    close_at = cycle.closes_at or DEFAULT_CYCLE_CLOSES_AT
+    if close_at.tzinfo is None:
+        return close_at.replace(tzinfo=APP_TIMEZONE)
+    return close_at.astimezone(APP_TIMEZONE)
+
+
+def ensure_self_appraisal_open(cycle: AppraisalCycle) -> None:
+    if effective_cycle_closes_at(cycle) <= datetime.now(UTC):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Self appraisal editing is closed for this cycle",
+        )
+
+
 def record_audit_event(
     db: Session,
     *,
@@ -271,7 +289,7 @@ def record_audit_event(
     )
 
 
-def serialize_workspace(assignment: EmployeeCycleAssignment, cycle_code: str) -> EmployeeWorkspaceResponse:
+def serialize_workspace(assignment: EmployeeCycleAssignment, cycle: AppraisalCycle) -> EmployeeWorkspaceResponse:
     employee = assignment.employee
     kpi_assignments = sorted(assignment.kpi_assignments, key=lambda item: item.sort_order)
     blockers = list(assignment.blockers_json or [])
@@ -321,7 +339,8 @@ def serialize_workspace(assignment: EmployeeCycleAssignment, cycle_code: str) ->
         )
 
     return EmployeeWorkspaceResponse(
-        cycle_code=cycle_code,
+        cycle_code=cycle.code,
+        cycle_closes_at=effective_cycle_closes_at(cycle).isoformat(),
         employee=EmployeeSummary(
             employee_code=employee.employee_code,
             full_name=employee.full_name,
@@ -420,9 +439,9 @@ def build_excluded_designations(assignments: list[EmployeeCycleAssignment]) -> l
     return sorted(grouped.values(), key=lambda item: item.designation.lower())
 
 
-def serialize_admin_workspace(assignments: list[EmployeeCycleAssignment], cycle_code: str) -> AdminWorkspaceResponse:
+def serialize_admin_workspace(assignments: list[EmployeeCycleAssignment], cycle: AppraisalCycle) -> AdminWorkspaceResponse:
     return AdminWorkspaceResponse(
-        workspaces=[serialize_workspace(assignment, cycle_code) for assignment in assignments],
+        workspaces=[serialize_workspace(assignment, cycle) for assignment in assignments],
         unresolved_designations=build_unresolved_designations(assignments),
         unresolved_employees=build_unresolved_employees(assignments),
         unresolved_managers=build_unresolved_managers(assignments),
@@ -542,7 +561,7 @@ def create_app(*, db_engine: Engine = engine) -> FastAPI:
     ) -> EmployeeWorkspaceResponse:
         assignment = get_employee_assignment_for_current_user(db, current_user)
         cycle = get_open_cycle(db)
-        return serialize_workspace(assignment, cycle.code)
+        return serialize_workspace(assignment, cycle)
 
     @app.put("/employee/me/self-appraisal", response_model=EmployeeWorkspaceResponse)
     def update_employee_self_appraisal(
@@ -553,6 +572,9 @@ def create_app(*, db_engine: Engine = engine) -> FastAPI:
         assignment = get_employee_assignment_for_current_user(db, current_user)
         if not assignment.employee.can_self_appraise:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Self appraisal is disabled for this employee")
+
+        cycle = get_open_cycle(db)
+        ensure_self_appraisal_open(cycle)
 
         self_appraisal = sync_self_items_with_kpis(assignment)
         self_appraisal.status = payload.status
@@ -591,9 +613,8 @@ def create_app(*, db_engine: Engine = engine) -> FastAPI:
         )
         db.commit()
 
-        cycle = get_open_cycle(db)
         refreshed = get_assignment_by_id(db, assignment.id)
-        return serialize_workspace(refreshed, cycle.code)
+        return serialize_workspace(refreshed, cycle)
 
     @app.get("/manager/workspace", response_model=WorkspaceCollectionResponse)
     def manager_workspace(
@@ -602,7 +623,7 @@ def create_app(*, db_engine: Engine = engine) -> FastAPI:
     ) -> WorkspaceCollectionResponse:
         cycle = get_open_cycle(db)
         assignments = get_managed_assignments(db, current_user, cycle)
-        return WorkspaceCollectionResponse(workspaces=[serialize_workspace(item, cycle.code) for item in assignments])
+        return WorkspaceCollectionResponse(workspaces=[serialize_workspace(item, cycle) for item in assignments])
 
     @app.patch("/manager/assignments/{assignment_id}", response_model=EmployeeWorkspaceResponse)
     def update_manager_assignment(
@@ -642,7 +663,7 @@ def create_app(*, db_engine: Engine = engine) -> FastAPI:
 
         cycle = get_open_cycle(db)
         refreshed = get_assignment_by_id(db, assignment.id)
-        return serialize_workspace(refreshed, cycle.code)
+        return serialize_workspace(refreshed, cycle)
 
     @app.patch("/manager/final-results/{employee_code}", response_model=EmployeeWorkspaceResponse)
     def update_manager_final_result(
@@ -675,7 +696,7 @@ def create_app(*, db_engine: Engine = engine) -> FastAPI:
         db.commit()
 
         refreshed = get_assignment_by_id(db, assignment.id)
-        return serialize_workspace(refreshed, cycle.code)
+        return serialize_workspace(refreshed, cycle)
 
     @app.get("/admin/workspace", response_model=AdminWorkspaceResponse)
     def admin_workspace(
@@ -685,7 +706,7 @@ def create_app(*, db_engine: Engine = engine) -> FastAPI:
         require_capability(current_user, "admin")
         cycle = get_open_cycle(db)
         assignments = get_all_assignments(db, cycle)
-        return serialize_admin_workspace(assignments, cycle.code)
+        return serialize_admin_workspace(assignments, cycle)
 
     @app.patch("/admin/final-results/{employee_code}", response_model=EmployeeWorkspaceResponse)
     def update_admin_final_result(
@@ -721,7 +742,7 @@ def create_app(*, db_engine: Engine = engine) -> FastAPI:
         db.commit()
 
         refreshed = get_assignment_by_id(db, assignment.id)
-        return serialize_workspace(refreshed, cycle.code)
+        return serialize_workspace(refreshed, cycle)
 
     @app.post("/admin/designation-mappings/resolve", response_model=AdminWorkspaceResponse)
     def resolve_designation_setup(
@@ -831,7 +852,7 @@ def create_app(*, db_engine: Engine = engine) -> FastAPI:
         db.commit()
 
         assignments = get_all_assignments(db, cycle)
-        return serialize_admin_workspace(assignments, cycle.code)
+        return serialize_admin_workspace(assignments, cycle)
 
     return app
 

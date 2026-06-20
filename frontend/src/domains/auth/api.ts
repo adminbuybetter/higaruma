@@ -1,12 +1,12 @@
+import { ApiError, apiClient } from '../../shared/api/client'
 import { API_PATHS } from '../../contracts/paths'
-import { apiClient } from '../../shared/api/client'
 import type { LoginPayload, LoginResponse, SessionResponse } from './contracts'
 
 export async function fetchSession() {
   try {
     return await apiClient<SessionResponse>(API_PATHS.auth.me)
   } catch (error) {
-    if (error instanceof Error && /401|authentication|token/i.test(error.message)) {
+    if (error instanceof ApiError && error.status === 401) {
       return null
     }
     throw error

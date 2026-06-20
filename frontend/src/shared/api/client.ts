@@ -16,6 +16,16 @@ function resolveApiBaseUrl() {
 
 const API_BASE = resolveApiBaseUrl()
 
+export class ApiError extends Error {
+  status: number
+
+  constructor(status: number, message: string) {
+    super(message)
+    this.name = 'ApiError'
+    this.status = status
+  }
+}
+
 export async function apiClient<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, {
     ...options,
@@ -35,7 +45,7 @@ export async function apiClient<T>(path: string, options?: RequestInit): Promise
       payload && typeof payload === 'object' && 'detail' in payload
         ? String((payload as { detail?: unknown }).detail)
         : `API error: ${response.status}`
-    throw new Error(detail)
+    throw new ApiError(response.status, detail)
   }
 
   return payload as T

@@ -1,5 +1,4 @@
 import json
-import re
 import subprocess
 import unittest
 import csv
@@ -7,10 +6,11 @@ from pathlib import Path
 
 
 APP_DIR = Path("/Users/kamsi/Downloads/odoo1/appraisal-web-prototype/frontend")
-SEED_PATH = APP_DIR / "src" / "data" / "seed.generated.ts"
+GENERATED_DIR = APP_DIR / "generated"
+SEED_PATH = GENERATED_DIR / "seed.generated.json"
 GENERATOR_PATH = APP_DIR / "scripts" / "generate_seed.py"
-CREDENTIALS_PATH = APP_DIR / "src" / "data" / "credentials.generated.csv"
-MAILMERGE_PATH = APP_DIR / "src" / "data" / "login_mailmerge.generated.csv"
+CREDENTIALS_PATH = GENERATED_DIR / "credentials.generated.csv"
+MAILMERGE_PATH = GENERATED_DIR / "login_mailmerge.generated.csv"
 
 
 def run_generator():
@@ -18,10 +18,7 @@ def run_generator():
 
 
 def load_seed():
-    text = SEED_PATH.read_text(encoding="utf-8")
-    text = re.sub(r"^export const generatedSeed = ", "", text)
-    text = re.sub(r" as const;\s*$", "", text)
-    return json.loads(text)
+    return json.loads(SEED_PATH.read_text(encoding="utf-8"))
 
 
 def load_csv(path: Path):

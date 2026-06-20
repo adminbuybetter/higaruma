@@ -6,6 +6,7 @@ from pathlib import Path
 
 APP_DIR = Path("/Users/kamsi/Downloads/odoo1/appraisal-web-prototype/frontend")
 SOURCE_DIR = Path("/Users/kamsi/Downloads/Technology 2/JOB DESCRIPTION_ IT DEPARTMENT")
+GENERATED_DIR = APP_DIR / "generated"
 
 ROSTER_PATH = SOURCE_DIR / "Employee_Roster_Template.csv"
 DESIGNATION_PATH = SOURCE_DIR / "Designation_Mapping_Template.csv"
@@ -637,6 +638,8 @@ seed = {
     "cycle": {
         "id": "2026-H1",
         "name": "2026 Mid-Year Appraisal",
+        "opensAt": "2026-06-16T09:00:00+01:00",
+        "closesAt": "2026-06-30T23:59:59+01:00",
         "prototype": True,
     },
     "users": users,
@@ -651,15 +654,15 @@ seed = {
     "excludedDesignations": excluded_designations,
 }
 
-generated = APP_DIR / "src" / "data" / "seed.generated.ts"
+GENERATED_DIR.mkdir(parents=True, exist_ok=True)
+
+generated = GENERATED_DIR / "seed.generated.json"
 generated.write_text(
-    "export const generatedSeed = "
-    + json.dumps(seed, indent=2, ensure_ascii=False)
-    + " as const;\n",
+    json.dumps(seed, indent=2, ensure_ascii=False) + "\n",
     encoding="utf-8",
 )
 
-credentials_path = APP_DIR / "src" / "data" / "credentials.generated.csv"
+credentials_path = GENERATED_DIR / "credentials.generated.csv"
 with credentials_path.open("w", newline="", encoding="utf-8") as handle:
     writer = csv.writer(handle)
     writer.writerow(["primary_kind", "capabilities", "display_name", "email", "username", "password", "employee_id", "manager_scopes"])
@@ -677,7 +680,7 @@ with credentials_path.open("w", newline="", encoding="utf-8") as handle:
             ]
         )
 
-mailmerge_path = APP_DIR / "src" / "data" / "login_mailmerge.generated.csv"
+mailmerge_path = GENERATED_DIR / "login_mailmerge.generated.csv"
 with mailmerge_path.open("w", newline="", encoding="utf-8") as handle:
     writer = csv.writer(handle)
     writer.writerow(["display_name", "email", "username", "password", "subject", "body"])
@@ -700,7 +703,7 @@ with mailmerge_path.open("w", newline="", encoding="utf-8") as handle:
             ]
         )
 
-gaps_path = APP_DIR / "src" / "data" / "unresolved.generated.md"
+gaps_path = GENERATED_DIR / "unresolved.generated.md"
 with gaps_path.open("w", encoding="utf-8") as handle:
     handle.write("# Unresolved Appraisal Gaps\n\n")
     handle.write(f"- unresolved designations: {len(unresolved_designations)}\n")

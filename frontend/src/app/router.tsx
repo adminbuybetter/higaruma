@@ -4,7 +4,6 @@ import { LoginPage } from '../routes/auth/LoginPage'
 import { OverviewPage } from '../routes/overview/OverviewPage'
 import { MyAppraisalPage } from '../routes/employee/MyAppraisalPage'
 import { TeamReviewsPage } from '../routes/manager/TeamReviewsPage'
-import { HrConsolePage } from '../routes/hr/HrConsolePage'
 import { ReleaseControlPage } from '../routes/admin/ReleaseControlPage'
 import { RequireAuth } from '../domains/auth/components/RequireAuth'
 import { useAuth } from '../domains/auth/hooks'
@@ -28,7 +27,6 @@ export const router = createBrowserRouter([
           { path: 'appraisal', element: <MyAppraisalPage /> },
           { path: 'team', element: <TeamReviewsPage /> },
           { path: 'release', element: <ReleaseControlPage /> },
-          { path: 'hr', element: <HrConsolePage /> },
         ],
       },
     ],

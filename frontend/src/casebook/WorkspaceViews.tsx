@@ -28,9 +28,12 @@ type EmployeeProps = {
   finalResult: FinalResultRecord
   workspaceLoading: boolean
   workspaceError: string
+  selfActionState: 'idle' | 'saving' | 'submitting' | 'editing'
   onUpdateSelf: (employeeId: string, patch: Partial<SelfAppraisalRecord>) => void
   onUpdateSelfKpiEntry: (employeeId: string, assignmentId: string, patch: Partial<SelfKpiEntry>) => void
-  onSubmitSelf: (employeeId: string) => void
+  onSaveSelfDraft: (employeeId: string) => Promise<boolean>
+  onSubmitSelf: (employeeId: string) => Promise<boolean>
+  onEditSelf: (employeeId: string) => Promise<boolean>
 }
 
 type ManagerProps = {
@@ -237,9 +240,12 @@ export function CasebookEmployeeWorkspace({
   finalResult,
   workspaceLoading,
   workspaceError,
+  selfActionState,
   onUpdateSelf,
   onUpdateSelfKpiEntry,
+  onSaveSelfDraft,
   onSubmitSelf,
+  onEditSelf,
 }: EmployeeProps) {
   const [selfOpen, setSelfOpen] = useState(false)
   const [resultOpen, setResultOpen] = useState(false)
@@ -256,6 +262,9 @@ export function CasebookEmployeeWorkspace({
             </div>
             <div className="meta">
               {selfRecord.cycle} Cycle · {assignments.length} KPIs · {employee.designation}
+            </div>
+            <div className="meta">
+              Deadline: {formatDeadline(selfRecord.cycleClosesAt)} · {hasCycleClosed(selfRecord.cycleClosesAt) ? 'Editing closed' : 'Editing open'}
             </div>
           </div>
           <button className="btn btn--primary" onClick={() => setSelfOpen(true)}>
@@ -313,11 +322,22 @@ export function CasebookEmployeeWorkspace({
         assignments={assignments}
         onUpdateSelf={onUpdateSelf}
         onUpdateSelfKpiEntry={onUpdateSelfKpiEntry}
-        onSubmitSelf={(employeeId) => {
-          onSubmitSelf(employeeId)
-          setToast('Self-appraisal submitted')
+        selfActionState={selfActionState}
+        onSaveDraft={async () => {
+          const saved = await onSaveSelfDraft(employee.employeeId)
+          if (saved) setToast('Draft saved')
+          return saved
         }}
-        onSaveDraft={() => setToast('Draft saved')}
+        onSubmitSelf={async (employeeId) => {
+          const submitted = await onSubmitSelf(employeeId)
+          if (submitted) setToast('Self-appraisal submitted')
+          return submitted
+        }}
+        onEditSelf={async (employeeId) => {
+          const reopened = await onEditSelf(employeeId)
+          if (reopened) setToast('Editing re-opened')
+          return reopened
+        }}
       />
 
       <ResultDrawer
@@ -767,24 +787,33 @@ function SelfDrawer({
   employee,
   selfRecord,
   assignments,
+  selfActionState,
   onUpdateSelf,
   onUpdateSelfKpiEntry,
   onSubmitSelf,
   onSaveDraft,
+  onEditSelf,
 }: {
   open: boolean
   onClose: () => void
   employee: EmployeeRecord
   selfRecord: SelfAppraisalRecord
   assignments: AssignmentRecord[]
+  selfActionState: 'idle' | 'saving' | 'submitting' | 'editing'
   onUpdateSelf: (employeeId: string, patch: Partial<SelfAppraisalRecord>) => void
   onUpdateSelfKpiEntry: (employeeId: string, assignmentId: string, patch: Partial<SelfKpiEntry>) => void
-  onSubmitSelf: (employeeId: string) => void
-  onSaveDraft: () => void
+  onSubmitSelf: (employeeId: string) => Promise<boolean>
+  onSaveDraft: () => Promise<boolean>
+  onEditSelf: (employeeId: string) => Promise<boolean>
 }) {
   const [openItems, setOpenItems] = useState<Record<string, boolean>>({})
   const [step, setStep] = useState<'kpis' | 'reflection'>('kpis')
   const progress = selfRecord.kpiEntries.filter((entry) => entry.selfScore > 0).length
+  const deadlineClosed = hasCycleClosed(selfRecord.cycleClosesAt)
+  const submitted = selfRecord.status === 'submitted'
+  const pending = selfActionState !== 'idle'
+  const showEditAction = submitted && !deadlineClosed
+  const locked = deadlineClosed || submitted || pending
   const canAdvanceToReflection = assignments.every((assignment) => {
     const entry = selfRecord.kpiEntries.find((record) => record.assignmentId === assignment.assignmentId)
     return Boolean(entry && entry.selfScore > 0 && entry.reasonForScore.trim())
@@ -804,7 +833,9 @@ function SelfDrawer({
           <div className="drawer-header-top">
             <div>
               <h2>Self-Appraisal</h2>
-              <div className="sub">{selfRecord.cycle} Cycle · <span>{progress} of {selfRecord.kpiEntries.length} rated</span></div>
+              <div className="sub">
+                {selfRecord.cycle} Cycle · <span>{progress} of {selfRecord.kpiEntries.length} rated</span> · Deadline {formatDeadline(selfRecord.cycleClosesAt)}
+              </div>
             </div>
             <button className="close-x" onClick={onClose}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -814,6 +845,13 @@ function SelfDrawer({
           </div>
         </div>
         <div className="drawer-body">
+          <div className={`drawer-status ${deadlineClosed ? 'locked' : submitted ? 'submitted' : 'draft'}`}>
+            {deadlineClosed
+              ? `Editing closed on ${formatDeadline(selfRecord.cycleClosesAt)}.`
+              : submitted
+                ? `Submitted${selfRecord.submittedAt ? ` on ${formatSubmittedAt(selfRecord.submittedAt)}` : ''}.`
+                : `Draft mode. You can edit until ${formatDeadline(selfRecord.cycleClosesAt)}.`}
+          </div>
           <div className="mini-stepper" aria-label="Self appraisal steps">
             <div className={`mini-step ${step === 'reflection' ? 'done' : 'current'}`}>
               <span className="dot">{step === 'reflection' ? '✓' : '1'}</span>
@@ -847,12 +885,14 @@ function SelfDrawer({
                         <label className="field-label">Self-rating</label>
                         <ScorePicker
                           score={entry.selfScore}
+                          disabled={locked}
                           onChange={(score) => onUpdateSelfKpiEntry(employee.employeeId, assignment.assignmentId, { selfScore: score })}
                         />
                       </div>
                       <div className="field-row">
                         <label className="field-label">Reason for score (required)</label>
                         <textarea
+                          disabled={locked}
                           value={entry.reasonForScore}
                           onChange={(event) =>
                             onUpdateSelfKpiEntry(employee.employeeId, assignment.assignmentId, {
@@ -864,6 +904,7 @@ function SelfDrawer({
                       <div className="field-row">
                         <label className="field-label">Challenges faced</label>
                         <textarea
+                          disabled={locked}
                           value={entry.challengesFaced}
                           onChange={(event) =>
                             onUpdateSelfKpiEntry(employee.employeeId, assignment.assignmentId, {
@@ -882,35 +923,43 @@ function SelfDrawer({
               <div className="section-label">Overall reflection</div>
               <div className="field-row">
                 <label className="field-label">Overall achievements</label>
-                <textarea value={selfRecord.overallAchievements} onChange={(event) => onUpdateSelf(employee.employeeId, { overallAchievements: event.target.value })} />
+                <textarea disabled={locked} value={selfRecord.overallAchievements} onChange={(event) => onUpdateSelf(employee.employeeId, { overallAchievements: event.target.value })} />
               </div>
               <div className="field-row">
                 <label className="field-label">Major challenges</label>
-                <textarea value={selfRecord.majorChallenges} onChange={(event) => onUpdateSelf(employee.employeeId, { majorChallenges: event.target.value })} />
+                <textarea disabled={locked} value={selfRecord.majorChallenges} onChange={(event) => onUpdateSelf(employee.employeeId, { majorChallenges: event.target.value })} />
               </div>
               <div className="field-row">
                 <label className="field-label">Support needed</label>
-                <textarea value={selfRecord.supportNeeded} onChange={(event) => onUpdateSelf(employee.employeeId, { supportNeeded: event.target.value })} />
+                <textarea disabled={locked} value={selfRecord.supportNeeded} onChange={(event) => onUpdateSelf(employee.employeeId, { supportNeeded: event.target.value })} />
               </div>
               <div className="field-row">
                 <label className="field-label">Development focus</label>
-                <textarea value={selfRecord.developmentFocus} onChange={(event) => onUpdateSelf(employee.employeeId, { developmentFocus: event.target.value })} />
+                <textarea disabled={locked} value={selfRecord.developmentFocus} onChange={(event) => onUpdateSelf(employee.employeeId, { developmentFocus: event.target.value })} />
               </div>
             </>
           )}
         </div>
         <div className="drawer-footer">
-          <span className="left-note">Saved drafts stay editable until you submit.</span>
+          <span className="left-note">
+            {deadlineClosed
+              ? 'Editing is closed for this cycle.'
+              : submitted
+                ? 'Submitted appraisals stay locked unless you tap Edit before the deadline.'
+                : 'Saved drafts stay editable until you submit.'}
+          </span>
           <div style={{ display: 'flex', gap: 8 }}>
-            {step === 'reflection' ? (
+            {!locked && step === 'reflection' ? (
               <button className="btn btn--secondary btn--sm" onClick={() => setStep('kpis')}>
                 Back
               </button>
             ) : null}
-            <button className="btn btn--secondary btn--sm" onClick={onSaveDraft}>
-              Save draft
-            </button>
-            {step === 'kpis' ? (
+            {!submitted && !deadlineClosed ? (
+              <button className="btn btn--secondary btn--sm" onClick={onSaveDraft} disabled={pending}>
+                {selfActionState === 'saving' ? 'Saving...' : 'Save draft'}
+              </button>
+            ) : null}
+            {!locked && step === 'kpis' ? (
               <button
                 className="btn btn--primary btn--sm"
                 onClick={() => setStep('reflection')}
@@ -918,11 +967,17 @@ function SelfDrawer({
               >
                 Next
               </button>
-            ) : (
-              <button className="btn btn--primary btn--sm" onClick={() => onSubmitSelf(employee.employeeId)}>
-                Submit
+            ) : null}
+            {!submitted && !deadlineClosed && step === 'reflection' ? (
+              <button className="btn btn--primary btn--sm" onClick={() => onSubmitSelf(employee.employeeId)} disabled={pending}>
+                {selfActionState === 'submitting' ? 'Submitting...' : 'Submit'}
               </button>
-            )}
+            ) : null}
+            {showEditAction ? (
+              <button className="btn btn--secondary btn--sm" onClick={() => onEditSelf(employee.employeeId)} disabled={pending}>
+                {selfActionState === 'editing' ? 'Re-opening...' : 'Edit'}
+              </button>
+            ) : null}
           </div>
         </div>
       </div>
@@ -958,7 +1013,6 @@ function ReviewDrawer({
   const [openItems, setOpenItems] = useState<Record<string, boolean>>({})
   if (!employee) return null
   const locked = selfRecord?.status !== 'submitted'
-  const provisional = Math.round(assignments.reduce((sum, assignment) => sum + (assignment.score / 5) * assignment.weightPercent, 0))
 
   return (
     <>
@@ -1044,13 +1098,6 @@ function ReviewDrawer({
               </div>
             )
           })}
-
-          <div className="provisional">
-            <div>
-              <div className="num">{provisional}%</div>
-              <div className="lbl">Provisional weighted score</div>
-            </div>
-          </div>
 
           <div className="section-label">Closeout</div>
           <div className="field-row">
@@ -1281,4 +1328,28 @@ function initials(name: string) {
 
 function firstName(name: string) {
   return name.split(/\s+/)[0] ?? name
+}
+
+function hasCycleClosed(cycleClosesAt: string | null) {
+  if (!cycleClosesAt) return false
+  return new Date(cycleClosesAt).getTime() <= Date.now()
+}
+
+function formatDeadline(cycleClosesAt: string | null) {
+  if (!cycleClosesAt) return 'Not set'
+  return new Intl.DateTimeFormat('en-GB', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  }).format(new Date(cycleClosesAt))
+}
+
+function formatSubmittedAt(submittedAt: string) {
+  return new Intl.DateTimeFormat('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(new Date(submittedAt))
 }
