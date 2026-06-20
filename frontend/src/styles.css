@@ -255,12 +255,14 @@ select {
   margin-left: auto;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
   border: 1px solid var(--navy-line);
   background: rgba(255, 255, 255, 0.04);
   color: #c9d3df;
   border-radius: 999px;
-  padding: 7px 10px;
+  width: 34px;
+  height: 34px;
+  padding: 0;
   flex-shrink: 0;
 }
 

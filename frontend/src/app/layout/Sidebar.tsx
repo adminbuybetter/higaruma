@@ -60,7 +60,6 @@ export function Sidebar({ currentPath, onNavigate, authState }: SidebarProps) {
             <path d="M15 12H3" />
             <path d="M13 3h5a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1h-5" />
           </svg>
-          <span>{logoutPending ? 'Signing out…' : 'Logout'}</span>
         </button>
       </div>
     </aside>
