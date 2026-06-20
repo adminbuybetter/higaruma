@@ -513,8 +513,8 @@ def create_app(*, db_engine: Engine = engine) -> FastAPI:
             value=token,
             max_age=settings.access_token_ttl_minutes * 60,
             httponly=True,
-            samesite=settings.session_cookie_samesite,
-            secure=settings.session_cookie_secure,
+            samesite=settings.effective_session_cookie_samesite,
+            secure=settings.effective_session_cookie_secure,
             path="/",
         )
         return LoginResponse(access_token=token, user=build_user_response(db, user))
@@ -524,8 +524,8 @@ def create_app(*, db_engine: Engine = engine) -> FastAPI:
         response.delete_cookie(
             key=settings.session_cookie_name,
             httponly=True,
-            samesite=settings.session_cookie_samesite,
-            secure=settings.session_cookie_secure,
+            samesite=settings.effective_session_cookie_samesite,
+            secure=settings.effective_session_cookie_secure,
             path="/",
         )
         return {"status": "ok"}

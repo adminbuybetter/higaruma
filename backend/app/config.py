@@ -42,6 +42,22 @@ class Settings(BaseSettings):
     def cors_origins(self) -> list[str]:
         return parse_cors_allow_origins(self.cors_allow_origins)
 
+    @property
+    def is_hosted_env(self) -> bool:
+        return self.app_env.lower() in {"staging", "production"}
+
+    @property
+    def effective_session_cookie_samesite(self) -> str:
+        if self.is_hosted_env and self.session_cookie_samesite.lower() == "lax":
+            return "none"
+        return self.session_cookie_samesite
+
+    @property
+    def effective_session_cookie_secure(self) -> bool:
+        if self.is_hosted_env and not self.session_cookie_secure:
+            return True
+        return self.session_cookie_secure
+
 
 @lru_cache
 def get_settings() -> Settings:

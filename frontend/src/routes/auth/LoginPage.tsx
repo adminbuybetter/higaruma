@@ -13,10 +13,21 @@ export function LoginPage() {
 
   if (sessionPending) {
     return (
-      <div className="login-route-shell">
-        <section className="surface-card login-form-panel">
-          <h1>Checking session</h1>
-          <p className="subtle">Verifying your appraisal session before routing you into the workspace.</p>
+      <div className="page-shell login-shell">
+        <section className="hero-card login-card">
+          <div className="login-layout">
+            <div className="login-copy">
+              <span className="eyebrow">Performance reviews</span>
+              <h1>BuyBetter appraisal</h1>
+              <p className="lede">Checking your session before opening the appraisal workspace.</p>
+            </div>
+            <div className="login-form-panel">
+              <div className="login-form-intro">
+                <span className="eyebrow">Session check</span>
+                <p className="subtle">Verifying your appraisal session and routing you to the correct workspace.</p>
+              </div>
+            </div>
+          </div>
         </section>
       </div>
     )
@@ -41,43 +52,57 @@ export function LoginPage() {
   }
 
   return (
-    <div className="login-route-shell">
-      <section className="login-page-grid">
-        <article className="surface-card login-about-panel">
-          <span className="eyebrow">Performance reviews</span>
-          <h1>BuyBetter appraisal workspace</h1>
-          <p className="wide-note">
-            Sign in once, restore your session on reload, and only see the appraisal lanes that concern your role.
-          </p>
-        </article>
+    <div className="page-shell login-shell">
+      <section className="hero-card login-card">
+        <div className="login-layout">
+          <article className="login-copy">
+            <span className="eyebrow">Performance reviews</span>
+            <h1>BuyBetter appraisal workspace</h1>
+            <p className="lede">
+              Sign in once, restore your session on reload, and only see the appraisal lanes that concern your role.
+            </p>
+            <div className="login-note">
+              <strong>What happens next</strong>
+              <p>
+                Employees complete self-appraisal first, line managers review next, and HR controls final release and reporting.
+              </p>
+            </div>
+          </article>
 
-        <article className="surface-card login-form-panel">
-          <span className="eyebrow">Secure sign in</span>
-          <h1>Open workspace</h1>
-          <p className="wide-note">Use the username and password assigned to you for this appraisal cycle.</p>
+          <form className="auth-form login-form-panel" onSubmit={handleSubmit}>
+            <div className="login-form-intro">
+              <span className="eyebrow">Secure sign in</span>
+              <h1>Open workspace</h1>
+              <p className="subtle">Use the username and password assigned to you for this appraisal cycle.</p>
+            </div>
 
-          <form className="auth-form" onSubmit={handleSubmit}>
-            <label>
+            <label className="auth-field">
               <span>Username</span>
-              <input value={username} onChange={(event) => setUsername(event.target.value)} required />
+              <input
+                value={username}
+                onChange={(event) => setUsername(event.target.value)}
+                placeholder="first.last"
+                required
+              />
             </label>
-            <label>
+            <label className="auth-field">
               <span>Password</span>
               <input
                 type="password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
+                placeholder="Assigned password"
                 required
               />
             </label>
             <div className="auth-actions">
-              <button className="button primary" disabled={loginPending} type="submit">
+              <button className="button primary login-submit" disabled={loginPending} type="submit">
                 {loginPending ? 'Signing in…' : 'Open workspace'}
               </button>
             </div>
             {errorMessage ? <p className="auth-status is-error">{errorMessage}</p> : null}
           </form>
-        </article>
+        </div>
       </section>
     </div>
   )
