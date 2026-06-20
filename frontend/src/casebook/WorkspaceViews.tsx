@@ -51,7 +51,8 @@ type ManagerProps = {
   onUpdateFinalResult: (employeeId: string, patch: Partial<FinalResultRecord>) => void
 }
 
-type AdminProps = ManagerProps & {
+type HrOverviewProps = {
+  currentUser: AppUser
   state: AppState
   rolePackLibrary: Map<string, RoleKpiEntry[]>
   onResolveDesignationSetup: (input: {
@@ -63,15 +64,33 @@ type AdminProps = ManagerProps & {
     reviewerLabel: string
     kpiOwnerLabel: string
   }) => void
-  onReset: () => void
 }
 
-type ReleaseProps = {
+type HrEmployeesProps = {
   state: AppState
+  employees: EmployeeRecord[]
+  selectedEmployee: EmployeeRecord | null
+  assignments: AssignmentRecord[]
+  selfRecord: SelfAppraisalRecord | null
+  finalResult: FinalResultRecord | null
+  searchQuery: string
+  searchLoading: boolean
+  onSearchChange: (query: string) => void
+  onSelectEmployee: (employeeId: string) => void
+  onUpdateFinalResult: (employeeId: string, patch: Partial<FinalResultRecord>) => void
+}
+
+type HrReleaseProps = {
+  state: AppState
+  selectedEmployee: EmployeeRecord | null
+  assignments: AssignmentRecord[]
+  selfRecord: SelfAppraisalRecord | null
+  finalResult: FinalResultRecord | null
   results: FinalResultRecord[]
   searchQuery: string
   searchLoading: boolean
   onSearchChange: (query: string) => void
+  onSelectEmployee: (employeeId: string) => void
   onUpdateFinalResult: (employeeId: string, patch: Partial<FinalResultRecord>) => void
 }
 
@@ -237,6 +256,104 @@ export function CasebookOverviewWorkspace({
         />
       ) : null}
     </>
+  )
+}
+
+export function CasebookHrOverviewWorkspace({
+  currentUser,
+  state,
+  rolePackLibrary,
+  onResolveDesignationSetup,
+}: HrOverviewProps) {
+  const submittedCount = state.selfAppraisals.filter((record) => record.status === 'submitted').length
+  const managerCompleteCount = state.employees.filter((employee) => managerReviewStateForEmployee(employee, state) === 'complete').length
+  const releasedCount = state.finalResults.filter((record) => record.releasedToEmployee).length
+  const needsAttention = state.employees
+    .filter((employee) => hrWorkflowStateForEmployee(employee, state) === 'awaiting-self')
+    .slice(0, 6)
+  const readyToRelease = state.employees
+    .filter((employee) => hrWorkflowStateForEmployee(employee, state) === 'ready-to-release')
+    .slice(0, 6)
+
+  return (
+    <section className="view active">
+      <div className="topbar">
+        <div>
+          <h1>Welcome back, {firstName(currentUser.displayName)}</h1>
+          <div className="meta">H1 2026 Cycle · {state.employees.length} employees in cycle</div>
+        </div>
+      </div>
+
+      <div className="stat-grid">
+        <StatCard
+          value={String(state.employees.length)}
+          label="Employees in cycle"
+          progress={100}
+          progressTone="navy"
+        />
+        <StatCard
+          value={`${submittedCount}/${state.employees.length || 0}`}
+          label="Self-appraisals submitted"
+          progress={percentOf(submittedCount, state.employees.length)}
+          progressTone="teal"
+        />
+        <StatCard
+          value={`${managerCompleteCount}/${state.employees.length || 0}`}
+          label="Manager reviews complete"
+          progress={percentOf(managerCompleteCount, state.employees.length)}
+          progressTone="amber"
+        />
+        <StatCard
+          value={`${releasedCount}/${state.employees.length || 0}`}
+          label="Results released"
+          progress={percentOf(releasedCount, state.employees.length)}
+          progressTone="rust"
+        />
+      </div>
+
+      <div className="section-label">Needs attention — self-appraisal not submitted</div>
+      <div className="needs-list">
+        {needsAttention.length ? (
+          needsAttention.map((employee) => (
+            <HrNeedsRow
+              key={employee.employeeId}
+              employee={employee}
+              meta={employee.designation}
+              stampKind="waiting"
+              stampLabel="Awaiting self"
+            />
+          ))
+        ) : (
+          <div className="card-sub">Everyone has submitted a self-appraisal.</div>
+        )}
+      </div>
+
+      <div className="section-label">Ready to release</div>
+      <div className="needs-list">
+        {readyToRelease.length ? (
+          readyToRelease.map((employee) => {
+            const result = state.finalResults.find((record) => record.employeeId === employee.employeeId)
+            return (
+              <HrNeedsRow
+                key={employee.employeeId}
+                employee={employee}
+                meta={`${employee.primaryOwnerLabel || employee.managerLabel || 'Manager not mapped'} · ${result?.performanceBand || 'Awaiting release'}`}
+                stampKind="ready"
+                stampLabel="Ready to release"
+              />
+            )
+          })
+        ) : (
+          <div className="card-sub">No completed appraisal packets are waiting for release right now.</div>
+        )}
+      </div>
+
+      <HrSetupQueue
+        state={state}
+        rolePackLibrary={rolePackLibrary}
+        onResolveDesignationSetup={onResolveDesignationSetup}
+      />
+    </section>
   )
 }
 
@@ -456,9 +573,8 @@ export function CasebookManagerWorkspace({
   )
 }
 
-export function CasebookAdminWorkspace({
+export function CasebookHrEmployeesWorkspace({
   state,
-  rolePackLibrary,
   employees,
   selectedEmployee,
   assignments,
@@ -468,27 +584,304 @@ export function CasebookAdminWorkspace({
   searchLoading,
   onSearchChange,
   onSelectEmployee,
-  onUpdateAssignment,
   onUpdateFinalResult,
-  onResolveDesignationSetup,
-  onReset,
-}: AdminProps) {
-  const [reviewOpen, setReviewOpen] = useState(false)
-  const [toast, setToast] = useState<string | null>(null)
+}: HrEmployeesProps) {
+  const [detailOpen, setDetailOpen] = useState(false)
   const [employeePage, setEmployeePage] = useState(1)
+  const [filter, setFilter] = useState<'all' | 'awaiting-self' | 'awaiting-manager' | 'ready-to-release' | 'released'>('all')
+
+  useEffect(() => {
+    setEmployeePage(1)
+  }, [filter, searchQuery])
+
+  const filteredEmployees = employees.filter((employee) => {
+    if (filter === 'all') return true
+    return hrWorkflowStateForEmployee(employee, state) === filter
+  })
+  const pagedEmployees = paginateRows(filteredEmployees, employeePage)
+
+  return (
+    <>
+      <section className="view active">
+        <div className="topbar">
+          <div>
+            <h1>All Employees</h1>
+            <div className="meta">Read appraisal packets, track submission states, and release only when each packet is complete.</div>
+          </div>
+        </div>
+
+        <SearchToolbar
+          value={searchQuery}
+          loading={searchLoading}
+          placeholder="Search by name, employee code, role or department"
+          onChange={onSearchChange}
+        />
+
+        <div className="filter-pills">
+          <FilterPill label="All" active={filter === 'all'} onClick={() => setFilter('all')} />
+          <FilterPill label="Awaiting self" active={filter === 'awaiting-self'} onClick={() => setFilter('awaiting-self')} />
+          <FilterPill
+            label="Awaiting manager"
+            active={filter === 'awaiting-manager'}
+            onClick={() => setFilter('awaiting-manager')}
+          />
+          <FilterPill
+            label="Ready to release"
+            active={filter === 'ready-to-release'}
+            onClick={() => setFilter('ready-to-release')}
+          />
+          <FilterPill label="Released" active={filter === 'released'} onClick={() => setFilter('released')} />
+        </div>
+
+        <ListSectionHeader title="Employee appraisal packets" total={filteredEmployees.length} page={employeePage} pageSize={PAGE_SIZE} />
+        <table className="emp-table">
+          <thead>
+            <tr>
+              <th>Employee</th>
+              <th>Manager</th>
+              <th>Self-appraisal</th>
+              <th>Manager review</th>
+              <th>Result</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {pagedEmployees.map((employee) => {
+              const stateLabel = hrWorkflowStateForEmployee(employee, state)
+              return (
+                <tr key={employee.employeeId}>
+                  <td>
+                    <div className="who">
+                      <div className="name">{employee.employeeName}</div>
+                      <div className="role">{employee.designation}</div>
+                    </div>
+                  </td>
+                  <td>{employee.primaryOwnerLabel || employee.managerLabel || 'Not mapped'}</td>
+                  <td>
+                    <Stamp
+                      kind={selfSubmissionStateForEmployee(employee, state) === 'submitted' ? 'ready' : 'waiting'}
+                      label={selfSubmissionStateForEmployee(employee, state) === 'submitted' ? 'Submitted' : 'Awaiting self'}
+                    />
+                  </td>
+                  <td>
+                    <Stamp
+                      kind={managerReviewStateForEmployee(employee, state) === 'complete' ? 'ready' : 'waiting'}
+                      label={managerReviewStateForEmployee(employee, state) === 'complete' ? 'Complete' : 'Awaiting manager'}
+                    />
+                  </td>
+                  <td>
+                    <Stamp kind={stampKindForHrWorkflow(stateLabel)} label={stampLabelForHrWorkflow(stateLabel)} />
+                  </td>
+                  <td>
+                    <button
+                      className="btn btn--secondary btn--sm"
+                      onClick={() => {
+                        onSelectEmployee(employee.employeeId)
+                        setDetailOpen(true)
+                      }}
+                    >
+                      Open
+                    </button>
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+        <PaginationControls page={employeePage} total={filteredEmployees.length} pageSize={PAGE_SIZE} onChange={setEmployeePage} />
+      </section>
+
+      <HrPacketDrawer
+        open={detailOpen && Boolean(selectedEmployee)}
+        onClose={() => setDetailOpen(false)}
+        employee={selectedEmployee}
+        assignments={assignments}
+        selfRecord={selfRecord}
+        finalResult={finalResult}
+        state={state}
+        onUpdateFinalResult={onUpdateFinalResult}
+      />
+    </>
+  )
+}
+
+export function CasebookHrReleaseWorkspace({
+  state,
+  selectedEmployee,
+  assignments,
+  selfRecord,
+  finalResult,
+  results,
+  searchQuery,
+  searchLoading,
+  onSearchChange,
+  onSelectEmployee,
+  onUpdateFinalResult,
+}: HrReleaseProps) {
+  const [detailOpen, setDetailOpen] = useState(false)
+  const [pendingPage, setPendingPage] = useState(1)
+  const [releasedPage, setReleasedPage] = useState(1)
+
+  useEffect(() => {
+    setPendingPage(1)
+    setReleasedPage(1)
+  }, [searchQuery])
+
+  const pendingResults = results.filter((result) => {
+    const employee = state.employees.find((record) => record.employeeId === result.employeeId)
+    return employee && hrWorkflowStateForEmployee(employee, state) === 'ready-to-release'
+  })
+  const releasedResults = results.filter((result) => result.releasedToEmployee)
+  const pagedPendingResults = paginateRows(pendingResults, pendingPage)
+  const pagedReleasedResults = paginateRows(releasedResults, releasedPage)
+
+  return (
+    <>
+      <section className="view active">
+        <div className="topbar">
+          <div>
+            <h1>Release Control</h1>
+            <div className="meta">Release completed packets to employees only after both self and manager appraisal stages are complete.</div>
+          </div>
+        </div>
+
+        <div className="stat-grid">
+          <StatCard
+            value={String(pendingResults.length)}
+            label="Pending releases"
+            progress={percentOf(pendingResults.length, state.employees.length)}
+            progressTone="amber"
+          />
+          <StatCard
+            value={String(releasedResults.length)}
+            label="Released results"
+            progress={percentOf(releasedResults.length, state.employees.length)}
+            progressTone="teal"
+          />
+          <StatCard
+            value={String(state.employees.filter((employee) => hrWorkflowStateForEmployee(employee, state) === 'awaiting-manager').length)}
+            label="Awaiting manager"
+            progress={percentOf(state.employees.filter((employee) => hrWorkflowStateForEmployee(employee, state) === 'awaiting-manager').length, state.employees.length)}
+            progressTone="rust"
+          />
+          <StatCard
+            value={String(state.unresolvedDesignations.length)}
+            label="Needs role setup"
+            progress={percentOf(state.unresolvedDesignations.length, state.employees.length || state.unresolvedDesignations.length || 1)}
+            progressTone="navy"
+          />
+        </div>
+
+        <SearchToolbar
+          value={searchQuery}
+          loading={searchLoading}
+          placeholder="Search by name, employee code, role or department"
+          onChange={onSearchChange}
+        />
+
+        <div className="card" style={{ marginBottom: 18 }}>
+          <div className="card-eyebrow">Pending releases</div>
+          <ListSectionHeader title="Ready to release" total={pendingResults.length} page={pendingPage} pageSize={PAGE_SIZE} />
+          <div className="team-list">
+            {pagedPendingResults.map((result) => {
+              const employee = state.employees.find((record) => record.employeeId === result.employeeId)
+              if (!employee) return null
+              return (
+                <div key={result.employeeId} className="cycle-row">
+                  <div className="info">
+                    <h4>{result.employeeName}</h4>
+                    <p>{employee.primaryOwnerLabel || employee.managerLabel || 'Manager not mapped'} · {result.performanceBand}</p>
+                  </div>
+                  <Stamp kind="ready" label="Ready to release" />
+                  <div className="right">
+                    <button
+                      className="btn btn--secondary btn--sm"
+                      onClick={() => {
+                        onSelectEmployee(result.employeeId)
+                        setDetailOpen(true)
+                      }}
+                    >
+                      Review
+                    </button>
+                    <button
+                      className="btn btn--primary btn--sm"
+                      onClick={() => onUpdateFinalResult(result.employeeId, { releasedToEmployee: true })}
+                    >
+                      Release
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+          <PaginationControls page={pendingPage} total={pendingResults.length} pageSize={PAGE_SIZE} onChange={setPendingPage} />
+        </div>
+
+        <div className="card">
+          <div className="card-eyebrow">Released results</div>
+          <ListSectionHeader title="Already visible to employees" total={releasedResults.length} page={releasedPage} pageSize={PAGE_SIZE} />
+          <div className="team-list">
+            {pagedReleasedResults.map((result) => (
+              <div key={result.employeeId} className="cycle-row">
+                <div className="info">
+                  <h4>{result.employeeName}</h4>
+                  <p>{result.performanceBand} · score {result.finalScore}</p>
+                </div>
+                <Stamp kind="released" label="Released" />
+                <div className="right">
+                  <button
+                    className="btn btn--secondary btn--sm"
+                    onClick={() => {
+                      onSelectEmployee(result.employeeId)
+                      setDetailOpen(true)
+                    }}
+                  >
+                    Open
+                  </button>
+                  <button
+                    className="btn btn--ghost btn--sm"
+                    onClick={() => onUpdateFinalResult(result.employeeId, { releasedToEmployee: false })}
+                  >
+                    Hide result
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+          <PaginationControls page={releasedPage} total={releasedResults.length} pageSize={PAGE_SIZE} onChange={setReleasedPage} />
+        </div>
+      </section>
+
+      <HrPacketDrawer
+        open={detailOpen && Boolean(selectedEmployee)}
+        onClose={() => setDetailOpen(false)}
+        employee={selectedEmployee}
+        assignments={assignments}
+        selfRecord={selfRecord}
+        finalResult={finalResult}
+        state={state}
+        onUpdateFinalResult={onUpdateFinalResult}
+      />
+    </>
+  )
+}
+
+function HrSetupQueue({
+  state,
+  rolePackLibrary,
+  onResolveDesignationSetup,
+}: {
+  state: AppState
+  rolePackLibrary: Map<string, RoleKpiEntry[]>
+  onResolveDesignationSetup: HrOverviewProps['onResolveDesignationSetup']
+}) {
   const [unresolvedPage, setUnresolvedPage] = useState(1)
   const [designationDrafts, setDesignationDrafts] = useState<
     Record<string, { roleName: string; sourceRoleName: string; managerLabel: string; reviewerLabel: string; kpiOwnerLabel: string; customKpis: string }>
   >({})
 
-  const unresolvedCount = state.unresolvedDesignations.length
   const roleOptions = [...rolePackLibrary.keys()].sort((left, right) => left.localeCompare(right))
-  const pagedEmployees = paginateRows(employees, employeePage)
   const pagedUnresolvedDesignations = paginateRows(state.unresolvedDesignations, unresolvedPage)
-
-  useEffect(() => {
-    setEmployeePage(1)
-  }, [searchQuery])
 
   function draftFor(designation: string, defaults?: { role?: string; manager?: string }) {
     return (
@@ -531,239 +924,328 @@ export function CasebookAdminWorkspace({
       .filter((entry): entry is RoleKpiEntry => Boolean(entry))
   }
 
+  if (!state.unresolvedDesignations.length) {
+    return null
+  }
+
+  return (
+    <div className="card" style={{ marginTop: 26 }}>
+      <div className="card-eyebrow">Role setup queue</div>
+      <ListSectionHeader
+        title="Employees blocked by missing designation mapping"
+        total={state.unresolvedDesignations.length}
+        page={unresolvedPage}
+        pageSize={PAGE_SIZE}
+      />
+      <div className="team-list">
+        {pagedUnresolvedDesignations.map((item) => {
+          const draft = draftFor(item.designation, {
+            role: item.suggestedAppraisalRole,
+            manager: item.lineManagerLabel,
+          })
+
+          return (
+            <div key={item.designation} className="card" style={{ padding: 16 }}>
+              <div className="card-header">
+                <div>
+                  <div className="card-title">{item.designation}</div>
+                  <div className="card-sub">{item.notes || 'No notes provided.'}</div>
+                </div>
+                <Stamp kind="held" label="Needs setup" />
+              </div>
+              <div className="kpi-grid-setup">
+                <label>
+                  <span>Mapped appraisal role</span>
+                  <input
+                    className="text-input"
+                    value={draft.roleName}
+                    onChange={(event) => updateDraft(item.designation, { roleName: event.target.value })}
+                  />
+                </label>
+                <label>
+                  <span>Copy KPI pack from</span>
+                  <select
+                    className="text-input"
+                    value={draft.sourceRoleName}
+                    onChange={(event) => updateDraft(item.designation, { sourceRoleName: event.target.value })}
+                  >
+                    <option value="">Select existing role</option>
+                    {roleOptions.map((role) => (
+                      <option key={role} value={role}>
+                        {role}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  <span>Line manager</span>
+                  <input
+                    className="text-input"
+                    value={draft.managerLabel}
+                    onChange={(event) => updateDraft(item.designation, { managerLabel: event.target.value })}
+                  />
+                </label>
+                <label>
+                  <span>Reviewer</span>
+                  <input
+                    className="text-input"
+                    value={draft.reviewerLabel}
+                    onChange={(event) => updateDraft(item.designation, { reviewerLabel: event.target.value })}
+                  />
+                </label>
+                <label>
+                  <span>KPI owner</span>
+                  <input
+                    className="text-input"
+                    value={draft.kpiOwnerLabel}
+                    onChange={(event) => updateDraft(item.designation, { kpiOwnerLabel: event.target.value })}
+                  />
+                </label>
+              </div>
+              <label style={{ marginTop: 12 }}>
+                <span>Custom KPI lines</span>
+                <textarea
+                  value={draft.customKpis}
+                  onChange={(event) => updateDraft(item.designation, { customKpis: event.target.value })}
+                  placeholder="KPI Area | KPI Statement | Weight"
+                />
+              </label>
+              <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                <button
+                  className="btn btn--primary btn--sm"
+                  onClick={() =>
+                    onResolveDesignationSetup({
+                      designation: item.designation,
+                      roleName: draft.roleName,
+                      sourceRoleName: draft.sourceRoleName,
+                      entries: parseKpiLines(draft.customKpis),
+                      managerLabel: draft.managerLabel,
+                      reviewerLabel: draft.reviewerLabel,
+                      kpiOwnerLabel: draft.kpiOwnerLabel,
+                    })
+                  }
+                >
+                  Save setup
+                </button>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+      <PaginationControls
+        page={unresolvedPage}
+        total={state.unresolvedDesignations.length}
+        pageSize={PAGE_SIZE}
+        onChange={setUnresolvedPage}
+      />
+    </div>
+  )
+}
+
+function HrPacketDrawer({
+  open,
+  onClose,
+  employee,
+  assignments,
+  selfRecord,
+  finalResult,
+  state,
+  onUpdateFinalResult,
+}: {
+  open: boolean
+  onClose: () => void
+  employee: EmployeeRecord | null
+  assignments: AssignmentRecord[]
+  selfRecord: SelfAppraisalRecord | null
+  finalResult: FinalResultRecord | null
+  state: AppState
+  onUpdateFinalResult: (employeeId: string, patch: Partial<FinalResultRecord>) => void
+}) {
+  if (!employee) return null
+
+  const workflowState = hrWorkflowStateForEmployee(employee, state)
+  const managerComplete = managerReviewStateForEmployee(employee, state) === 'complete'
+  const rows = assignments.map((assignment) => ({
+    assignment,
+    self: selfRecord?.kpiEntries.find((entry) => entry.assignmentId === assignment.assignmentId)?.selfScore ?? 0,
+  }))
+
   return (
     <>
-      <section className="view active">
-        <div className="topbar">
-          <div>
-            <h1>My Team</h1>
-            <div className="meta">Review queue plus unresolved role setup for staff who still need appraisal mapping</div>
+      <div className={`overlay ${open ? 'show' : ''}`} onClick={onClose} />
+      <div className={`drawer ${open ? 'open' : ''}`}>
+        <div className="drawer-header">
+          <div className="drawer-header-top">
+            <div>
+              <h2>{employee.employeeName}</h2>
+              <div className="sub">
+                {employee.designation} · <Stamp kind={stampKindForHrWorkflow(workflowState)} label={stampLabelForHrWorkflow(workflowState)} />
+              </div>
+            </div>
+            <button className="close-x" onClick={onClose}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M6 6l12 12M18 6L6 18" />
+              </svg>
+            </button>
           </div>
         </div>
+        <div className="drawer-body">
+          <div className="score-pair">
+            <div className="box">
+              <div className="num">{selfRecord?.status === 'submitted' ? 'Yes' : 'No'}</div>
+              <div className="lbl">Self appraisal submitted</div>
+            </div>
+            <div className="box">
+              <div className="num">{managerComplete ? 'Yes' : 'No'}</div>
+              <div className="lbl">Manager review complete</div>
+            </div>
+          </div>
 
-        <SearchToolbar
-          value={searchQuery}
-          loading={searchLoading}
-          placeholder="Search by name, employee code, role or department"
-          onChange={onSearchChange}
-        />
-        <ListSectionHeader title="Review queue" total={employees.length} page={employeePage} pageSize={PAGE_SIZE} />
-        <div className="team-list" style={{ marginBottom: 16 }}>
-          {pagedEmployees.map((employee) => {
-            const employeeSelfRecord = state.selfAppraisals.find((record) => record.employeeId === employee.employeeId) ?? null
-            const statusLabel = employeeSelfRecord?.status === 'submitted' ? 'ready' : 'waiting'
-            return (
-              <div key={employee.employeeId} className="team-card">
-                <div className="team-avatar">{initials(employee.employeeName)}</div>
-                <div className="team-info">
-                  <div className="name">{employee.employeeName}</div>
-                  <div className="role">{employee.designation}</div>
-                  <div className="team-meta">
-                    {employee.appraisalRole || employee.designation} · {employeeSelfRecord?.status === 'submitted' ? 'Self-appraisal submitted' : 'No self-summary yet'}
-                  </div>
-                </div>
-                <div className="right">
-                  <Stamp kind={statusLabel} label={stampLabelForReviewState(statusLabel)} />
-                  <button
-                    className="btn btn--secondary btn--sm"
-                    onClick={() => {
-                      onSelectEmployee(employee.employeeId)
-                      setReviewOpen(true)
-                    }}
-                  >
-                    Review
-                  </button>
+          <div className="section-label">Employee reflection</div>
+          {selfRecord?.status === 'submitted' ? (
+            <div className="self-summary-box">
+              <span className="tag">Self summary</span>
+              {buildSelfSummary(selfRecord)}
+            </div>
+          ) : (
+            <div className="locked-banner">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <rect x="5" y="11" width="14" height="9" rx="1.5" />
+                <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+              </svg>
+              Self-appraisal has not been submitted yet.
+            </div>
+          )}
+
+          <div className="section-label">Manager review</div>
+          {managerComplete ? (
+            <div className="manager-summary-box">
+              <span className="tag">Manager summary</span>
+              {finalResult?.managerSummary || 'Manager review is complete but summary is still blank.'}
+            </div>
+          ) : (
+            <div className="locked-banner">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <rect x="5" y="11" width="14" height="9" rx="1.5" />
+                <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+              </svg>
+              Manager appraisal is still in progress. HR can view the packet but cannot score it here.
+            </div>
+          )}
+
+          <div className="section-label">KPI breakdown</div>
+          <table className="result-table">
+            <thead>
+              <tr>
+                <th>KPI</th>
+                <th>Wt</th>
+                <th>Self</th>
+                <th>Manager</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map(({ assignment, self }) => (
+                <tr key={assignment.assignmentId}>
+                  <td>{assignment.kpiArea}</td>
+                  <td className="num">{assignment.weightPercent}%</td>
+                  <td className="num mono">{self || '—'}</td>
+                  <td className="num mono">{assignment.score || '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          <div className="section-label">Result</div>
+          <div className="card" style={{ padding: 16 }}>
+            <div className="card-header">
+              <div>
+                <div className="card-title">{finalResult?.performanceBand || 'Awaiting result'}</div>
+                <div className="card-sub">
+                  Final score {finalResult?.finalScore ?? 0} · Recommendation {finalResult?.finalRecommendation || 'Not set'}
                 </div>
               </div>
-            )
-          })}
-        </div>
-        <PaginationControls page={employeePage} total={employees.length} pageSize={PAGE_SIZE} onChange={setEmployeePage} />
-
-        <div className="card" style={{ marginBottom: 18 }}>
-          <div className="card-eyebrow">Setup unresolved roles</div>
-          <ListSectionHeader
-            title="Designation setup queue"
-            total={state.unresolvedDesignations.length}
-            page={unresolvedPage}
-            pageSize={PAGE_SIZE}
-          />
-          <div className="team-list">
-            {pagedUnresolvedDesignations.map((item) => {
-              const draft = draftFor(item.designation, {
-                role: item.suggestedAppraisalRole,
-                manager: item.lineManagerLabel,
-              })
-
-              return (
-                <div key={item.designation} className="card" style={{ padding: 16 }}>
-                  <div className="card-header">
-                    <div>
-                      <div className="card-title">{item.designation}</div>
-                      <div className="card-sub">{item.notes || 'No notes provided.'}</div>
-                    </div>
-                    <Stamp kind="held" label="Needs setup" />
-                  </div>
-                  <div className="kpi-grid-setup">
-                    <label>
-                      <span>Mapped appraisal role</span>
-                      <input className="text-input" value={draft.roleName} onChange={(event) => updateDraft(item.designation, { roleName: event.target.value })} />
-                    </label>
-                    <label>
-                      <span>Copy KPI pack from</span>
-                      <select className="text-input" value={draft.sourceRoleName} onChange={(event) => updateDraft(item.designation, { sourceRoleName: event.target.value })}>
-                        <option value="">Select existing role</option>
-                        {roleOptions.map((role) => (
-                          <option key={role} value={role}>
-                            {role}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <label>
-                      <span>Line manager</span>
-                      <input className="text-input" value={draft.managerLabel} onChange={(event) => updateDraft(item.designation, { managerLabel: event.target.value })} />
-                    </label>
-                    <label>
-                      <span>Reviewer</span>
-                      <input className="text-input" value={draft.reviewerLabel} onChange={(event) => updateDraft(item.designation, { reviewerLabel: event.target.value })} />
-                    </label>
-                    <label>
-                      <span>KPI owner</span>
-                      <input className="text-input" value={draft.kpiOwnerLabel} onChange={(event) => updateDraft(item.designation, { kpiOwnerLabel: event.target.value })} />
-                    </label>
-                  </div>
-                  <label style={{ marginTop: 12 }}>
-                    <span>Custom KPI lines</span>
-                    <textarea value={draft.customKpis} onChange={(event) => updateDraft(item.designation, { customKpis: event.target.value })} placeholder="KPI Area | KPI Statement | Weight" />
-                  </label>
-                  <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-                    <button
-                      className="btn btn--primary btn--sm"
-                      onClick={() => {
-                        onResolveDesignationSetup({
-                          designation: item.designation,
-                          roleName: draft.roleName,
-                          sourceRoleName: draft.sourceRoleName,
-                          entries: parseKpiLines(draft.customKpis),
-                          managerLabel: draft.managerLabel,
-                          reviewerLabel: draft.reviewerLabel,
-                          kpiOwnerLabel: draft.kpiOwnerLabel,
-                        })
-                        setToast('Role setup saved')
-                      }}
-                    >
-                      Save setup
-                    </button>
-                  </div>
-                </div>
-              )
-            })}
+              <Stamp kind={stampKindForHrWorkflow(workflowState)} label={stampLabelForHrWorkflow(workflowState)} />
+            </div>
           </div>
-          <PaginationControls
-            page={unresolvedPage}
-            total={state.unresolvedDesignations.length}
-            pageSize={PAGE_SIZE}
-            onChange={setUnresolvedPage}
-          />
         </div>
-      </section>
-
-      <ReviewDrawer
-        open={reviewOpen && Boolean(selectedEmployee)}
-        onClose={() => setReviewOpen(false)}
-        employee={selectedEmployee}
-        assignments={assignments}
-        selfRecord={selfRecord}
-        finalResult={finalResult}
-        onUpdateAssignment={onUpdateAssignment}
-        onUpdateFinalResult={onUpdateFinalResult}
-        onSaveDraft={() => setToast('Draft saved')}
-        onSubmit={() => setToast('Recommendation updated')}
-        variant="admin"
-      />
-
-      <Toast message={toast} onDone={() => setToast(null)} />
+        <div className="drawer-footer">
+          <span className="left-note">Read-only packet for HR. Manager scoring remains in the manager workspace.</span>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {workflowState === 'ready-to-release' ? (
+              <button className="btn btn--primary btn--sm" onClick={() => onUpdateFinalResult(employee.employeeId, { releasedToEmployee: true })}>
+                Release result
+              </button>
+            ) : null}
+            {workflowState === 'released' ? (
+              <button className="btn btn--ghost btn--sm" onClick={() => onUpdateFinalResult(employee.employeeId, { releasedToEmployee: false })}>
+                Hide result
+              </button>
+            ) : null}
+          </div>
+        </div>
+      </div>
     </>
   )
 }
 
-export function CasebookReleaseWorkspace({
-  state,
-  results,
-  searchQuery,
-  searchLoading,
-  onSearchChange,
-  onUpdateFinalResult,
-}: ReleaseProps) {
-  const [releasePage, setReleasePage] = useState(1)
-  const pagedFinalResults = paginateRows(results, releasePage)
-  const releasedCount = state.finalResults.filter((record) => record.releasedToEmployee).length
-
-  useEffect(() => {
-    setReleasePage(1)
-  }, [searchQuery])
-
+function StatCard({
+  value,
+  label,
+  progress,
+  progressTone,
+}: {
+  value: string
+  label: string
+  progress: number
+  progressTone: 'navy' | 'teal' | 'amber' | 'rust'
+}) {
   return (
-    <section className="view active">
-      <div className="topbar">
-        <div>
-          <h1>Release Control</h1>
-          <div className="meta">Control when manager feedback and final outcomes become visible to employees</div>
-        </div>
+    <div className="stat-card">
+      <div className="num">{value}</div>
+      <div className="lbl">{label}</div>
+      <div className="stat-bar">
+        <span className={`stat-fill stat-fill--${progressTone}`} style={{ width: `${progress}%` }} />
       </div>
+    </div>
+  )
+}
 
-      <div className="grid-2">
-        <div className="card">
-          <div className="card-eyebrow">Visibility status</div>
-          <div className="card-header">
-            <div>
-              <div className="card-title">{releasedCount} results released</div>
-              <div className="card-sub">{state.finalResults.length - releasedCount} results still held from employees</div>
-            </div>
-            <Stamp kind={releasedCount > 0 ? 'released' : 'held'} label={releasedCount > 0 ? 'Active' : 'Held'} />
-          </div>
-        </div>
-
-        <div className="card">
-          <div className="card-eyebrow">Policy</div>
-          <div className="card-sub">
-            Release only when the manager review is complete and the appraisal packet is ready for staff consumption.
-          </div>
-        </div>
+function HrNeedsRow({
+  employee,
+  meta,
+  stampKind,
+  stampLabel,
+}: {
+  employee: EmployeeRecord
+  meta: string
+  stampKind: 'ready' | 'waiting' | 'held' | 'released'
+  stampLabel: string
+}) {
+  return (
+    <div className="needs-row">
+      <div className="av">{initials(employee.employeeName)}</div>
+      <div className="who">
+        <div className="name">{employee.employeeName}</div>
+        <div className="role">{meta}</div>
       </div>
+      <Stamp kind={stampKind} label={stampLabel} />
+    </div>
+  )
+}
 
-      <div className="card" style={{ marginBottom: 18 }}>
-        <div className="card-eyebrow">Release queue</div>
-        <SearchToolbar
-          value={searchQuery}
-          loading={searchLoading}
-          placeholder="Search by name, employee code, role or department"
-          onChange={onSearchChange}
-        />
-        <ListSectionHeader title="Final result visibility" total={results.length} page={releasePage} pageSize={PAGE_SIZE} />
-        <div className="team-list">
-          {pagedFinalResults.map((result) => (
-            <div key={result.employeeId} className="cycle-row">
-              <div className="info">
-                <h4>{result.employeeName}</h4>
-                <p>
-                  {result.performanceBand} · score {result.finalScore}
-                </p>
-              </div>
-              <Stamp kind={result.releasedToEmployee ? 'released' : 'held'} label={result.releasedToEmployee ? 'Released' : 'Held'} />
-              <button
-                className="btn btn--secondary btn--sm"
-                onClick={() => onUpdateFinalResult(result.employeeId, { releasedToEmployee: !result.releasedToEmployee })}
-              >
-                {result.releasedToEmployee ? 'Hide result' : 'Release result'}
-              </button>
-            </div>
-          ))}
-        </div>
-        <PaginationControls page={releasePage} total={results.length} pageSize={PAGE_SIZE} onChange={setReleasePage} />
-      </div>
-    </section>
+function FilterPill({
+  label,
+  active,
+  onClick,
+}: {
+  label: string
+  active: boolean
+  onClick: () => void
+}) {
+  return (
+    <button className={`pill${active ? ' active' : ''}`} type="button" onClick={onClick}>
+      {label}
+    </button>
   )
 }
 
@@ -1384,8 +1866,60 @@ function reviewStateForEmployee(employee: EmployeeRecord, state: AppState) {
   return selfRecord?.status === 'submitted' ? 'ready' : 'waiting'
 }
 
+function selfSubmissionStateForEmployee(employee: EmployeeRecord, state: AppState) {
+  const selfRecord = state.selfAppraisals.find((record) => record.employeeId === employee.employeeId)
+  return selfRecord?.status === 'submitted' ? 'submitted' : 'awaiting-self'
+}
+
+function managerReviewStateForEmployee(employee: EmployeeRecord, state: AppState) {
+  const employeeAssignments = state.assignments.filter((assignment) => assignment.employeeId === employee.employeeId)
+  const finalResult = state.finalResults.find((record) => record.employeeId === employee.employeeId)
+  const allAssignmentsScored = employeeAssignments.length > 0 && employeeAssignments.every((assignment) => assignment.score > 0)
+  const closeoutComplete = Boolean(finalResult?.managerSummary?.trim() && finalResult?.finalRecommendation?.trim())
+  return allAssignmentsScored && closeoutComplete ? 'complete' : 'awaiting-manager'
+}
+
+function hrWorkflowStateForEmployee(employee: EmployeeRecord, state: AppState) {
+  const finalResult = state.finalResults.find((record) => record.employeeId === employee.employeeId)
+  if (finalResult?.releasedToEmployee) return 'released'
+  if (selfSubmissionStateForEmployee(employee, state) !== 'submitted') return 'awaiting-self'
+  if (managerReviewStateForEmployee(employee, state) !== 'complete') return 'awaiting-manager'
+  return 'ready-to-release'
+}
+
+function stampKindForHrWorkflow(
+  state: 'awaiting-self' | 'awaiting-manager' | 'ready-to-release' | 'released',
+): 'waiting' | 'held' | 'ready' | 'released' {
+  if (state === 'awaiting-self') return 'waiting'
+  if (state === 'awaiting-manager') return 'held'
+  if (state === 'ready-to-release') return 'ready'
+  return 'released'
+}
+
+function stampLabelForHrWorkflow(state: 'awaiting-self' | 'awaiting-manager' | 'ready-to-release' | 'released') {
+  if (state === 'awaiting-self') return 'Awaiting self'
+  if (state === 'awaiting-manager') return 'Awaiting manager'
+  if (state === 'ready-to-release') return 'Ready to release'
+  return 'Released'
+}
+
 function stampLabelForReviewState(kind: 'ready' | 'waiting') {
   return kind === 'ready' ? 'Ready' : 'Waiting'
+}
+
+function buildSelfSummary(selfRecord: SelfAppraisalRecord) {
+  const parts = [
+    selfRecord.overallAchievements.trim(),
+    selfRecord.majorChallenges.trim(),
+    selfRecord.supportNeeded.trim(),
+    selfRecord.developmentFocus.trim(),
+  ].filter(Boolean)
+  return parts.join(' · ') || 'No overall reflection provided.'
+}
+
+function percentOf(value: number, total: number) {
+  if (total <= 0) return 0
+  return Math.max(0, Math.min(100, Math.round((value / total) * 100)))
 }
 
 function initials(name: string) {

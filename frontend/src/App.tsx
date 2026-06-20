@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
-  CasebookAdminWorkspace,
   CasebookEmployeeWorkspace,
+  CasebookHrEmployeesWorkspace,
+  CasebookHrOverviewWorkspace,
+  CasebookHrReleaseWorkspace,
   CasebookManagerWorkspace,
   CasebookOverviewWorkspace,
-  CasebookReleaseWorkspace,
 } from './casebook/WorkspaceViews'
 import { useAuth } from './domains/auth/hooks'
 import { ApiError, apiClient } from './shared/api/client'
@@ -580,8 +581,8 @@ function AppraisalWorkspace({
   }, [visibleReviewEmployees, selectedManagedEmployeeId])
 
   const selectedReviewEmployee = useMemo(
-    () => visibleReviewEmployees.find((employee) => employee.employeeId === selectedManagedEmployeeId) ?? null,
-    [visibleReviewEmployees, selectedManagedEmployeeId],
+    () => reviewEmployees.find((employee) => employee.employeeId === selectedManagedEmployeeId) ?? null,
+    [reviewEmployees, selectedManagedEmployeeId],
   )
 
   const selectedReviewAssignments = useMemo(() => {
@@ -1065,15 +1066,6 @@ function AppraisalWorkspace({
     })
   }
 
-  function resetAppraisalData() {
-    lastSyncedSelfPayloadRef.current = null
-    setState(createEmptyState())
-    setSelectedManagedEmployeeId(null)
-    setWorkspaceLoadState({ loading: false, error: '', ready: false })
-    setReviewLoadState({ loading: false, error: '', ready: false })
-    setReloadNonce((current) => current + 1)
-  }
-
   function resolveSearchEndpoint(scope: 'manager' | 'admin') {
     return scope === 'admin' ? '/admin/search' : '/manager/search'
   }
@@ -1220,9 +1212,20 @@ function AppraisalWorkspace({
       )
     }
 
+    if (mode === 'admin') {
+      return (
+        <CasebookHrOverviewWorkspace
+          currentUser={currentUser}
+          state={state}
+          rolePackLibrary={rolePackLibrary}
+          onResolveDesignationSetup={resolveDesignationSetup}
+        />
+      )
+    }
+
     return (
       <CasebookOverviewWorkspace
-        variant={mode as 'manager' | 'admin'}
+        variant="manager"
         currentUser={currentUser}
         employee={employeeRecord}
         selfRecord={selfRecord}
@@ -1280,9 +1283,8 @@ function AppraisalWorkspace({
     }
 
     return (
-      <CasebookAdminWorkspace
+      <CasebookHrEmployeesWorkspace
         state={state}
-        rolePackLibrary={rolePackLibrary}
         employees={visibleReviewEmployees}
         selectedEmployee={selectedReviewEmployee}
         assignments={selectedReviewAssignments}
@@ -1292,10 +1294,7 @@ function AppraisalWorkspace({
         searchLoading={teamSearchLoading}
         onSearchChange={setTeamSearchQuery}
         onSelectEmployee={setSelectedManagedEmployeeId}
-        onUpdateAssignment={updateAssignment}
         onUpdateFinalResult={updateFinalResult}
-        onResolveDesignationSetup={resolveDesignationSetup}
-        onReset={resetAppraisalData}
       />
     )
   }
@@ -1319,12 +1318,17 @@ function AppraisalWorkspace({
     }
 
     return (
-      <CasebookReleaseWorkspace
+      <CasebookHrReleaseWorkspace
         state={state}
+        selectedEmployee={selectedReviewEmployee}
+        assignments={selectedReviewAssignments}
+        selfRecord={selectedReviewSelfRecord}
+        finalResult={selectedReviewFinalResult}
         results={visibleReleaseResults}
         searchQuery={releaseSearchQuery}
         searchLoading={releaseSearchLoading}
         onSearchChange={setReleaseSearchQuery}
+        onSelectEmployee={setSelectedManagedEmployeeId}
         onUpdateFinalResult={updateFinalResult}
       />
     )

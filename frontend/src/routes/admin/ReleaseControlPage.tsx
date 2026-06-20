@@ -5,11 +5,11 @@ import { useAuth } from '../../domains/auth/hooks'
 export function ReleaseControlPage() {
   const { authState } = useAuth()
 
-  if (authState?.capabilities.includes('admin')) {
+  if (authState?.capabilities?.includes('admin')) {
     return <AppraisalWorkspace mode="admin" page="release" />
   }
 
-  if (authState?.capabilities.includes('manager')) {
+  if (authState?.capabilities?.includes('manager')) {
     return <Navigate to="/overview" replace />
   }
 
