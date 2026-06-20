@@ -697,10 +697,7 @@ function SelfDrawer({
           <div className="drawer-header-top">
             <div>
               <h2>Self-Appraisal</h2>
-              <div className="sub">
-                {selfRecord.cycle} Cycle · <span>{progress} of {selfRecord.kpiEntries.length} rated</span> ·{' '}
-                <span>{step === 'kpis' ? 'Step 1 of 2' : 'Step 2 of 2'}</span>
-              </div>
+              <div className="sub">{selfRecord.cycle} Cycle · <span>{progress} of {selfRecord.kpiEntries.length} rated</span></div>
             </div>
             <button className="close-x" onClick={onClose}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -710,6 +707,17 @@ function SelfDrawer({
           </div>
         </div>
         <div className="drawer-body">
+          <div className="mini-stepper" aria-label="Self appraisal steps">
+            <div className={`mini-step ${step === 'reflection' ? 'done' : 'current'}`}>
+              <span className="dot">{step === 'reflection' ? '✓' : '1'}</span>
+              <span className="label">Rate KPIs</span>
+              <span className="line" />
+            </div>
+            <div className={`mini-step ${step === 'reflection' ? 'current' : ''}`}>
+              <span className="dot">2</span>
+              <span className="label">Overall reflection</span>
+            </div>
+          </div>
           {step === 'kpis' ? (
             <>
               <div className="section-label">Scored areas</div>
@@ -801,7 +809,7 @@ function SelfDrawer({
                 onClick={() => setStep('reflection')}
                 disabled={!canAdvanceToReflection}
               >
-                Next: overall reflection
+                Next
               </button>
             ) : (
               <button className="btn btn--primary btn--sm" onClick={() => onSubmitSelf(employee.employeeId)}>
