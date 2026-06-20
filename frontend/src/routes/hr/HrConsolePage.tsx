@@ -1,5 +1,5 @@
-import AppraisalWorkspace from '../../App'
+import { Navigate } from 'react-router-dom'
 
 export function HrConsolePage() {
-  return <AppraisalWorkspace mode="admin" />
+  return <Navigate to="/team" replace />
 }

@@ -1,6 +1,7 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { AppShell } from './layout/AppShell'
 import { LoginPage } from '../routes/auth/LoginPage'
+import { OverviewPage } from '../routes/overview/OverviewPage'
 import { MyAppraisalPage } from '../routes/employee/MyAppraisalPage'
 import { TeamReviewsPage } from '../routes/manager/TeamReviewsPage'
 import { HrConsolePage } from '../routes/hr/HrConsolePage'
@@ -22,6 +23,7 @@ export const router = createBrowserRouter([
         element: <AppShell />,
         children: [
           { index: true, element: <HomeRedirect /> },
+          { path: 'overview', element: <OverviewPage /> },
           { path: 'appraisal', element: <MyAppraisalPage /> },
           { path: 'team', element: <TeamReviewsPage /> },
           { path: 'hr', element: <HrConsolePage /> },

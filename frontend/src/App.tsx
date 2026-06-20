@@ -1,4 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import {
+  CasebookAdminWorkspace,
+  CasebookEmployeeWorkspace,
+  CasebookManagerWorkspace,
+  CasebookOverviewWorkspace,
+} from './casebook/WorkspaceViews'
 import { useAuth } from './domains/auth/hooks'
 import type {
   AppState,
@@ -467,7 +473,13 @@ function downloadFile(name: string, content: string, mime: string) {
   URL.revokeObjectURL(url)
 }
 
-function AppraisalWorkspace({ mode }: { mode: 'employee' | 'manager' | 'admin' }) {
+function AppraisalWorkspace({
+  mode,
+  page,
+}: {
+  mode: 'employee' | 'manager' | 'admin'
+  page: 'overview' | 'appraisal' | 'team'
+}) {
   const [state, setState] = useState<AppState>(createEmptyState)
   const { authState, sessionPending, logout } = useAuth()
   const [workspaceLoadState, setWorkspaceLoadState] = useState({ loading: false, error: '', ready: false })
@@ -515,6 +527,17 @@ function AppraisalWorkspace({ mode }: { mode: 'employee' | 'manager' | 'admin' }
     return state.finalResults.find((record) => record.employeeId === employeeRecord.employeeId) ?? null
   }, [employeeRecord, state.finalResults])
 
+  const activeEmployees = useMemo(() => {
+    const rank = { ready: 0, tentative: 1, blocked: 2 } as const
+    return [...state.employees]
+      .filter((employee) => !employee.excludedThisCycle)
+      .sort((left, right) => {
+        const byStatus = rank[left.status] - rank[right.status]
+        if (byStatus !== 0) return byStatus
+        return left.employeeName.localeCompare(right.employeeName)
+      })
+  }, [state.employees])
+
   const managedEmployees = useMemo(() => {
     if (!canUseManagerFlow) return []
     const rank = { ready: 0, tentative: 1, blocked: 2 } as const
@@ -530,31 +553,36 @@ function AppraisalWorkspace({ mode }: { mode: 'employee' | 'manager' | 'admin' }
 
   const [selectedManagedEmployeeId, setSelectedManagedEmployeeId] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (managedEmployees.length && !managedEmployees.some((employee) => employee.employeeId === selectedManagedEmployeeId)) {
-      setSelectedManagedEmployeeId(managedEmployees[0].employeeId)
-    }
-  }, [managedEmployees, selectedManagedEmployeeId])
-
-  const managedEmployee = useMemo(
-    () => managedEmployees.find((employee) => employee.employeeId === selectedManagedEmployeeId) ?? null,
-    [managedEmployees, selectedManagedEmployeeId],
+  const reviewEmployees = useMemo(
+    () => (canUseAdminFlow ? activeEmployees : managedEmployees),
+    [activeEmployees, canUseAdminFlow, managedEmployees],
   )
 
-  const managedAssignments = useMemo(() => {
-    if (!managedEmployee) return []
-    return state.assignments.filter((assignment) => assignment.employeeId === managedEmployee.employeeId)
-  }, [managedEmployee, state.assignments])
+  useEffect(() => {
+    if (reviewEmployees.length && !reviewEmployees.some((employee) => employee.employeeId === selectedManagedEmployeeId)) {
+      setSelectedManagedEmployeeId(reviewEmployees[0].employeeId)
+    }
+  }, [reviewEmployees, selectedManagedEmployeeId])
 
-  const managedSelfRecord = useMemo(() => {
-    if (!managedEmployee) return null
-    return state.selfAppraisals.find((record) => record.employeeId === managedEmployee.employeeId) ?? null
-  }, [managedEmployee, state.selfAppraisals])
+  const selectedReviewEmployee = useMemo(
+    () => reviewEmployees.find((employee) => employee.employeeId === selectedManagedEmployeeId) ?? null,
+    [reviewEmployees, selectedManagedEmployeeId],
+  )
 
-  const managedFinalResult = useMemo(() => {
-    if (!managedEmployee) return null
-    return state.finalResults.find((record) => record.employeeId === managedEmployee.employeeId) ?? null
-  }, [managedEmployee, state.finalResults])
+  const selectedReviewAssignments = useMemo(() => {
+    if (!selectedReviewEmployee) return []
+    return state.assignments.filter((assignment) => assignment.employeeId === selectedReviewEmployee.employeeId)
+  }, [selectedReviewEmployee, state.assignments])
+
+  const selectedReviewSelfRecord = useMemo(() => {
+    if (!selectedReviewEmployee) return null
+    return state.selfAppraisals.find((record) => record.employeeId === selectedReviewEmployee.employeeId) ?? null
+  }, [selectedReviewEmployee, state.selfAppraisals])
+
+  const selectedReviewFinalResult = useMemo(() => {
+    if (!selectedReviewEmployee) return null
+    return state.finalResults.find((record) => record.employeeId === selectedReviewEmployee.employeeId) ?? null
+  }, [selectedReviewEmployee, state.finalResults])
 
   useEffect(() => {
     if (!currentUser || !canUseEmployeeFlow || !currentUser.employeeId) {
@@ -1087,7 +1115,9 @@ function AppraisalWorkspace({ mode }: { mode: 'employee' | 'manager' | 'admin' }
     return null
   }
 
-  if (mode === 'employee') {
+  const employeeWorkspaceReady = !canUseEmployeeFlow || workspaceLoadState.ready
+
+  if (page === 'appraisal') {
     if (!canUseEmployeeFlow) {
       return (
         <section className="surface-card section-card">
@@ -1111,7 +1141,7 @@ function AppraisalWorkspace({ mode }: { mode: 'employee' | 'manager' | 'admin' }
       )
     }
     return (
-      <EmployeeWorkspace
+      <CasebookEmployeeWorkspace
         employee={employeeRecord}
         selfRecord={selfRecord}
         assignments={employeeAssignments}
@@ -1125,62 +1155,114 @@ function AppraisalWorkspace({ mode }: { mode: 'employee' | 'manager' | 'admin' }
     )
   }
 
-  if (mode === 'manager') {
-    if (!canUseManagerFlow) {
+  if (page === 'overview') {
+    if (mode === 'manager' && !canUseManagerFlow) {
       return (
         <section className="surface-card section-card">
-          <p className="subtle">You do not have access to the manager review workspace.</p>
+          <p className="subtle">You do not have access to the overview workspace.</p>
         </section>
       )
     }
+
+    if (mode === 'admin' && !canUseAdminFlow) {
+      return (
+        <section className="surface-card section-card">
+          <p className="subtle">You do not have access to the overview workspace.</p>
+        </section>
+      )
+    }
+
+    if (!reviewLoadState.ready || !employeeWorkspaceReady) {
+      const message = reviewLoadState.loading || workspaceLoadState.loading
+        ? 'Loading overview…'
+        : 'Unable to load overview.'
+      const error = reviewLoadState.error || workspaceLoadState.error
+      return (
+        <section className="surface-card section-card">
+          <p className="subtle">{message}</p>
+          {error ? <p className="error-text">{error}</p> : null}
+        </section>
+      )
+    }
+
+    return (
+      <CasebookOverviewWorkspace
+        variant={mode as 'manager' | 'admin'}
+        currentUser={currentUser}
+        employee={employeeRecord}
+        selfRecord={selfRecord}
+        assignments={employeeAssignments}
+        finalResult={finalResult}
+        reviewEmployees={reviewEmployees}
+        state={state}
+      />
+    )
+  }
+
+  if (page === 'team') {
+    if (mode === 'manager' && !canUseManagerFlow) {
+      return (
+        <section className="surface-card section-card">
+          <p className="subtle">You do not have access to the team review workspace.</p>
+        </section>
+      )
+    }
+
+    if (mode === 'admin' && !canUseAdminFlow) {
+      return (
+        <section className="surface-card section-card">
+          <p className="subtle">You do not have access to the team review workspace.</p>
+        </section>
+      )
+    }
+
     if (!reviewLoadState.ready) {
       return (
         <section className="surface-card section-card">
-          <p className="subtle">{reviewLoadState.loading ? 'Loading review workspace…' : 'Unable to load review workspace.'}</p>
+          <p className="subtle">{reviewLoadState.loading ? 'Loading team review workspace…' : 'Unable to load team review workspace.'}</p>
           {reviewLoadState.error ? <p className="error-text">{reviewLoadState.error}</p> : null}
         </section>
       )
     }
-    return (
-        <ManagerWorkspace
-          currentUser={currentUser}
-          employees={managedEmployees}
-          selectedEmployee={managedEmployee}
-          assignments={managedAssignments}
-          selfRecord={managedSelfRecord}
-          finalResult={managedFinalResult}
+
+    if (mode === 'manager') {
+      return (
+        <CasebookManagerWorkspace
+          state={state}
+          employees={reviewEmployees}
+          selectedEmployee={selectedReviewEmployee}
+          assignments={selectedReviewAssignments}
+          selfRecord={selectedReviewSelfRecord}
+          finalResult={selectedReviewFinalResult}
           onSelectEmployee={setSelectedManagedEmployeeId}
           onUpdateAssignment={updateAssignment}
           onUpdateFinalResult={updateFinalResult}
         />
-    )
-  }
+      )
+    }
 
-  if (!canUseAdminFlow) {
     return (
-      <section className="surface-card section-card">
-        <p className="subtle">You do not have access to the HR console.</p>
-      </section>
-    )
-  }
-
-  if (!reviewLoadState.ready) {
-    return (
-      <section className="surface-card section-card">
-        <p className="subtle">{reviewLoadState.loading ? 'Loading review workspace…' : 'Unable to load review workspace.'}</p>
-        {reviewLoadState.error ? <p className="error-text">{reviewLoadState.error}</p> : null}
-      </section>
+      <CasebookAdminWorkspace
+        state={state}
+        rolePackLibrary={rolePackLibrary}
+        employees={reviewEmployees}
+        selectedEmployee={selectedReviewEmployee}
+        assignments={selectedReviewAssignments}
+        selfRecord={selectedReviewSelfRecord}
+        finalResult={selectedReviewFinalResult}
+        onSelectEmployee={setSelectedManagedEmployeeId}
+        onUpdateAssignment={updateAssignment}
+        onUpdateFinalResult={updateFinalResult}
+        onResolveDesignationSetup={resolveDesignationSetup}
+        onReset={resetAppraisalData}
+      />
     )
   }
 
   return (
-    <AdminWorkspace
-      state={state}
-      rolePackLibrary={rolePackLibrary}
-      onUpdateFinalResult={updateFinalResult}
-      onResolveDesignationSetup={resolveDesignationSetup}
-      onReset={resetAppraisalData}
-    />
+    <section className="surface-card section-card">
+      <p className="subtle">This page is not available for your role.</p>
+    </section>
   )
 }
 
