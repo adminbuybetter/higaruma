@@ -60,6 +60,8 @@ type AdminProps = ManagerProps & {
   onReset: () => void
 }
 
+const PAGE_SIZE = 100
+
 export function CasebookOverviewWorkspace({
   variant,
   currentUser,
@@ -329,6 +331,8 @@ export function CasebookManagerWorkspace({
 }: ManagerProps) {
   const [reviewOpen, setReviewOpen] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
+  const [employeePage, setEmployeePage] = useState(1)
+  const pagedEmployees = paginateRows(employees, employeePage)
 
   return (
     <>
@@ -342,8 +346,9 @@ export function CasebookManagerWorkspace({
 
         <MiniStepper mode="manager" currentStep={2} finalReleased={false} />
 
+        <ListSectionHeader title="Review queue" total={employees.length} page={employeePage} pageSize={PAGE_SIZE} />
         <div className="team-list">
-          {employees.map((employee) => {
+          {pagedEmployees.map((employee) => {
             const employeeSelfRecord = state.selfAppraisals.find((record) => record.employeeId === employee.employeeId) ?? null
             const isReady = employeeSelfRecord?.status === 'submitted' || false
 
@@ -373,6 +378,7 @@ export function CasebookManagerWorkspace({
             )
           })}
         </div>
+        <PaginationControls page={employeePage} total={employees.length} pageSize={PAGE_SIZE} onChange={setEmployeePage} />
       </section>
 
       <ReviewDrawer
@@ -410,6 +416,10 @@ export function CasebookAdminWorkspace({
 }: AdminProps) {
   const [reviewOpen, setReviewOpen] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState<'cycle' | 'release'>('cycle')
+  const [employeePage, setEmployeePage] = useState(1)
+  const [releasePage, setReleasePage] = useState(1)
+  const [unresolvedPage, setUnresolvedPage] = useState(1)
   const [designationDrafts, setDesignationDrafts] = useState<
     Record<string, { roleName: string; sourceRoleName: string; managerLabel: string; reviewerLabel: string; kpiOwnerLabel: string; customKpis: string }>
   >({})
@@ -418,6 +428,9 @@ export function CasebookAdminWorkspace({
   const releasedCount = state.finalResults.filter((record) => record.releasedToEmployee).length
   const blockedCount = state.employees.filter((record) => record.status === 'blocked' && !record.excludedThisCycle).length
   const roleOptions = [...rolePackLibrary.keys()].sort((left, right) => left.localeCompare(right))
+  const pagedEmployees = paginateRows(employees, employeePage)
+  const pagedFinalResults = paginateRows(state.finalResults, releasePage)
+  const pagedUnresolvedDesignations = paginateRows(state.unresolvedDesignations, unresolvedPage)
 
   function draftFor(designation: string, defaults?: { role?: string; manager?: string }) {
     return (
@@ -504,135 +517,176 @@ export function CasebookAdminWorkspace({
           </div>
         </div>
 
-        <div className="team-list" style={{ marginBottom: 24 }}>
-          {employees.map((employee) => {
-            const employeeSelfRecord = state.selfAppraisals.find((record) => record.employeeId === employee.employeeId) ?? null
-            const statusLabel = employeeSelfRecord?.status === 'submitted' ? 'ready' : 'waiting'
-            return (
-              <div key={employee.employeeId} className="team-card">
-                <div className="team-avatar">{initials(employee.employeeName)}</div>
-                <div className="team-info">
-                  <div className="name">{employee.employeeName}</div>
-                  <div className="role">{employee.designation}</div>
-                  <div className="team-meta">
-                    {employee.appraisalRole || employee.designation} · {employeeSelfRecord?.status === 'submitted' ? 'Self-appraisal submitted' : 'No self-summary yet'}
+        <div className="tab-strip" role="tablist" aria-label="Admin team views">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'cycle'}
+            className={`tab-chip${activeTab === 'cycle' ? ' active' : ''}`}
+            onClick={() => setActiveTab('cycle')}
+          >
+            Cycle overview
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'release'}
+            className={`tab-chip${activeTab === 'release' ? ' active' : ''}`}
+            onClick={() => setActiveTab('release')}
+          >
+            Release control
+          </button>
+        </div>
+
+        {activeTab === 'cycle' ? (
+          <>
+            <ListSectionHeader title="Review queue" total={employees.length} page={employeePage} pageSize={PAGE_SIZE} />
+            <div className="team-list" style={{ marginBottom: 16 }}>
+              {pagedEmployees.map((employee) => {
+                const employeeSelfRecord = state.selfAppraisals.find((record) => record.employeeId === employee.employeeId) ?? null
+                const statusLabel = employeeSelfRecord?.status === 'submitted' ? 'ready' : 'waiting'
+                return (
+                  <div key={employee.employeeId} className="team-card">
+                    <div className="team-avatar">{initials(employee.employeeName)}</div>
+                    <div className="team-info">
+                      <div className="name">{employee.employeeName}</div>
+                      <div className="role">{employee.designation}</div>
+                      <div className="team-meta">
+                        {employee.appraisalRole || employee.designation} · {employeeSelfRecord?.status === 'submitted' ? 'Self-appraisal submitted' : 'No self-summary yet'}
+                      </div>
+                    </div>
+                    <div className="right">
+                      <Stamp kind={statusLabel} label={stampLabelForReviewState(statusLabel)} />
+                      <button
+                        className="btn btn--secondary btn--sm"
+                        onClick={() => {
+                          onSelectEmployee(employee.employeeId)
+                          setReviewOpen(true)
+                        }}
+                      >
+                        Review
+                      </button>
+                    </div>
                   </div>
-                </div>
-                <div className="right">
-                  <Stamp kind={statusLabel} label={stampLabelForReviewState(statusLabel)} />
+                )
+              })}
+            </div>
+            <PaginationControls page={employeePage} total={employees.length} pageSize={PAGE_SIZE} onChange={setEmployeePage} />
+
+            <div className="card" style={{ marginBottom: 18 }}>
+              <div className="card-eyebrow">Setup unresolved roles</div>
+              <ListSectionHeader
+                title="Designation setup queue"
+                total={state.unresolvedDesignations.length}
+                page={unresolvedPage}
+                pageSize={PAGE_SIZE}
+              />
+              <div className="team-list">
+                {pagedUnresolvedDesignations.map((item) => {
+                  const draft = draftFor(item.designation, {
+                    role: item.suggestedAppraisalRole,
+                    manager: item.lineManagerLabel,
+                  })
+
+                  return (
+                    <div key={item.designation} className="card" style={{ padding: 16 }}>
+                      <div className="card-header">
+                        <div>
+                          <div className="card-title">{item.designation}</div>
+                          <div className="card-sub">{item.notes || 'No notes provided.'}</div>
+                        </div>
+                        <Stamp kind="held" label="Needs setup" />
+                      </div>
+                      <div className="kpi-grid-setup">
+                        <label>
+                          <span>Mapped appraisal role</span>
+                          <input className="text-input" value={draft.roleName} onChange={(event) => updateDraft(item.designation, { roleName: event.target.value })} />
+                        </label>
+                        <label>
+                          <span>Copy KPI pack from</span>
+                          <select className="text-input" value={draft.sourceRoleName} onChange={(event) => updateDraft(item.designation, { sourceRoleName: event.target.value })}>
+                            <option value="">Select existing role</option>
+                            {roleOptions.map((role) => (
+                              <option key={role} value={role}>
+                                {role}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <label>
+                          <span>Line manager</span>
+                          <input className="text-input" value={draft.managerLabel} onChange={(event) => updateDraft(item.designation, { managerLabel: event.target.value })} />
+                        </label>
+                        <label>
+                          <span>Reviewer</span>
+                          <input className="text-input" value={draft.reviewerLabel} onChange={(event) => updateDraft(item.designation, { reviewerLabel: event.target.value })} />
+                        </label>
+                        <label>
+                          <span>KPI owner</span>
+                          <input className="text-input" value={draft.kpiOwnerLabel} onChange={(event) => updateDraft(item.designation, { kpiOwnerLabel: event.target.value })} />
+                        </label>
+                      </div>
+                      <label style={{ marginTop: 12 }}>
+                        <span>Custom KPI lines</span>
+                        <textarea value={draft.customKpis} onChange={(event) => updateDraft(item.designation, { customKpis: event.target.value })} placeholder="KPI Area | KPI Statement | Weight" />
+                      </label>
+                      <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                        <button
+                          className="btn btn--primary btn--sm"
+                          onClick={() => {
+                            onResolveDesignationSetup({
+                              designation: item.designation,
+                              roleName: draft.roleName,
+                              sourceRoleName: draft.sourceRoleName,
+                              entries: parseKpiLines(draft.customKpis),
+                              managerLabel: draft.managerLabel,
+                              reviewerLabel: draft.reviewerLabel,
+                              kpiOwnerLabel: draft.kpiOwnerLabel,
+                            })
+                            setToast('Role setup saved')
+                          }}
+                        >
+                          Save setup
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+              <PaginationControls
+                page={unresolvedPage}
+                total={state.unresolvedDesignations.length}
+                pageSize={PAGE_SIZE}
+                onChange={setUnresolvedPage}
+              />
+            </div>
+          </>
+        ) : (
+          <div className="card" style={{ marginBottom: 18 }}>
+            <div className="card-eyebrow">Release control</div>
+            <ListSectionHeader title="Final result visibility" total={state.finalResults.length} page={releasePage} pageSize={PAGE_SIZE} />
+            <div className="team-list">
+              {pagedFinalResults.map((result) => (
+                <div key={result.employeeId} className="cycle-row">
+                  <div className="info">
+                    <h4>{result.employeeName}</h4>
+                    <p>
+                      {result.performanceBand} · score {result.finalScore}
+                    </p>
+                  </div>
+                  <Stamp kind={result.releasedToEmployee ? 'released' : 'held'} label={result.releasedToEmployee ? 'Released' : 'Held'} />
                   <button
                     className="btn btn--secondary btn--sm"
-                    onClick={() => {
-                      onSelectEmployee(employee.employeeId)
-                      setReviewOpen(true)
-                    }}
+                    onClick={() => onUpdateFinalResult(result.employeeId, { releasedToEmployee: !result.releasedToEmployee })}
                   >
-                    Review
+                    {result.releasedToEmployee ? 'Hide result' : 'Release result'}
                   </button>
                 </div>
-              </div>
-            )
-          })}
-        </div>
-
-        <div className="card" style={{ marginBottom: 18 }}>
-          <div className="card-eyebrow">Release control</div>
-          <div className="team-list">
-            {state.finalResults.map((result) => (
-              <div key={result.employeeId} className="cycle-row">
-                <div className="info">
-                  <h4>{result.employeeName}</h4>
-                  <p>
-                    {result.performanceBand} · score {result.finalScore}
-                  </p>
-                </div>
-                <Stamp kind={result.releasedToEmployee ? 'released' : 'held'} label={result.releasedToEmployee ? 'Released' : 'Held'} />
-                <button
-                  className="btn btn--secondary btn--sm"
-                  onClick={() => onUpdateFinalResult(result.employeeId, { releasedToEmployee: !result.releasedToEmployee })}
-                >
-                  {result.releasedToEmployee ? 'Hide result' : 'Release result'}
-                </button>
-              </div>
-            ))}
+              ))}
+            </div>
+            <PaginationControls page={releasePage} total={state.finalResults.length} pageSize={PAGE_SIZE} onChange={setReleasePage} />
           </div>
-        </div>
-
-        <div className="card" style={{ marginBottom: 18 }}>
-          <div className="card-eyebrow">Setup unresolved roles</div>
-          <div className="team-list">
-            {state.unresolvedDesignations.map((item) => {
-              const draft = draftFor(item.designation, {
-                role: item.suggestedAppraisalRole,
-                manager: item.lineManagerLabel,
-              })
-
-              return (
-                <div key={item.designation} className="card" style={{ padding: 16 }}>
-                  <div className="card-header">
-                    <div>
-                      <div className="card-title">{item.designation}</div>
-                      <div className="card-sub">{item.notes || 'No notes provided.'}</div>
-                    </div>
-                    <Stamp kind="held" label="Needs setup" />
-                  </div>
-                  <div className="kpi-grid-setup">
-                    <label>
-                      <span>Mapped appraisal role</span>
-                      <input className="text-input" value={draft.roleName} onChange={(event) => updateDraft(item.designation, { roleName: event.target.value })} />
-                    </label>
-                    <label>
-                      <span>Copy KPI pack from</span>
-                      <select className="text-input" value={draft.sourceRoleName} onChange={(event) => updateDraft(item.designation, { sourceRoleName: event.target.value })}>
-                        <option value="">Select existing role</option>
-                        {roleOptions.map((role) => (
-                          <option key={role} value={role}>
-                            {role}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <label>
-                      <span>Line manager</span>
-                      <input className="text-input" value={draft.managerLabel} onChange={(event) => updateDraft(item.designation, { managerLabel: event.target.value })} />
-                    </label>
-                    <label>
-                      <span>Reviewer</span>
-                      <input className="text-input" value={draft.reviewerLabel} onChange={(event) => updateDraft(item.designation, { reviewerLabel: event.target.value })} />
-                    </label>
-                    <label>
-                      <span>KPI owner</span>
-                      <input className="text-input" value={draft.kpiOwnerLabel} onChange={(event) => updateDraft(item.designation, { kpiOwnerLabel: event.target.value })} />
-                    </label>
-                  </div>
-                  <label style={{ marginTop: 12 }}>
-                    <span>Custom KPI lines</span>
-                    <textarea value={draft.customKpis} onChange={(event) => updateDraft(item.designation, { customKpis: event.target.value })} placeholder="KPI Area | KPI Statement | Weight" />
-                  </label>
-                  <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-                    <button
-                      className="btn btn--primary btn--sm"
-                      onClick={() => {
-                        onResolveDesignationSetup({
-                          designation: item.designation,
-                          roleName: draft.roleName,
-                          sourceRoleName: draft.sourceRoleName,
-                          entries: parseKpiLines(draft.customKpis),
-                          managerLabel: draft.managerLabel,
-                          reviewerLabel: draft.reviewerLabel,
-                          kpiOwnerLabel: draft.kpiOwnerLabel,
-                        })
-                        setToast('Role setup saved')
-                      }}
-                    >
-                      Save setup
-                    </button>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </div>
+        )}
       </section>
 
       <ReviewDrawer
@@ -651,6 +705,67 @@ export function CasebookAdminWorkspace({
 
       <Toast message={toast} onDone={() => setToast(null)} />
     </>
+  )
+}
+
+function paginateRows<T>(rows: T[], page: number, pageSize = PAGE_SIZE) {
+  const safePage = Math.max(1, page)
+  const start = (safePage - 1) * pageSize
+  return rows.slice(start, start + pageSize)
+}
+
+function ListSectionHeader({
+  title,
+  total,
+  page,
+  pageSize,
+}: {
+  title: string
+  total: number
+  page: number
+  pageSize: number
+}) {
+  const start = total === 0 ? 0 : (page - 1) * pageSize + 1
+  const end = Math.min(page * pageSize, total)
+
+  return (
+    <div className="list-section-header">
+      <div>
+        <div className="section-label">{title}</div>
+        <div className="card-sub">
+          {total === 0 ? 'No rows yet' : `Showing ${start}-${end} of ${total}`}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function PaginationControls({
+  page,
+  total,
+  pageSize,
+  onChange,
+}: {
+  page: number
+  total: number
+  pageSize: number
+  onChange: (page: number) => void
+}) {
+  const totalPages = Math.max(1, Math.ceil(total / pageSize))
+  if (totalPages <= 1) return null
+
+  return (
+    <div className="pagination-bar">
+      <button className="btn btn--secondary btn--sm" onClick={() => onChange(page - 1)} disabled={page <= 1}>
+        Previous
+      </button>
+      <div className="pagination-meta">
+        Page {page} of {totalPages}
+      </div>
+      <button className="btn btn--secondary btn--sm" onClick={() => onChange(page + 1)} disabled={page >= totalPages}>
+        Next
+      </button>
+    </div>
   )
 }
 
