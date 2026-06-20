@@ -232,12 +232,17 @@ export function CasebookEmployeeWorkspace({
       <section className="view active">
         <div className="topbar">
           <div>
-            <h1>My Appraisal</h1>
+            <div className="title-with-stamp">
+              <h1>My Appraisal</h1>
+              <Stamp kind={selfRecord.status === 'submitted' ? 'ready' : 'draft'} label={selfRecord.status === 'submitted' ? 'Ready' : 'Draft'} />
+            </div>
             <div className="meta">
               {selfRecord.cycle} Cycle · {assignments.length} KPIs · {employee.designation}
             </div>
           </div>
-          <Stamp kind={selfRecord.status === 'submitted' ? 'ready' : 'draft'} label={selfRecord.status === 'submitted' ? 'Ready' : 'Draft'} />
+          <button className="btn btn--primary" onClick={() => setSelfOpen(true)}>
+            Open self appraisal
+          </button>
         </div>
 
         <MiniStepper mode="employee" currentStep={2} finalReleased={finalResult.releasedToEmployee} />
@@ -254,10 +259,6 @@ export function CasebookEmployeeWorkspace({
             </div>
           ))}
         </div>
-
-        <button className="btn btn--primary" style={{ marginBottom: 24 }} onClick={() => setSelfOpen(true)}>
-          Open self appraisal
-        </button>
 
         {workspaceLoading ? <p className="card-sub">Refreshing your appraisal workspace…</p> : null}
         {workspaceError ? <p className="error-text">{workspaceError}</p> : null}

@@ -265,6 +265,13 @@ select {
   font-size: 22px;
 }
 
+.title-with-stamp {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .meta {
   font-size: 12.5px;
   margin-top: 4px;
