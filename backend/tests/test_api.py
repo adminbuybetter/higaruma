@@ -75,6 +75,35 @@ class ApiTest(unittest.TestCase):
         self.assertIn("admin", payload["capabilities"])
         self.assertIn("employee", payload["capabilities"])
 
+    def test_login_sets_session_cookie_and_me_works_without_bearer_header(self):
+        response = self.client.post(
+            "/auth/login",
+            json={"username": "samuel.mbudinma", "password": "Appraise043!"},
+        )
+        self.assertEqual(response.status_code, 200)
+        set_cookie = response.headers.get("set-cookie", "")
+        self.assertIn("buybetter_appraisal_session=", set_cookie)
+        self.assertIn("HttpOnly", set_cookie)
+
+        me_response = self.client.get("/me")
+        self.assertEqual(me_response.status_code, 200)
+        payload = me_response.json()
+        self.assertEqual(payload["username"], "samuel.mbudinma")
+        self.assertIn("admin", payload["capabilities"])
+
+    def test_logout_clears_session_cookie(self):
+        login = self.client.post(
+            "/auth/login",
+            json={"username": "samuel.mbudinma", "password": "Appraise043!"},
+        )
+        self.assertEqual(login.status_code, 200)
+
+        logout = self.client.post("/auth/logout")
+        self.assertEqual(logout.status_code, 200)
+
+        me_response = self.client.get("/me")
+        self.assertEqual(me_response.status_code, 401)
+
     def test_employee_workspace_returns_assignments_and_self_appraisal(self):
         token = self.login("francis.fanen", "Appraise013!")
 

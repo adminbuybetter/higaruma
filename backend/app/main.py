@@ -5,7 +5,7 @@ from datetime import UTC, datetime
 from decimal import Decimal
 from uuid import UUID
 
-from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi import Depends, FastAPI, HTTPException, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import Engine, select
 from sqlalchemy.orm import Session, selectinload
@@ -487,7 +487,7 @@ def create_app(*, db_engine: Engine = engine) -> FastAPI:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins,
-        allow_credentials=False,
+        allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
     )
@@ -497,7 +497,7 @@ def create_app(*, db_engine: Engine = engine) -> FastAPI:
         return {"status": "ok", "environment": settings.app_env}
 
     @app.post("/auth/login", response_model=LoginResponse)
-    def login(payload: LoginRequest, db: Session = Depends(get_db)) -> LoginResponse:
+    def login(payload: LoginRequest, response: Response, db: Session = Depends(get_db)) -> LoginResponse:
         user = db.scalar(
             select(User)
             .where(User.username == payload.username.strip().lower())
@@ -508,7 +508,27 @@ def create_app(*, db_engine: Engine = engine) -> FastAPI:
         if not user.is_active:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User is inactive")
         token = create_access_token(user_id=str(user.id))
+        response.set_cookie(
+            key=settings.session_cookie_name,
+            value=token,
+            max_age=settings.access_token_ttl_minutes * 60,
+            httponly=True,
+            samesite=settings.session_cookie_samesite,
+            secure=settings.session_cookie_secure,
+            path="/",
+        )
         return LoginResponse(access_token=token, user=build_user_response(db, user))
+
+    @app.post("/auth/logout")
+    def logout(response: Response) -> dict[str, str]:
+        response.delete_cookie(
+            key=settings.session_cookie_name,
+            httponly=True,
+            samesite=settings.session_cookie_samesite,
+            secure=settings.session_cookie_secure,
+            path="/",
+        )
+        return {"status": "ok"}
 
     @app.get("/me", response_model=UserResponse)
     def me(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> UserResponse:

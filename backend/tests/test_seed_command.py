@@ -22,7 +22,7 @@ class SeedCommandTest(unittest.TestCase):
         env["APPRAISAL_SEED_PATH"] = str(SEED_PATH)
 
         subprocess.run(
-            ["alembic", "upgrade", "head"],
+            [sys.executable, "-m", "alembic", "upgrade", "head"],
             cwd=BACKEND_DIR,
             env=env,
             check=True,

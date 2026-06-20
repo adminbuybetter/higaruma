@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { generatedSeed } from './data/seed.generated'
+import { useAuth } from './domains/auth/hooks'
 import type {
   AppState,
   AppUser,
@@ -15,9 +15,6 @@ import type {
   UnresolvedEmployee,
   UnresolvedManager,
 } from './types'
-
-const STORAGE_KEY = 'buybetter-appraisal/v1'
-const LEGACY_STORAGE_KEY = 'buybetter-appraisal-prototype/v1'
 
 function resolveApiBaseUrl() {
   const configured = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.trim()
@@ -36,21 +33,6 @@ function resolveApiBaseUrl() {
 }
 
 const API_BASE_URL = resolveApiBaseUrl()
-
-interface BackendUserResponse {
-  id: string
-  username: string
-  display_name: string
-  capabilities: Array<'employee' | 'manager' | 'admin'>
-  employee_code: string | null
-  manager_scopes: string[]
-}
-
-interface BackendLoginResponse {
-  access_token: string
-  token_type: string
-  user: BackendUserResponse
-}
 
 interface BackendWorkspaceResponse {
   cycle_code: string
@@ -145,117 +127,19 @@ interface BackendAdminWorkspaceResponse extends BackendWorkspaceCollectionRespon
   excluded_designations: BackendExcludedDesignationResponse[]
 }
 
-function cloneSeed(): AppState {
-  return JSON.parse(
-    JSON.stringify({
-      users: generatedSeed.users,
-      employees: generatedSeed.employees,
-      assignments: generatedSeed.assignments,
-      selfAppraisals: generatedSeed.selfAppraisals,
-      finalResults: generatedSeed.finalResults,
-      customRolePacks: generatedSeed.customRolePacks,
-      unresolvedDesignations: generatedSeed.unresolvedDesignations,
-      unresolvedEmployees: generatedSeed.unresolvedEmployees,
-      unresolvedManagers: generatedSeed.unresolvedManagers,
-      excludedDesignations: generatedSeed.excludedDesignations,
-    }),
-  ) as AppState
-}
-
-function loadState(): AppState {
-  const raw = localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem(LEGACY_STORAGE_KEY)
-  if (!raw) {
-    return cloneSeed()
-  }
-
-  try {
-    return normalizeState(JSON.parse(raw) as Partial<AppState>)
-  } catch {
-    return cloneSeed()
-  }
-}
-
-function normalizeState(raw: Partial<AppState>): AppState {
-  const seed = cloneSeed()
-
-  const users = (raw.users ?? seed.users).map((user) => {
-    const capabilities = user.capabilities?.length ? user.capabilities : [user.kind]
-    return {
-      ...user,
-      capabilities,
-      employeeId: capabilities.includes('employee') ? user.employeeId : undefined,
-      managerScopes: capabilities.includes('manager') ? user.managerScopes ?? [] : [],
-    }
-  })
-  const employees = raw.employees ?? seed.employees
-  const normalizedEmployees = employees.map((employee) => ({
-    ...employee,
-    excludedThisCycle: employee.excludedThisCycle ?? false,
-  }))
-  const assignments = raw.assignments ?? seed.assignments
-  const finalResults = raw.finalResults ?? seed.finalResults
-  const customRolePacks = raw.customRolePacks ?? seed.customRolePacks
-
-  const selfAppraisals = normalizedEmployees.map((employee) => {
-    const existing = raw.selfAppraisals?.find((record) => record.employeeId === employee.employeeId)
-    const fallback = seed.selfAppraisals.find((record) => record.employeeId === employee.employeeId)
-    const employeeAssignments = assignments.filter((assignment) => assignment.employeeId === employee.employeeId)
-    const legacyExisting = (existing ?? {}) as Partial<SelfAppraisalRecord> & {
-      achievements?: string
-      challenges?: string
-    }
-
-    return {
-      employeeId: employee.employeeId,
-      employeeName: employee.employeeName,
-      employeeUsername: employee.employeeUsername,
-      cycle: existing?.cycle ?? fallback?.cycle ?? '2026-H1',
-      kpiEntries:
-        existing?.kpiEntries?.length
-          ? existing.kpiEntries
-          : employeeAssignments.map((assignment) => ({
-              assignmentId: assignment.assignmentId,
-              kpiArea: assignment.kpiArea,
-              kpiStatement: assignment.kpiStatement,
-              selfScore: 0,
-              reasonForScore: '',
-              keyEvidence: '',
-              challengesFaced: '',
-            })),
-      overallAchievements:
-        existing?.overallAchievements ??
-        legacyExisting.achievements ??
-        fallback?.overallAchievements ??
-        '',
-      majorChallenges:
-        existing?.majorChallenges ??
-        legacyExisting.challenges ??
-        fallback?.majorChallenges ??
-        '',
-      supportNeeded: existing?.supportNeeded ?? fallback?.supportNeeded ?? '',
-      developmentFocus: existing?.developmentFocus ?? fallback?.developmentFocus ?? '',
-      employeeComments: existing?.employeeComments ?? '',
-      status: existing?.status ?? fallback?.status ?? 'draft',
-    }
-  })
-
+function createEmptyState(): AppState {
   return {
-    users,
-    employees: normalizedEmployees,
-    assignments,
-    selfAppraisals,
-    finalResults,
-    customRolePacks,
-    unresolvedDesignations: raw.unresolvedDesignations ?? seed.unresolvedDesignations,
-    unresolvedEmployees: raw.unresolvedEmployees ?? seed.unresolvedEmployees,
-    unresolvedManagers: raw.unresolvedManagers ?? seed.unresolvedManagers,
-    excludedDesignations: raw.excludedDesignations ?? seed.excludedDesignations,
+    users: [],
+    employees: [],
+    assignments: [],
+    selfAppraisals: [],
+    finalResults: [],
+    customRolePacks: [],
+    unresolvedDesignations: [],
+    unresolvedEmployees: [],
+    unresolvedManagers: [],
+    excludedDesignations: [],
   }
-}
-
-function saveState(state: AppState) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
-  localStorage.removeItem(LEGACY_STORAGE_KEY)
 }
 
 function mergeEmployeeWorkspaceIntoState(
@@ -374,7 +258,6 @@ function mergeWorkspacesIntoState(current: AppState, workspaces: BackendWorkspac
     const existingEmployee = nextState.employees.find((employee) => employee.employeeId === workspace.employee.employee_code)
     const username =
       existingEmployee?.employeeUsername ??
-      nextState.users.find((user) => user.employeeId === workspace.employee.employee_code)?.username ??
       workspace.employee.full_name.trim().toLowerCase().replaceAll(/\s+/g, '.')
     return mergeEmployeeWorkspaceIntoState(nextState, workspace, username)
   }, current)
@@ -584,24 +467,29 @@ function downloadFile(name: string, content: string, mime: string) {
   URL.revokeObjectURL(url)
 }
 
-function App() {
-  const [state, setState] = useState<AppState>(() => loadState())
-  const [sessionUserId, setSessionUserId] = useState<string | null>(null)
-  const [loginState, setLoginState] = useState({ username: '', password: '', error: '' })
-  const [backendToken, setBackendToken] = useState<string | null>(null)
+function AppraisalWorkspace({ mode }: { mode: 'employee' | 'manager' | 'admin' }) {
+  const [state, setState] = useState<AppState>(createEmptyState)
+  const { authState, sessionPending, logout } = useAuth()
   const [workspaceLoadState, setWorkspaceLoadState] = useState({ loading: false, error: '', ready: false })
   const [reviewLoadState, setReviewLoadState] = useState({ loading: false, error: '', ready: false })
+  const [reloadNonce, setReloadNonce] = useState(0)
   const lastSyncedSelfPayloadRef = useRef<string | null>(null)
   const autosaveTimerRef = useRef<number | null>(null)
 
-  useEffect(() => {
-    saveState(state)
-  }, [state])
+  const currentUser = useMemo<AppUser | null>(() => {
+    if (!authState) return null
+    return {
+      id: authState.id,
+      username: authState.username,
+      password: '',
+      displayName: authState.displayName,
+      kind: authState.capabilities[0] ?? 'employee',
+      capabilities: authState.capabilities,
+      employeeId: authState.employeeId,
+      managerScopes: authState.managerScopes,
+    }
+  }, [authState])
 
-  const currentUser = useMemo(
-    () => state.users.find((user) => user.id === sessionUserId) ?? null,
-    [sessionUserId, state.users],
-  )
   const rolePackLibrary = useMemo(() => buildRolePackLibrary(state), [state])
   const canUseEmployeeFlow = hasCapability(currentUser, 'employee')
   const canUseManagerFlow = hasCapability(currentUser, 'manager')
@@ -669,7 +557,7 @@ function App() {
   }, [managedEmployee, state.finalResults])
 
   useEffect(() => {
-    if (!backendToken || !currentUser || !canUseEmployeeFlow || !currentUser.employeeId) {
+    if (!currentUser || !canUseEmployeeFlow || !currentUser.employeeId) {
       setWorkspaceLoadState((current) =>
         current.loading || current.error || current.ready ? { loading: false, error: '', ready: false } : current,
       )
@@ -681,9 +569,13 @@ function App() {
     setWorkspaceLoadState({ loading: true, error: '', ready: false })
 
     fetch(`${API_BASE_URL}/employee/me/workspace`, {
-      headers: { Authorization: `Bearer ${backendToken}` },
+      credentials: 'include',
     })
       .then(async (response) => {
+        if (response.status === 401) {
+          void logout()
+          throw new Error('Session expired.')
+        }
         if (!response.ok) {
           throw new Error('Failed to load employee workspace.')
         }
@@ -704,10 +596,10 @@ function App() {
     return () => {
       cancelled = true
     }
-  }, [backendToken, canUseEmployeeFlow, currentUser])
+  }, [canUseEmployeeFlow, currentUser, logout, reloadNonce])
 
   useEffect(() => {
-    if (!backendToken || !currentUser) return
+    if (!currentUser) return
     if (!canUseAdminFlow && !canUseManagerFlow) {
       setReviewLoadState((current) =>
         current.loading || current.error || current.ready ? { loading: false, error: '', ready: false } : current,
@@ -720,9 +612,13 @@ function App() {
     setReviewLoadState({ loading: true, error: '', ready: false })
 
     fetch(`${API_BASE_URL}${endpoint}`, {
-      headers: { Authorization: `Bearer ${backendToken}` },
+      credentials: 'include',
     })
       .then(async (response) => {
+        if (response.status === 401) {
+          void logout()
+          throw new Error('Session expired.')
+        }
         if (!response.ok) {
           throw new Error('Failed to load review workspace.')
         }
@@ -748,10 +644,10 @@ function App() {
     return () => {
       cancelled = true
     }
-  }, [backendToken, canUseAdminFlow, canUseManagerFlow, currentUser])
+  }, [canUseAdminFlow, canUseManagerFlow, currentUser, logout, reloadNonce])
 
   useEffect(() => {
-    if (!backendToken || !currentUser || !canUseEmployeeFlow || !employeeRecord || !selfRecord || !workspaceLoadState.ready) {
+    if (!currentUser || !canUseEmployeeFlow || !employeeRecord || !selfRecord || !workspaceLoadState.ready) {
       if (autosaveTimerRef.current) {
         window.clearTimeout(autosaveTimerRef.current)
         autosaveTimerRef.current = null
@@ -777,11 +673,15 @@ function App() {
           const response = await fetch(`${API_BASE_URL}/employee/me/self-appraisal`, {
             method: 'PUT',
             headers: {
-              Authorization: `Bearer ${backendToken}`,
               'Content-Type': 'application/json',
             },
+            credentials: 'include',
             body: payload,
           })
+          if (response.status === 401) {
+            void logout()
+            throw new Error('Session expired.')
+          }
           if (!response.ok) {
             throw new Error('Failed to autosave self appraisal draft.')
           }
@@ -803,7 +703,6 @@ function App() {
       }
     }
   }, [
-    backendToken,
     canUseEmployeeFlow,
     currentUser,
     employeeAssignments,
@@ -811,60 +710,6 @@ function App() {
     selfRecord,
     workspaceLoadState.ready,
   ])
-
-  async function handleLogin(event: React.FormEvent) {
-    event.preventDefault()
-    const normalizedUsername = loginState.username.trim().toLowerCase()
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          username: normalizedUsername,
-          password: loginState.password,
-        }),
-      })
-
-      if (!response.ok) {
-        if (response.status === 401 || response.status === 403) {
-          setLoginState((current) => ({ ...current, error: 'Invalid username or password.' }))
-          return
-        }
-        throw new Error('Backend sign-in failed.')
-      }
-
-      const payload = (await response.json()) as BackendLoginResponse
-      const matchedUser =
-        state.users.find((user) => user.username === payload.user.username) ??
-        state.users.find((user) => user.employeeId === payload.user.employee_code)
-
-      if (!matchedUser) {
-        setLoginState((current) => ({ ...current, error: 'Signed-in user is not mapped in the local roster.' }))
-        return
-      }
-
-      setBackendToken(payload.access_token)
-      setSessionUserId(matchedUser.id)
-      setWorkspaceLoadState({ loading: false, error: '', ready: false })
-      setReviewLoadState({ loading: false, error: '', ready: false })
-      lastSyncedSelfPayloadRef.current = null
-      setLoginState({ username: '', password: '', error: '' })
-      return
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Sign-in failed.'
-      setLoginState((current) => ({ ...current, error: message }))
-    }
-  }
-
-  function logout() {
-    setSessionUserId(null)
-    setSelectedManagedEmployeeId(null)
-    setBackendToken(null)
-    setWorkspaceLoadState({ loading: false, error: '', ready: false })
-    setReviewLoadState({ loading: false, error: '', ready: false })
-    lastSyncedSelfPayloadRef.current = null
-  }
 
   function updateSelfAppraisal(employeeId: string, patch: Partial<SelfAppraisalRecord>) {
     setState((current) => ({
@@ -886,7 +731,7 @@ function App() {
       autosaveTimerRef.current = null
     }
     updateSelfAppraisal(employeeId, { status: 'submitted' })
-    if (!backendToken || !currentUser || currentUser.employeeId !== employeeId || !canUseEmployeeFlow) {
+    if (!currentUser || currentUser.employeeId !== employeeId || !canUseEmployeeFlow) {
       return
     }
 
@@ -900,9 +745,9 @@ function App() {
       const response = await fetch(`${API_BASE_URL}/employee/me/self-appraisal`, {
         method: 'PUT',
         headers: {
-          Authorization: `Bearer ${backendToken}`,
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify(
           buildSelfAppraisalPayload(
             {
@@ -913,6 +758,10 @@ function App() {
           ),
         ),
       })
+      if (response.status === 401) {
+        void logout()
+        throw new Error('Session expired.')
+      }
       if (!response.ok) {
         throw new Error('Failed to submit self appraisal.')
       }
@@ -964,7 +813,7 @@ function App() {
       return { ...current, assignments, finalResults }
     })
 
-    if (!backendToken || !currentUser || !canUseManagerFlow) {
+    if (!currentUser || !canUseManagerFlow) {
       return
     }
 
@@ -973,11 +822,15 @@ function App() {
         const response = await fetch(`${API_BASE_URL}/manager/assignments/${assignmentId}`, {
           method: 'PATCH',
           headers: {
-            Authorization: `Bearer ${backendToken}`,
             'Content-Type': 'application/json',
           },
+          credentials: 'include',
           body: JSON.stringify(toBackendAssignmentPatch(patch)),
         })
+        if (response.status === 401) {
+          void logout()
+          throw new Error('Session expired.')
+        }
         if (!response.ok) {
           throw new Error('Failed to save manager review update.')
         }
@@ -997,7 +850,7 @@ function App() {
       ),
     }))
 
-    if (!backendToken || !currentUser || (!canUseManagerFlow && !canUseAdminFlow)) {
+    if (!currentUser || (!canUseManagerFlow && !canUseAdminFlow)) {
       return
     }
 
@@ -1010,11 +863,15 @@ function App() {
         const response = await fetch(endpoint, {
           method: 'PATCH',
           headers: {
-            Authorization: `Bearer ${backendToken}`,
             'Content-Type': 'application/json',
           },
+          credentials: 'include',
           body: JSON.stringify(toBackendFinalResultPatch(patch)),
         })
+        if (response.status === 401) {
+          void logout()
+          throw new Error('Session expired.')
+        }
         if (!response.ok) {
           throw new Error('Failed to save final result update.')
         }
@@ -1043,15 +900,15 @@ function App() {
     reviewerLabel: string
     kpiOwnerLabel: string
   }) {
-    if (backendToken && currentUser && canUseAdminFlow) {
+    if (currentUser && canUseAdminFlow) {
       void (async () => {
         try {
           const response = await fetch(`${API_BASE_URL}/admin/designation-mappings/resolve`, {
             method: 'POST',
             headers: {
-              Authorization: `Bearer ${backendToken}`,
               'Content-Type': 'application/json',
             },
+            credentials: 'include',
             body: JSON.stringify({
               designation,
               role_name: roleName,
@@ -1066,6 +923,10 @@ function App() {
               kpi_owner_label: kpiOwnerLabel,
             }),
           })
+          if (response.status === 401) {
+            void logout()
+            throw new Error('Session expired.')
+          }
           if (!response.ok) {
             throw new Error('Failed to save designation setup.')
           }
@@ -1206,69 +1067,81 @@ function App() {
   }
 
   function resetAppraisalData() {
-    const fresh = cloneSeed()
-    setState(fresh)
-    setSessionUserId(null)
+    lastSyncedSelfPayloadRef.current = null
+    setState(createEmptyState())
     setSelectedManagedEmployeeId(null)
+    setWorkspaceLoadState({ loading: false, error: '', ready: false })
+    setReviewLoadState({ loading: false, error: '', ready: false })
+    setReloadNonce((current) => current + 1)
+  }
+
+  if (sessionPending) {
+    return (
+      <section className="surface-card section-card">
+        <p className="subtle">Restoring your session…</p>
+      </section>
+    )
   }
 
   if (!currentUser) {
-    return <LoginScreen loginState={loginState} setLoginState={setLoginState} handleLogin={handleLogin} />
+    return null
   }
 
-  return (
-    <div className="page-shell">
-      <header className="topbar">
-        <div>
-          <h1>{canUseEmployeeFlow && employeeRecord ? `Hi 👋 ${currentUser.displayName}` : currentUser.displayName}</h1>
-          {!canUseEmployeeFlow || !employeeRecord ? (
-            <p className="subtle">
-              Signed in as {[
-                canUseAdminFlow ? 'HR Admin' : null,
-                canUseManagerFlow ? 'Appraisal Owner' : null,
-                canUseEmployeeFlow ? 'Employee' : null,
-              ]
-                .filter(Boolean)
-                .join(' · ')}
-            </p>
-          ) : null}
-        </div>
-        <div className="topbar-actions">
-          <button className="button subtle-button" onClick={logout}>
-            Logout
-          </button>
-        </div>
-      </header>
-
-      {canUseEmployeeFlow && !workspaceLoadState.ready ? (
+  if (mode === 'employee') {
+    if (!canUseEmployeeFlow) {
+      return (
+        <section className="surface-card section-card">
+          <p className="subtle">You do not have access to the employee appraisal workspace.</p>
+        </section>
+      )
+    }
+    if (!workspaceLoadState.ready) {
+      return (
         <section className="surface-card section-card">
           <p className="subtle">{workspaceLoadState.loading ? 'Loading your appraisal workspace…' : 'Unable to load your appraisal workspace.'}</p>
           {workspaceLoadState.error ? <p className="error-text">{workspaceLoadState.error}</p> : null}
         </section>
-      ) : null}
+      )
+    }
+    if (!employeeRecord || !selfRecord || !finalResult) {
+      return (
+        <section className="surface-card section-card">
+          <p className="subtle">No employee appraisal workspace is available for this account.</p>
+        </section>
+      )
+    }
+    return (
+      <EmployeeWorkspace
+        employee={employeeRecord}
+        selfRecord={selfRecord}
+        assignments={employeeAssignments}
+        finalResult={finalResult}
+        workspaceLoading={workspaceLoadState.loading}
+        workspaceError={workspaceLoadState.error}
+        onUpdateSelf={updateSelfAppraisal}
+        onUpdateSelfKpiEntry={updateSelfKpiEntry}
+        onSubmitSelf={submitSelfAppraisal}
+      />
+    )
+  }
 
-      {canUseEmployeeFlow && workspaceLoadState.ready && employeeRecord && selfRecord && finalResult ? (
-        <EmployeeWorkspace
-          employee={employeeRecord}
-          selfRecord={selfRecord}
-          assignments={employeeAssignments}
-          finalResult={finalResult}
-          workspaceLoading={workspaceLoadState.loading}
-          workspaceError={workspaceLoadState.error}
-          onUpdateSelf={updateSelfAppraisal}
-          onUpdateSelfKpiEntry={updateSelfKpiEntry}
-          onSubmitSelf={submitSelfAppraisal}
-        />
-      ) : null}
-
-      {(canUseManagerFlow || canUseAdminFlow) && !reviewLoadState.ready ? (
+  if (mode === 'manager') {
+    if (!canUseManagerFlow) {
+      return (
+        <section className="surface-card section-card">
+          <p className="subtle">You do not have access to the manager review workspace.</p>
+        </section>
+      )
+    }
+    if (!reviewLoadState.ready) {
+      return (
         <section className="surface-card section-card">
           <p className="subtle">{reviewLoadState.loading ? 'Loading review workspace…' : 'Unable to load review workspace.'}</p>
           {reviewLoadState.error ? <p className="error-text">{reviewLoadState.error}</p> : null}
         </section>
-      ) : null}
-
-      {canUseManagerFlow && reviewLoadState.ready ? (
+      )
+    }
+    return (
         <ManagerWorkspace
           currentUser={currentUser}
           employees={managedEmployees}
@@ -1280,18 +1153,34 @@ function App() {
           onUpdateAssignment={updateAssignment}
           onUpdateFinalResult={updateFinalResult}
         />
-      ) : null}
+    )
+  }
 
-      {canUseAdminFlow && reviewLoadState.ready ? (
-        <AdminWorkspace
-          state={state}
-          rolePackLibrary={rolePackLibrary}
-          onUpdateFinalResult={updateFinalResult}
-          onResolveDesignationSetup={resolveDesignationSetup}
-          onReset={resetAppraisalData}
-        />
-      ) : null}
-    </div>
+  if (!canUseAdminFlow) {
+    return (
+      <section className="surface-card section-card">
+        <p className="subtle">You do not have access to the HR console.</p>
+      </section>
+    )
+  }
+
+  if (!reviewLoadState.ready) {
+    return (
+      <section className="surface-card section-card">
+        <p className="subtle">{reviewLoadState.loading ? 'Loading review workspace…' : 'Unable to load review workspace.'}</p>
+        {reviewLoadState.error ? <p className="error-text">{reviewLoadState.error}</p> : null}
+      </section>
+    )
+  }
+
+  return (
+    <AdminWorkspace
+      state={state}
+      rolePackLibrary={rolePackLibrary}
+      onUpdateFinalResult={updateFinalResult}
+      onResolveDesignationSetup={resolveDesignationSetup}
+      onReset={resetAppraisalData}
+    />
   )
 }
 
@@ -2387,4 +2276,4 @@ function Metric({ label, value, compact = false }: { label: string; value: strin
   )
 }
 
-export default App
+export default AppraisalWorkspace

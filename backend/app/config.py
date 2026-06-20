@@ -24,6 +24,9 @@ class Settings(BaseSettings):
     secret_key: str = "dev-only-change-me"
     access_token_ttl_minutes: int = 720
     cors_allow_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
+    session_cookie_name: str = "buybetter_appraisal_session"
+    session_cookie_samesite: str = "lax"
+    session_cookie_secure: bool = False
 
     model_config = SettingsConfigDict(
         env_file=".env",
