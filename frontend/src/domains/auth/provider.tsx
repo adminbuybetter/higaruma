@@ -8,9 +8,9 @@ function toAuthState(payload: SessionResponse): AuthState {
     id: payload.id,
     username: payload.username,
     displayName: payload.display_name,
-    capabilities: payload.capabilities,
+    capabilities: payload.capabilities ?? [],
     employeeId: payload.employee_code ?? undefined,
-    managerScopes: payload.manager_scopes,
+    managerScopes: payload.manager_scopes ?? [],
   }
 }
 
@@ -46,7 +46,7 @@ export function BrowserAuthProvider({ children }: PropsWithChildren) {
     setLoginPending(true)
     try {
       const response = await loginRequest(payload)
-      setAuthState(toAuthState(response))
+      setAuthState(toAuthState(response.user))
     } finally {
       setLoginPending(false)
     }

@@ -23,7 +23,8 @@ export type SessionResponse = {
   manager_scopes: string[]
 }
 
-export type LoginResponse = SessionResponse & {
+export type LoginResponse = {
   access_token: string
   token_type: string
+  user: SessionResponse
 }
