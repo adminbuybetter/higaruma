@@ -4,6 +4,7 @@ import {
   CasebookEmployeeWorkspace,
   CasebookManagerWorkspace,
   CasebookOverviewWorkspace,
+  CasebookReleaseWorkspace,
 } from './casebook/WorkspaceViews'
 import { useAuth } from './domains/auth/hooks'
 import type {
@@ -478,7 +479,7 @@ function AppraisalWorkspace({
   page,
 }: {
   mode: 'employee' | 'manager' | 'admin'
-  page: 'overview' | 'appraisal' | 'team'
+  page: 'overview' | 'appraisal' | 'team' | 'release'
 }) {
   const [state, setState] = useState<AppState>(createEmptyState)
   const { authState, sessionPending, logout } = useAuth()
@@ -1257,6 +1258,27 @@ function AppraisalWorkspace({
         onReset={resetAppraisalData}
       />
     )
+  }
+
+  if (page === 'release') {
+    if (!canUseAdminFlow || mode !== 'admin') {
+      return (
+        <section className="surface-card section-card">
+          <p className="subtle">You do not have access to the release control workspace.</p>
+        </section>
+      )
+    }
+
+    if (!reviewLoadState.ready) {
+      return (
+        <section className="surface-card section-card">
+          <p className="subtle">{reviewLoadState.loading ? 'Loading release control…' : 'Unable to load release control.'}</p>
+          {reviewLoadState.error ? <p className="error-text">{reviewLoadState.error}</p> : null}
+        </section>
+      )
+    }
+
+    return <CasebookReleaseWorkspace state={state} onUpdateFinalResult={updateFinalResult} />
   }
 
   return (

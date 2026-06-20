@@ -1,6 +1,7 @@
 const PAGE_LABELS: Record<string, string> = {
   '/appraisal': 'My appraisal',
   '/team': 'Team reviews',
+  '/release': 'Release control',
   '/hr': 'HR console',
   '/login': 'Login',
 }

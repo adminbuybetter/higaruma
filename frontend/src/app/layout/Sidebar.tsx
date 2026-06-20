@@ -66,7 +66,7 @@ export function Sidebar({ currentPath, onNavigate, authState }: SidebarProps) {
   )
 }
 
-function NavIcon({ icon }: { icon: 'overview' | 'appraisal' | 'team' }) {
+function NavIcon({ icon }: { icon: 'overview' | 'appraisal' | 'team' | 'release' }) {
   if (icon === 'overview') {
     return (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
@@ -84,6 +84,15 @@ function NavIcon({ icon }: { icon: 'overview' | 'appraisal' | 'team' }) {
         <path d="M7 3h8l4 4v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" />
         <path d="M15 3v4h4" />
         <path d="M9 13h6M9 17h4" />
+      </svg>
+    )
+  }
+
+  if (icon === 'release') {
+    return (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+        <path d="M12 3l7 4v5c0 4.2-2.4 7.7-7 9-4.6-1.3-7-4.8-7-9V7l7-4z" />
+        <path d="M9.5 12.2l1.7 1.7 3.3-3.5" />
       </svg>
     )
   }

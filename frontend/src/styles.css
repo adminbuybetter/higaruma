@@ -339,29 +339,6 @@ select {
   margin-bottom: 24px;
 }
 
-.tab-strip {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 6px 0 20px;
-}
-
-.tab-chip {
-  border: 1px solid var(--line);
-  background: var(--surface);
-  color: var(--muted);
-  border-radius: 999px;
-  padding: 8px 14px;
-  font-size: 12.5px;
-  font-weight: 600;
-}
-
-.tab-chip.active {
-  background: var(--navy);
-  border-color: var(--navy);
-  color: #fff;
-}
-
 .list-section-header {
   display: flex;
   align-items: center;

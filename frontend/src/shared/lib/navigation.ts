@@ -2,15 +2,16 @@ import type { AuthState } from '../../domains/auth/contracts'
 
 export type NavSection = {
   label: string
-  items: Array<{ path: string; label: string; icon: 'overview' | 'appraisal' | 'team' }>
+  items: Array<{ path: string; label: string; icon: 'overview' | 'appraisal' | 'team' | 'release' }>
 }
 
 export function buildNavItems(authState: AuthState | null): NavSection[] {
-  const items: Array<{ path: string; label: string; icon: 'overview' | 'appraisal' | 'team' }> = []
+  const items: Array<{ path: string; label: string; icon: 'overview' | 'appraisal' | 'team' | 'release' }> = []
 
   const isManagerLike = Boolean(
     authState?.capabilities.includes('manager') || authState?.capabilities.includes('admin'),
   )
+  const isAdmin = Boolean(authState?.capabilities.includes('admin'))
 
   if (isManagerLike) {
     items.push({ path: '/overview', label: 'Overview', icon: 'overview' })
@@ -20,6 +21,9 @@ export function buildNavItems(authState: AuthState | null): NavSection[] {
   }
   if (isManagerLike) {
     items.push({ path: '/team', label: 'My team', icon: 'team' })
+  }
+  if (isAdmin) {
+    items.push({ path: '/release', label: 'Release control', icon: 'release' })
   }
 
   return [{ label: '', items }]
