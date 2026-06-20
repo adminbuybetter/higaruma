@@ -676,12 +676,6 @@ function SelfDrawer({
 }) {
   const [openItems, setOpenItems] = useState<Record<string, boolean>>({})
   const progress = selfRecord.kpiEntries.filter((entry) => entry.selfScore > 0).length
-  const provisional = Math.round(
-    assignments.reduce((sum, assignment) => {
-      const entry = selfRecord.kpiEntries.find((record) => record.assignmentId === assignment.assignmentId)
-      return sum + ((entry?.selfScore ?? 0) / 5) * assignment.weightPercent
-    }, 0),
-  )
 
   return (
     <>
@@ -703,14 +697,6 @@ function SelfDrawer({
           </div>
         </div>
         <div className="drawer-body">
-          <div className="provisional">
-            <div>
-              <div className="num">{provisional}%</div>
-              <div className="lbl">Provisional weighted score</div>
-            </div>
-            <div className="lbl" style={{ textAlign: 'right' }}>Updates as you rate each KPI</div>
-          </div>
-
           <div className="section-label">Scored areas</div>
           {assignments.map((assignment) => {
             const entry = selfRecord.kpiEntries.find((record) => record.assignmentId === assignment.assignmentId)
