@@ -55,11 +55,29 @@ def _load_seed() -> dict:
     return json.loads(text)
 
 
-def bootstrap_from_seed(db: Session) -> None:
-    if db.scalar(select(User.id).limit(1)):
-        return
+def sync_employee_designations_from_seed(db: Session, seed: dict) -> None:
+    employee_rows = {row["employeeId"]: row for row in seed.get("employees", [])}
+    employees = list(db.scalars(select(Employee)))
+    updated = False
 
+    for employee in employees:
+        row = employee_rows.get(employee.employee_code)
+        if not row:
+            continue
+        next_designation = row.get("designation") or employee.designation
+        if employee.designation != next_designation:
+            employee.designation = next_designation
+            updated = True
+
+    if updated:
+        db.commit()
+
+
+def bootstrap_from_seed(db: Session) -> None:
     seed = _load_seed()
+    if db.scalar(select(User.id).limit(1)):
+        sync_employee_designations_from_seed(db, seed)
+        return
 
     opens_at = seed["cycle"].get("opensAt")
     closes_at = seed["cycle"].get("closesAt")

@@ -748,7 +748,7 @@
       "username": "sandra.dunkwu",
       "password": "Appraise060!",
       "displayName": "Sandra Dunkwu",
-      "email": "",
+      "email": "sandra.dunkwu@buybetter.ng",
       "kind": "manager",
       "capabilities": [
         "manager",
@@ -758,7 +758,7 @@
       "managerScopes": [
         "Chief of Staff"
       ],
-      "outreachEmail": ""
+      "outreachEmail": "sandra.dunkwu@buybetter.ng"
     },
     {
       "id": "EMP-061",
@@ -942,7 +942,7 @@
     {
       "employeeId": "EMP-013",
       "employeeName": "Francis Fanen",
-      "designation": "Order Processing Officer",
+      "designation": "Logistics Officer",
       "appraisalRole": "Order Processing & Fulfilment",
       "department": "Operations",
       "level": "Officer 1",
@@ -978,7 +978,7 @@
     {
       "employeeId": "EMP-015",
       "employeeName": "Patrick Ikegwuonu",
-      "designation": "Order Processing Officer",
+      "designation": "Order Fulfilment Officer",
       "appraisalRole": "Order Processing & Fulfilment",
       "department": "Operations",
       "level": "Officer 1",
@@ -1014,7 +1014,7 @@
     {
       "employeeId": "EMP-017",
       "employeeName": "Nnamani Chioma Helen",
-      "designation": "Customer Care Representative",
+      "designation": "Customer Experience",
       "appraisalRole": "Customer Support Specialist",
       "department": "Customer Service",
       "level": "Officer 1",
@@ -1032,7 +1032,7 @@
     {
       "employeeId": "EMP-018",
       "employeeName": "Arasi Oluwatobi",
-      "designation": "Customer Service",
+      "designation": "Customer Experience",
       "appraisalRole": "Customer Support Specialist",
       "department": "Customer Service",
       "level": "Officer 1",
@@ -1050,7 +1050,7 @@
     {
       "employeeId": "EMP-019",
       "employeeName": "Imemba Goodluck Ikechukwu",
-      "designation": "Order Processing Officer",
+      "designation": "Order Fulfilment Officer",
       "appraisalRole": "Order Processing & Fulfilment",
       "department": "Operations",
       "level": "Officer 1",
@@ -1068,7 +1068,7 @@
     {
       "employeeId": "EMP-020",
       "employeeName": "Victoria Daniel Igo",
-      "designation": "Beauty Attendant",
+      "designation": "Beauty Attendant (Surulere)",
       "appraisalRole": "Beauty Attendant",
       "department": "Operations",
       "level": "Officer 1",
@@ -1104,7 +1104,7 @@
     {
       "employeeId": "EMP-023",
       "employeeName": "Rose Uka",
-      "designation": "Beauty Attendant",
+      "designation": "Beauty Attendant (Surulere)",
       "appraisalRole": "Beauty Attendant",
       "department": "Operations",
       "level": "Officer 1",
@@ -1122,7 +1122,7 @@
     {
       "employeeId": "EMP-025",
       "employeeName": "Eniola Ojekunle",
-      "designation": "Beauty Attendant",
+      "designation": "Beauty Attendant (Surulere)",
       "appraisalRole": "Beauty Attendant",
       "department": "Operations",
       "level": "Officer 1",
@@ -1158,7 +1158,7 @@
     {
       "employeeId": "EMP-027",
       "employeeName": "Lorreta Nwabuaja",
-      "designation": "Customer Service Representative",
+      "designation": "Customer Experience",
       "appraisalRole": "Customer Service Representative",
       "department": "Growth and Development Department",
       "level": "Officer 1",
@@ -1212,7 +1212,7 @@
     {
       "employeeId": "EMP-030",
       "employeeName": "Happiness  Oyewale",
-      "designation": "Beauty Attendant",
+      "designation": "Beauty Attendant (Lekki)",
       "appraisalRole": "Beauty Attendant",
       "department": "Operations",
       "level": "Officer 1",
@@ -1230,7 +1230,7 @@
     {
       "employeeId": "EMP-031",
       "employeeName": "Pamela Edeh",
-      "designation": "Beauty Attendant",
+      "designation": "Beauty Attendant (Lekki)",
       "appraisalRole": "Beauty Attendant",
       "department": "Operations",
       "level": "Officer 1",
@@ -1248,7 +1248,7 @@
     {
       "employeeId": "EMP-032",
       "employeeName": "Adams Temidayo",
-      "designation": "Technology & Facility Officer",
+      "designation": "IT Infrastructure",
       "appraisalRole": "Technology & Facility Officer",
       "department": "Information Technology",
       "level": "Officer 1",
@@ -1284,7 +1284,7 @@
     {
       "employeeId": "EMP-034",
       "employeeName": "Anyanwu Kelechi Anthony",
-      "designation": "Order Processing Officer",
+      "designation": "Order Fulfilment Officer",
       "appraisalRole": "Order Processing & Fulfilment",
       "department": "Operations",
       "level": "Officer 1",
@@ -1302,7 +1302,7 @@
     {
       "employeeId": "EMP-035",
       "employeeName": "Olayinka Olabiran",
-      "designation": "Order Processing Officer",
+      "designation": "Order Fulfilment Officer",
       "appraisalRole": "Order Processing & Fulfilment",
       "department": "Operations",
       "level": "Officer 1",
@@ -1320,7 +1320,7 @@
     {
       "employeeId": "EMP-036",
       "employeeName": "Ugwuogor Nnamdi Samuel",
-      "designation": "Order Processing Officer",
+      "designation": "Order Fulfilment Officer",
       "appraisalRole": "Order Processing & Fulfilment",
       "department": "Operations",
       "level": "Officer 1",
@@ -1338,7 +1338,7 @@
     {
       "employeeId": "EMP-037",
       "employeeName": "Mary Edun Abidemi",
-      "designation": "Beauty Attendant",
+      "designation": "Beauty Attendant (Lekki)",
       "appraisalRole": "Beauty Attendant",
       "department": "Operations",
       "level": "Officer 1",
@@ -1392,7 +1392,7 @@
     {
       "employeeId": "EMP-040",
       "employeeName": "Ajayi Abimbola Opeoluwa",
-      "designation": "Customer Care Representative",
+      "designation": "Customer Experience/Retention (Wholesale)",
       "appraisalRole": "Customer Support Specialist",
       "department": "Customer Service",
       "level": "Officer 2",
@@ -1446,7 +1446,7 @@
     {
       "employeeId": "EMP-043",
       "employeeName": "Samuel Mbudinma",
-      "designation": "Admin/People Operation Officer",
+      "designation": "Admin/People Operations Officer",
       "appraisalRole": "Admin/People Operation Officer",
       "department": "Operations",
       "level": "Officer 2",
@@ -1500,7 +1500,7 @@
     {
       "employeeId": "EMP-046",
       "employeeName": "Ojo Bunmi",
-      "designation": "Junior IT Officer",
+      "designation": "IT Business Analyst",
       "appraisalRole": "Technology & Facility Officer",
       "department": "Information Technology",
       "level": "Officer 2",
@@ -1518,7 +1518,7 @@
     {
       "employeeId": "EMP-047",
       "employeeName": "Felix Aondoemba Nguuma",
-      "designation": "Logistics Officer",
+      "designation": "Logistics Officer (Teamlead)",
       "appraisalRole": "Logistics Officer",
       "department": "Logistics",
       "level": "Senior Officer",
@@ -1536,7 +1536,7 @@
     {
       "employeeId": "EMP-048",
       "employeeName": "Victor Ugwu",
-      "designation": "Order Processing Officer (Teamlead)",
+      "designation": "Order Fulfilment (Teamlead)",
       "appraisalRole": "Order Processing & Fulfilment",
       "department": "Operations",
       "level": "Senior Officer",
@@ -1572,7 +1572,7 @@
     {
       "employeeId": "EMP-050",
       "employeeName": "Mary Favour Okorji",
-      "designation": "Beauty Attendant",
+      "designation": "Beauty Attendant (Floor Manager Lekki)",
       "appraisalRole": "Beauty Attendant",
       "department": "Operations",
       "level": "Senior Officer",
@@ -1590,7 +1590,7 @@
     {
       "employeeId": "EMP-051",
       "employeeName": "Okoro Victor",
-      "designation": "Customer Service Representative  (Teamlead)",
+      "designation": "Customer Service Representative (Teamlead)",
       "appraisalRole": "Customer Service Representative",
       "department": "Growth and Development Department",
       "level": "Senior Officer",
@@ -1608,7 +1608,7 @@
     {
       "employeeId": "EMP-052",
       "employeeName": "Chinemerem Mgbaruike",
-      "designation": "Digital Marketing Executive",
+      "designation": "Digital Marketing/Content Lead",
       "appraisalRole": "Digital Marketing Manager",
       "department": "Growth",
       "level": "Senior Officer",
@@ -1626,7 +1626,7 @@
     {
       "employeeId": "EMP-053",
       "employeeName": "Olorunfemi Adegoke",
-      "designation": "Key Account Manager",
+      "designation": "Key Account Retention and Acquisition",
       "appraisalRole": "Key Account Manager",
       "department": "Growth Department",
       "level": "Senior Officer",
@@ -1644,7 +1644,7 @@
     {
       "employeeId": "EMP-054",
       "employeeName": "Chisom Ugoh",
-      "designation": "Beauty Attendant",
+      "designation": "Beauty Attendant (Floor Manager Surulere)",
       "appraisalRole": "Beauty Attendant",
       "department": "Operations",
       "level": "Senior Officer",

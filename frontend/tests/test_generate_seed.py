@@ -56,7 +56,7 @@ class GenerateSeedTest(unittest.TestCase):
             row for row in seed["employees"] if row["employeeName"] == "Samuel Mbudinma"
         )
 
-        self.assertEqual(employee["designation"], "Admin/People Operation Officer")
+        self.assertEqual(employee["designation"], "Admin/People Operations Officer")
         self.assertEqual(employee["appraisalRole"], "Admin/People Operation Officer")
         self.assertEqual(employee["status"], "ready")
         self.assertEqual(employee["blockers"], [])
@@ -66,6 +66,20 @@ class GenerateSeedTest(unittest.TestCase):
 
         self.assertNotIn("Admin/People Operation Officer", unresolved_designations)
         self.assertNotIn("Samuel Mbudinma", unresolved_employees)
+
+    def test_workbook_job_titles_override_display_designations(self):
+        run_generator()
+        seed = load_seed()
+
+        ojo = next(row for row in seed["employees"] if row["employeeName"] == "Ojo Bunmi")
+        victor = next(row for row in seed["employees"] if row["employeeName"] == "Victor Ugwu")
+        rose = next(row for row in seed["employees"] if row["employeeName"] == "Rose Uka")
+        kamsi = next(row for row in seed["employees"] if row["employeeName"] == "Kamsiriochi Nwaukwa")
+
+        self.assertEqual(ojo["designation"], "IT Business Analyst")
+        self.assertEqual(victor["designation"], "Order Fulfilment (Teamlead)")
+        self.assertEqual(rose["designation"], "Beauty Attendant (Surulere)")
+        self.assertEqual(kamsi["designation"], "Innovation Lead")
 
     def test_quality_control_wholesale_employee_is_ready(self):
         run_generator()

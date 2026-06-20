@@ -60,7 +60,7 @@ class ApiTest(unittest.TestCase):
         payload = response.json()
         self.assertEqual(payload["token_type"], "bearer")
         self.assertEqual(payload["user"]["username"], "francis.fanen")
-        self.assertEqual(payload["user"]["designation"], "Order Processing Officer")
+        self.assertEqual(payload["user"]["designation"], "Logistics Officer")
         self.assertIn("employee", payload["user"]["capabilities"])
         self.assertEqual(payload["user"]["employee_code"], "EMP-013")
 
@@ -75,7 +75,7 @@ class ApiTest(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         payload = response.json()
         self.assertEqual(payload["username"], "samuel.mbudinma")
-        self.assertEqual(payload["designation"], "Admin/People Operation Officer")
+        self.assertEqual(payload["designation"], "Admin/People Operations Officer")
         self.assertIn("admin", payload["capabilities"])
         self.assertIn("employee", payload["capabilities"])
 
@@ -117,7 +117,7 @@ class ApiTest(unittest.TestCase):
         self.assertEqual(payload["cycle_code"], "2026-H1")
         self.assertEqual(payload["cycle_closes_at"], "2026-06-30T23:59:59+01:00")
         self.assertEqual(payload["employee"]["full_name"], "Francis Fanen")
-        self.assertEqual(payload["employee"]["designation"], "Order Processing Officer")
+        self.assertEqual(payload["employee"]["designation"], "Logistics Officer")
         self.assertGreater(len(payload["assignments"]), 0)
         self.assertIsNotNone(payload["self_appraisal"])
         self.assertEqual(payload["self_appraisal"]["status"], "draft")

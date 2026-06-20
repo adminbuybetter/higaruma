@@ -1,7 +1,9 @@
 import csv
 import json
 import re
+import zipfile
 from pathlib import Path
+import xml.etree.ElementTree as ET
 
 
 APP_DIR = Path("/Users/kamsi/Downloads/odoo1/appraisal-web-prototype/frontend")
@@ -12,6 +14,8 @@ ROSTER_PATH = SOURCE_DIR / "Employee_Roster_Template.csv"
 DESIGNATION_PATH = SOURCE_DIR / "Designation_Mapping_Template.csv"
 OWNERSHIP_PATH = SOURCE_DIR / "Appraisal_Ownership_Matrix_2026.csv"
 MASTER_PATH = SOURCE_DIR / "Company_Appraisal_Master_Sheet_Template.csv"
+SCHEDULE_PATH = Path("/Users/kamsi/Downloads/APPRAISAL SCHEDULE (2).xlsx")
+BACKEND_SEED_PATH = APP_DIR.parent / "backend" / "app" / "seed.generated.json"
 
 
 def read_csv(path: Path):
@@ -27,6 +31,52 @@ def slugify(value: str) -> str:
 
 def normalize_name(value: str) -> str:
     return " ".join(value.strip().lower().split())
+
+
+SCHEDULE_NAME_ALIASES = {
+    normalize_name("Rose Udoh"): "Rose Uka",
+    normalize_name("Benedicta Udeigwe"): "Benedicta Chidubem Udeigwe",
+    normalize_name("Akinyemi Boluwatife"): "Akinyemi Boluwatito",
+    normalize_name("Kamsi Nwaukwa"): "Kamsiriochi Nwaukwa",
+}
+
+
+def read_schedule_titles(path: Path) -> dict[str, str]:
+    if not path.exists():
+        return {}
+
+    ns = {"a": "http://schemas.openxmlformats.org/spreadsheetml/2006/main"}
+    titles: dict[str, str] = {}
+
+    with zipfile.ZipFile(path) as workbook:
+        shared_strings: list[str] = []
+        if "xl/sharedStrings.xml" in workbook.namelist():
+            root = ET.fromstring(workbook.read("xl/sharedStrings.xml"))
+            for item in root.findall("a:si", ns):
+                shared_strings.append("".join(text.text or "" for text in item.findall(".//a:t", ns)))
+
+        sheet = ET.fromstring(workbook.read("xl/worksheets/sheet1.xml"))
+        for row in sheet.findall(".//a:sheetData/a:row", ns):
+            values: dict[str, str] = {}
+            for cell in row.findall("a:c", ns):
+                ref = cell.attrib.get("r", "")
+                col = "".join(char for char in ref if char.isalpha())
+                raw_value = cell.find("a:v", ns)
+                value = ""
+                if raw_value is not None:
+                    raw = raw_value.text or ""
+                    value = shared_strings[int(raw)] if cell.attrib.get("t") == "s" else raw
+                values[col] = value
+
+            name = (values.get("B") or "").strip()
+            title = (values.get("C") or "").strip()
+            if not name or name == "NAMES" or (name.isupper() and not title) or not title:
+                continue
+
+            canonical_name = SCHEDULE_NAME_ALIASES.get(normalize_name(name), name)
+            titles[normalize_name(canonical_name)] = title
+
+    return titles
 
 
 def username_from_name(name: str) -> str:
@@ -286,6 +336,7 @@ designation_rows = read_csv(DESIGNATION_PATH)
 ownership_rows = read_csv(OWNERSHIP_PATH)
 master_rows = read_csv(MASTER_PATH)
 roster_rows = read_csv(ROSTER_PATH)
+schedule_titles = read_schedule_titles(SCHEDULE_PATH)
 
 for row in designation_rows:
     override = DESIGNATION_FIELD_OVERRIDES.get((row.get("roster_designation") or "").strip())
@@ -337,6 +388,7 @@ unresolved_designations = []
 unresolved_employees = []
 unresolved_managers = []
 excluded_designations = []
+active_roster_designations = set()
 
 for row in designation_rows:
     needs_clarification = (row.get("needs_clarification") or "").strip().lower() == "yes"
@@ -402,8 +454,9 @@ for roster_row in roster_rows:
         continue
 
     override = EMPLOYEE_ROLE_OVERRIDES.get(employee_name, {})
-    designation = (roster_row.get("roster_designation") or "").strip()
-    designation_row = designation_map.get(designation, {})
+    base_designation = (roster_row.get("roster_designation") or "").strip()
+    designation = schedule_titles.get(normalize_name(employee_name), base_designation)
+    designation_row = designation_map.get(base_designation, {})
     default_self_required = (designation_row.get("self_appraisal_required") or "Yes").strip().lower() != "no"
     self_required = override.get("self_required", default_self_required)
     role = override.get("appraisal_role") or effective_role(roster_row, designation_row)
@@ -593,6 +646,8 @@ for roster_row in roster_rows:
     if excluded_this_cycle:
         continue
 
+    active_roster_designations.add(base_designation)
+
     if not manager_label:
         unresolved_managers.append(
             {
@@ -611,9 +666,8 @@ for roster_row in roster_rows:
         )
 
 
-active_designations = {employee["designation"] for employee in employees if not employee["excludedThisCycle"]}
 unresolved_designations = [
-    item for item in unresolved_designations if item["designation"] in active_designations
+    item for item in unresolved_designations if item["designation"] in active_roster_designations
 ]
 
 for extra_user in EXTRA_USERS:
@@ -657,10 +711,9 @@ seed = {
 GENERATED_DIR.mkdir(parents=True, exist_ok=True)
 
 generated = GENERATED_DIR / "seed.generated.json"
-generated.write_text(
-    json.dumps(seed, indent=2, ensure_ascii=False) + "\n",
-    encoding="utf-8",
-)
+serialized_seed = json.dumps(seed, indent=2, ensure_ascii=False) + "\n"
+generated.write_text(serialized_seed, encoding="utf-8")
+BACKEND_SEED_PATH.write_text(serialized_seed, encoding="utf-8")
 
 credentials_path = GENERATED_DIR / "credentials.generated.csv"
 with credentials_path.open("w", newline="", encoding="utf-8") as handle:
