@@ -1414,6 +1414,11 @@ function SelfDrawer({
       <div className={`drawer ${open ? 'open' : ''}`}>
         <div className="drawer-header">
           <div className="drawer-header-top">
+            {step === 'reflection' && !locked ? (
+              <button className="drawer-nav-back" type="button" onClick={() => setStep('kpis')} aria-label="Back to scored areas">
+                <span aria-hidden="true">&lt;</span>
+              </button>
+            ) : null}
             <div>
               <h2>Self-Appraisal</h2>
               <div className="sub">
@@ -1532,11 +1537,6 @@ function SelfDrawer({
                 : 'Saved drafts stay editable until you submit.'}
           </span>
           <div style={{ display: 'flex', gap: 8 }}>
-            {!locked && step === 'reflection' ? (
-              <button className="btn btn--secondary btn--sm" onClick={() => setStep('kpis')}>
-                Back
-              </button>
-            ) : null}
             {!submitted && !deadlineClosed ? (
               <button className="btn btn--secondary btn--sm" onClick={onSaveDraft} disabled={pending}>
                 {selfActionState === 'saving' ? 'Saving...' : 'Save draft'}

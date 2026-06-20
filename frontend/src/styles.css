@@ -1071,6 +1071,26 @@ select {
   gap: 10px;
 }
 
+.drawer-nav-back {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.drawer-nav-back:hover {
+  background: #f2efe8;
+  color: var(--ink);
+}
+
 .drawer-header h2 {
   font-size: 17px;
 }
