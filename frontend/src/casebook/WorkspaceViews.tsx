@@ -610,27 +610,41 @@ export function CasebookHrEmployeesWorkspace({
           </div>
         </div>
 
-        <SearchToolbar
-          value={searchQuery}
-          loading={searchLoading}
-          placeholder="Search by name, employee code, role or department"
-          onChange={onSearchChange}
-        />
+        <div className="toolbar">
+          <div className="toolbar-row toolbar-row--inline">
+            <div className="filter-pills filter-pills--compact">
+              <FilterPill label={`All (${employees.length})`} active={filter === 'all'} onClick={() => setFilter('all')} />
+              <FilterPill
+                label={`Awaiting self (${employees.filter((employee) => hrWorkflowStateForEmployee(employee, state) === 'awaiting-self').length})`}
+                active={filter === 'awaiting-self'}
+                onClick={() => setFilter('awaiting-self')}
+              />
+              <FilterPill
+                label={`Awaiting manager (${employees.filter((employee) => hrWorkflowStateForEmployee(employee, state) === 'awaiting-manager').length})`}
+                active={filter === 'awaiting-manager'}
+                onClick={() => setFilter('awaiting-manager')}
+              />
+              <FilterPill
+                label={`Ready to release (${employees.filter((employee) => hrWorkflowStateForEmployee(employee, state) === 'ready-to-release').length})`}
+                active={filter === 'ready-to-release'}
+                onClick={() => setFilter('ready-to-release')}
+              />
+              <FilterPill
+                label={`Released (${employees.filter((employee) => hrWorkflowStateForEmployee(employee, state) === 'released').length})`}
+                active={filter === 'released'}
+                onClick={() => setFilter('released')}
+              />
+            </div>
 
-        <div className="filter-pills">
-          <FilterPill label="All" active={filter === 'all'} onClick={() => setFilter('all')} />
-          <FilterPill label="Awaiting self" active={filter === 'awaiting-self'} onClick={() => setFilter('awaiting-self')} />
-          <FilterPill
-            label="Awaiting manager"
-            active={filter === 'awaiting-manager'}
-            onClick={() => setFilter('awaiting-manager')}
-          />
-          <FilterPill
-            label="Ready to release"
-            active={filter === 'ready-to-release'}
-            onClick={() => setFilter('ready-to-release')}
-          />
-          <FilterPill label="Released" active={filter === 'released'} onClick={() => setFilter('released')} />
+            <SearchToolbar
+              value={searchQuery}
+              loading={searchLoading}
+              placeholder="Search by name, employee code, role or department"
+              onChange={onSearchChange}
+              resultLabel={`Showing ${filteredEmployees.length} of ${employees.length}`}
+              compact
+            />
+          </div>
         </div>
 
         <ListSectionHeader title="Employee appraisal packets" total={filteredEmployees.length} page={employeePage} pageSize={PAGE_SIZE} />
@@ -646,46 +660,52 @@ export function CasebookHrEmployeesWorkspace({
             </tr>
           </thead>
           <tbody>
-            {pagedEmployees.map((employee) => {
-              const stateLabel = hrWorkflowStateForEmployee(employee, state)
-              return (
-                <tr key={employee.employeeId}>
-                  <td>
-                    <div className="who">
-                      <div className="name">{employee.employeeName}</div>
-                      <div className="role">{employee.designation}</div>
-                    </div>
-                  </td>
-                  <td>{employee.primaryOwnerLabel || employee.managerLabel || 'Not mapped'}</td>
-                  <td>
-                    <Stamp
-                      kind={selfSubmissionStateForEmployee(employee, state) === 'submitted' ? 'ready' : 'waiting'}
-                      label={selfSubmissionStateForEmployee(employee, state) === 'submitted' ? 'Submitted' : 'Awaiting self'}
-                    />
-                  </td>
-                  <td>
-                    <Stamp
-                      kind={managerReviewStateForEmployee(employee, state) === 'complete' ? 'ready' : 'waiting'}
-                      label={managerReviewStateForEmployee(employee, state) === 'complete' ? 'Complete' : 'Awaiting manager'}
-                    />
-                  </td>
-                  <td>
-                    <Stamp kind={stampKindForHrWorkflow(stateLabel)} label={stampLabelForHrWorkflow(stateLabel)} />
-                  </td>
-                  <td>
-                    <button
-                      className="btn btn--secondary btn--sm"
-                      onClick={() => {
-                        onSelectEmployee(employee.employeeId)
-                        setDetailOpen(true)
-                      }}
-                    >
-                      Open
-                    </button>
-                  </td>
-                </tr>
-              )
-            })}
+            {pagedEmployees.length ? (
+              pagedEmployees.map((employee) => {
+                const stateLabel = hrWorkflowStateForEmployee(employee, state)
+                return (
+                  <tr key={employee.employeeId}>
+                    <td>
+                      <div className="who">
+                        <div className="name">{employee.employeeName}</div>
+                        <div className="role">{employee.designation}</div>
+                      </div>
+                    </td>
+                    <td>{employee.primaryOwnerLabel || employee.managerLabel || 'Not mapped'}</td>
+                    <td>
+                      <Stamp
+                        kind={selfSubmissionStateForEmployee(employee, state) === 'submitted' ? 'ready' : 'waiting'}
+                        label={selfSubmissionStateForEmployee(employee, state) === 'submitted' ? 'Submitted' : 'Awaiting self'}
+                      />
+                    </td>
+                    <td>
+                      <Stamp
+                        kind={managerReviewStateForEmployee(employee, state) === 'complete' ? 'ready' : 'waiting'}
+                        label={managerReviewStateForEmployee(employee, state) === 'complete' ? 'Complete' : 'Awaiting manager'}
+                      />
+                    </td>
+                    <td>
+                      <Stamp kind={stampKindForHrWorkflow(stateLabel)} label={stampLabelForHrWorkflow(stateLabel)} />
+                    </td>
+                    <td>
+                      <button
+                        className="open-btn"
+                        onClick={() => {
+                          onSelectEmployee(employee.employeeId)
+                          setDetailOpen(true)
+                        }}
+                      >
+                        Open
+                      </button>
+                    </td>
+                  </tr>
+                )
+              })
+            ) : (
+              <tr className="empty-row">
+                <td colSpan={6}>No employees match this search.</td>
+              </tr>
+            )}
           </tbody>
         </table>
         <PaginationControls page={employeePage} total={filteredEmployees.length} pageSize={PAGE_SIZE} onChange={setEmployeePage} />
@@ -1254,21 +1274,33 @@ function SearchToolbar({
   loading,
   placeholder,
   onChange,
+  resultLabel,
+  compact = false,
 }: {
   value: string
   loading: boolean
   placeholder: string
   onChange: (query: string) => void
+  resultLabel?: string
+  compact?: boolean
 }) {
   return (
-    <div className="search-toolbar">
-      <input
-        className="text-input search-input"
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        placeholder={placeholder}
-      />
-      <span className="search-status">{loading ? 'Searching...' : value.trim() ? 'Filtered across full list' : 'Showing full list'}</span>
+    <div className={`search-toolbar${compact ? ' search-toolbar--compact' : ''}`}>
+      <div className="search-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <circle cx="11" cy="11" r="7" />
+          <path d="M21 21l-4.3-4.3" />
+        </svg>
+        <input
+          className="text-input search-input"
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          placeholder={placeholder}
+        />
+      </div>
+      <span className="search-status">
+        {loading ? 'Searching...' : resultLabel ?? (value.trim() ? 'Filtered across full list' : 'Showing full list')}
+      </span>
     </div>
   )
 }

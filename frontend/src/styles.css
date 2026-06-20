@@ -354,13 +354,63 @@ select {
   margin-bottom: 14px;
 }
 
+.search-toolbar--compact {
+  margin-bottom: 0;
+  flex: 1;
+  justify-content: flex-end;
+  min-width: 320px;
+}
+
 .search-input {
   max-width: 420px;
 }
 
+.search-box {
+  flex: 1;
+  max-width: 420px;
+  position: relative;
+}
+
+.search-box svg {
+  position: absolute;
+  left: 13px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 15px;
+  height: 15px;
+  color: var(--muted-2);
+  pointer-events: none;
+}
+
+.search-box .search-input {
+  max-width: none;
+  padding-left: 36px;
+  background: var(--paper);
+}
+
+.toolbar {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 22px;
+  box-shadow: var(--shadow);
+}
+
+.toolbar-row {
+  display: flex;
+  gap: 14px;
+}
+
+.toolbar-row--inline {
+  align-items: center;
+  justify-content: space-between;
+ }
+
 .search-status {
-  font-size: 12px;
+  font-size: 12.5px;
   color: var(--muted);
+  white-space: nowrap;
 }
 
 .pagination-bar {
@@ -728,12 +778,17 @@ select {
   flex-wrap: wrap;
 }
 
+.filter-pills--compact {
+  margin-bottom: 0;
+  flex: 1;
+}
+
 .pill {
   border: 1px solid var(--line);
-  background: var(--surface);
+  background: var(--paper);
   border-radius: 20px;
-  padding: 7px 14px;
-  font-size: 12.5px;
+  padding: 6px 13px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--muted);
 }
@@ -766,7 +821,7 @@ select {
 }
 
 .emp-table td {
-  padding: 12px 14px;
+  padding: 13px 14px;
   border-bottom: 1px solid var(--line);
   font-size: 13px;
   vertical-align: middle;
@@ -785,6 +840,27 @@ select {
   font-size: 11.5px;
   color: var(--muted);
   margin-top: 1px;
+}
+
+.open-btn {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: 7px;
+  padding: 6px 14px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--navy);
+}
+
+.open-btn:hover {
+  background: #f8f6f1;
+}
+
+.empty-row td {
+  text-align: center;
+  color: var(--muted);
+  padding: 26px;
+  font-size: 13px;
 }
 
 .kpi-summary-list {
