@@ -373,7 +373,7 @@ export function CasebookEmployeeWorkspace({
 }: EmployeeProps) {
   const [selfOpen, setSelfOpen] = useState(false)
   const [resultOpen, setResultOpen] = useState(false)
-  const [toast, setToast] = useState<string | null>(null)
+  const [toast, setToast] = useState<ToastMessage | null>(null)
 
   return (
     <>
@@ -449,17 +449,17 @@ export function CasebookEmployeeWorkspace({
         selfActionState={selfActionState}
         onSaveDraft={async () => {
           const saved = await onSaveSelfDraft(employee.employeeId)
-          if (saved) setToast('Draft saved')
+          if (saved) setToast({ title: 'Draft saved', description: 'Your self-appraisal draft has been updated.', tone: 'success' })
           return saved
         }}
         onSubmitSelf={async (employeeId) => {
           const submitted = await onSubmitSelf(employeeId)
-          if (submitted) setToast('Self-appraisal submitted')
+          if (submitted) setToast({ title: 'Self-appraisal submitted', description: 'Your manager and HR can now review your appraisal.', tone: 'success' })
           return submitted
         }}
         onEditSelf={async (employeeId) => {
           const reopened = await onEditSelf(employeeId)
-          if (reopened) setToast('Editing re-opened')
+          if (reopened) setToast({ title: 'Editing re-opened', description: 'Your self-appraisal is back in draft mode.', tone: 'info' })
           return reopened
         }}
       />
@@ -493,7 +493,7 @@ export function CasebookManagerWorkspace({
   onUpdateFinalResult,
 }: ManagerProps) {
   const [reviewOpen, setReviewOpen] = useState(false)
-  const [toast, setToast] = useState<string | null>(null)
+  const [toast, setToast] = useState<ToastMessage | null>(null)
   const [employeePage, setEmployeePage] = useState(1)
   const pagedEmployees = paginateRows(employees, employeePage)
 
@@ -563,8 +563,8 @@ export function CasebookManagerWorkspace({
         finalResult={finalResult}
         onUpdateAssignment={onUpdateAssignment}
         onUpdateFinalResult={onUpdateFinalResult}
-        onSaveDraft={() => setToast('Draft saved')}
-        onSubmit={() => setToast('Recommendation submitted')}
+        onSaveDraft={() => setToast({ title: 'Draft saved', description: 'Manager scoring changes have been saved.', tone: 'success' })}
+        onSubmit={() => setToast({ title: 'Recommendation submitted', description: 'This appraisal packet is ready for HR release review.', tone: 'success' })}
         variant="manager"
       />
 
@@ -1877,7 +1877,13 @@ function Stamp({ kind, label }: { kind: 'draft' | 'ready' | 'waiting' | 'held' |
   return <span className={`stamp stamp--${kind}`}>{label}</span>
 }
 
-function Toast({ message, onDone }: { message: string | null; onDone: () => void }) {
+type ToastMessage = {
+  title: string
+  description?: string
+  tone?: 'success' | 'error' | 'warning' | 'info'
+}
+
+function Toast({ message, onDone }: { message: ToastMessage | null; onDone: () => void }) {
   useEffect(() => {
     if (!message) return
     const timer = window.setTimeout(onDone, 2400)
@@ -1886,7 +1892,44 @@ function Toast({ message, onDone }: { message: string | null; onDone: () => void
 
   return (
     <div className="toast-container">
-      {message ? <div className="toast show">{message}</div> : null}
+      {message ? (
+        <div className={`toast show toast--${message.tone ?? 'info'}`}>
+          <div className="toast-icon" aria-hidden="true">
+            {message.tone === 'success' ? (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <path d="M20 6L9 17l-5-5" />
+              </svg>
+            ) : message.tone === 'error' ? (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 8v5" />
+                <path d="M12 16h.01" />
+              </svg>
+            ) : message.tone === 'warning' ? (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <path d="M12 3l9 16H3L12 3z" />
+                <path d="M12 9v4" />
+                <path d="M12 17h.01" />
+              </svg>
+            ) : (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 10v6" />
+                <path d="M12 7h.01" />
+              </svg>
+            )}
+          </div>
+          <div className="toast-copy">
+            <div className="toast-title">{message.title}</div>
+            {message.description ? <div className="toast-description">{message.description}</div> : null}
+          </div>
+          <button className="toast-close" type="button" onClick={onDone} aria-label="Close notification">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+              <path d="M6 6l12 12M18 6L6 18" />
+            </svg>
+          </button>
+        </div>
+      ) : null}
     </div>
   )
 }
