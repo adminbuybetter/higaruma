@@ -676,7 +676,18 @@ function SelfDrawer({
   onSaveDraft: () => void
 }) {
   const [openItems, setOpenItems] = useState<Record<string, boolean>>({})
+  const [step, setStep] = useState<'kpis' | 'reflection'>('kpis')
   const progress = selfRecord.kpiEntries.filter((entry) => entry.selfScore > 0).length
+  const canAdvanceToReflection = assignments.every((assignment) => {
+    const entry = selfRecord.kpiEntries.find((record) => record.assignmentId === assignment.assignmentId)
+    return Boolean(entry && entry.selfScore > 0 && entry.reasonForScore.trim())
+  })
+
+  useEffect(() => {
+    if (open) {
+      setStep('kpis')
+    }
+  }, [open])
 
   return (
     <>
@@ -687,7 +698,8 @@ function SelfDrawer({
             <div>
               <h2>Self-Appraisal</h2>
               <div className="sub">
-                {selfRecord.cycle} Cycle · <span>{progress} of {selfRecord.kpiEntries.length} rated</span>
+                {selfRecord.cycle} Cycle · <span>{progress} of {selfRecord.kpiEntries.length} rated</span> ·{' '}
+                <span>{step === 'kpis' ? 'Step 1 of 2' : 'Step 2 of 2'}</span>
               </div>
             </div>
             <button className="close-x" onClick={onClose}>
@@ -698,73 +710,104 @@ function SelfDrawer({
           </div>
         </div>
         <div className="drawer-body">
-          <div className="section-label">Scored areas</div>
-          {assignments.map((assignment) => {
-            const entry = selfRecord.kpiEntries.find((record) => record.assignmentId === assignment.assignmentId)
-            if (!entry) return null
-            const isOpen = openItems[assignment.assignmentId] ?? false
-            return (
-              <div key={assignment.assignmentId} className={`kpi-item ${isOpen ? 'open' : ''}`}>
-                <button className="kpi-head" onClick={() => setOpenItems((current) => ({ ...current, [assignment.assignmentId]: !isOpen }))}>
-                  <span className="weight-badge">{assignment.weightPercent}%</span>
-                  <span className="kpi-title">{assignment.kpiArea}</span>
-                  <svg className="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M6 9l6 6 6-6" />
-                  </svg>
-                </button>
-                <div className="kpi-body">
-                  <p className="kpi-desc">{assignment.kpiStatement}</p>
-                  <div className="field-row">
-                    <label className="field-label">Self-rating</label>
-                    <ScorePicker
-                      score={entry.selfScore}
-                      onChange={(score) => onUpdateSelfKpiEntry(employee.employeeId, assignment.assignmentId, { selfScore: score })}
-                    />
+          {step === 'kpis' ? (
+            <>
+              <div className="section-label">Scored areas</div>
+              {assignments.map((assignment) => {
+                const entry = selfRecord.kpiEntries.find((record) => record.assignmentId === assignment.assignmentId)
+                if (!entry) return null
+                const isOpen = openItems[assignment.assignmentId] ?? false
+                return (
+                  <div key={assignment.assignmentId} className={`kpi-item ${isOpen ? 'open' : ''}`}>
+                    <button className="kpi-head" onClick={() => setOpenItems((current) => ({ ...current, [assignment.assignmentId]: !isOpen }))}>
+                      <span className="weight-badge">{assignment.weightPercent}%</span>
+                      <span className="kpi-title">{assignment.kpiArea}</span>
+                      <svg className="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M6 9l6 6 6-6" />
+                      </svg>
+                    </button>
+                    <div className="kpi-body">
+                      <p className="kpi-desc">{assignment.kpiStatement}</p>
+                      <div className="field-row">
+                        <label className="field-label">Self-rating</label>
+                        <ScorePicker
+                          score={entry.selfScore}
+                          onChange={(score) => onUpdateSelfKpiEntry(employee.employeeId, assignment.assignmentId, { selfScore: score })}
+                        />
+                      </div>
+                      <div className="field-row">
+                        <label className="field-label">Reason for score (required)</label>
+                        <textarea
+                          value={entry.reasonForScore}
+                          onChange={(event) =>
+                            onUpdateSelfKpiEntry(employee.employeeId, assignment.assignmentId, {
+                              reasonForScore: event.target.value,
+                            })
+                          }
+                        />
+                      </div>
+                      <div className="field-row">
+                        <label className="field-label">Challenges faced</label>
+                        <textarea
+                          value={entry.challengesFaced}
+                          onChange={(event) =>
+                            onUpdateSelfKpiEntry(employee.employeeId, assignment.assignmentId, {
+                              challengesFaced: event.target.value,
+                            })
+                          }
+                        />
+                      </div>
+                    </div>
                   </div>
-                  <div className="field-row">
-                    <label className="field-label">Reason for score</label>
-                    <textarea value={entry.reasonForScore} onChange={(event) => onUpdateSelfKpiEntry(employee.employeeId, assignment.assignmentId, { reasonForScore: event.target.value })} />
-                  </div>
-                  <div className="field-row">
-                    <label className="field-label">Key achievements / evidence</label>
-                    <textarea value={entry.keyEvidence} onChange={(event) => onUpdateSelfKpiEntry(employee.employeeId, assignment.assignmentId, { keyEvidence: event.target.value })} />
-                  </div>
-                  <div className="field-row">
-                    <label className="field-label">Challenges faced</label>
-                    <textarea value={entry.challengesFaced} onChange={(event) => onUpdateSelfKpiEntry(employee.employeeId, assignment.assignmentId, { challengesFaced: event.target.value })} />
-                  </div>
-                </div>
+                )
+              })}
+            </>
+          ) : (
+            <>
+              <div className="section-label">Overall reflection</div>
+              <div className="field-row">
+                <label className="field-label">Overall achievements</label>
+                <textarea value={selfRecord.overallAchievements} onChange={(event) => onUpdateSelf(employee.employeeId, { overallAchievements: event.target.value })} />
               </div>
-            )
-          })}
-
-          <div className="section-label">Overall reflection</div>
-          <div className="field-row">
-            <label className="field-label">Overall achievements</label>
-            <textarea value={selfRecord.overallAchievements} onChange={(event) => onUpdateSelf(employee.employeeId, { overallAchievements: event.target.value })} />
-          </div>
-          <div className="field-row">
-            <label className="field-label">Major challenges</label>
-            <textarea value={selfRecord.majorChallenges} onChange={(event) => onUpdateSelf(employee.employeeId, { majorChallenges: event.target.value })} />
-          </div>
-          <div className="field-row">
-            <label className="field-label">Support needed</label>
-            <textarea value={selfRecord.supportNeeded} onChange={(event) => onUpdateSelf(employee.employeeId, { supportNeeded: event.target.value })} />
-          </div>
-          <div className="field-row">
-            <label className="field-label">Development focus</label>
-            <textarea value={selfRecord.developmentFocus} onChange={(event) => onUpdateSelf(employee.employeeId, { developmentFocus: event.target.value })} />
-          </div>
+              <div className="field-row">
+                <label className="field-label">Major challenges</label>
+                <textarea value={selfRecord.majorChallenges} onChange={(event) => onUpdateSelf(employee.employeeId, { majorChallenges: event.target.value })} />
+              </div>
+              <div className="field-row">
+                <label className="field-label">Support needed</label>
+                <textarea value={selfRecord.supportNeeded} onChange={(event) => onUpdateSelf(employee.employeeId, { supportNeeded: event.target.value })} />
+              </div>
+              <div className="field-row">
+                <label className="field-label">Development focus</label>
+                <textarea value={selfRecord.developmentFocus} onChange={(event) => onUpdateSelf(employee.employeeId, { developmentFocus: event.target.value })} />
+              </div>
+            </>
+          )}
         </div>
         <div className="drawer-footer">
           <span className="left-note">Saved drafts stay editable until you submit.</span>
           <div style={{ display: 'flex', gap: 8 }}>
+            {step === 'reflection' ? (
+              <button className="btn btn--secondary btn--sm" onClick={() => setStep('kpis')}>
+                Back
+              </button>
+            ) : null}
             <button className="btn btn--secondary btn--sm" onClick={onSaveDraft}>
               Save draft
             </button>
-            <button className="btn btn--primary btn--sm" onClick={() => onSubmitSelf(employee.employeeId)}>
-              Submit
-            </button>
+            {step === 'kpis' ? (
+              <button
+                className="btn btn--primary btn--sm"
+                onClick={() => setStep('reflection')}
+                disabled={!canAdvanceToReflection}
+              >
+                Next: overall reflection
+              </button>
+            ) : (
+              <button className="btn btn--primary btn--sm" onClick={() => onSubmitSelf(employee.employeeId)}>
+                Submit
+              </button>
+            )}
           </div>
         </div>
       </div>
