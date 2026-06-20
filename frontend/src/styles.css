@@ -284,8 +284,8 @@ select {
 .main {
   flex: 1;
   min-width: 0;
+  width: 100%;
   padding: 30px 40px 60px;
-  max-width: 1080px;
 }
 
 .topbar {
