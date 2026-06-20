@@ -95,6 +95,10 @@ class WorkspaceCollectionResponse(BaseModel):
     workspaces: list[EmployeeWorkspaceResponse]
 
 
+class SearchEmployeeCodesResponse(BaseModel):
+    employee_codes: list[str]
+
+
 class RoleKpiEntryRequest(BaseModel):
     kpi_area: str
     kpi_statement: str

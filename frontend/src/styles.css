@@ -347,6 +347,22 @@ select {
   margin-bottom: 12px;
 }
 
+.search-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.search-input {
+  max-width: 420px;
+}
+
+.search-status {
+  font-size: 12px;
+  color: var(--muted);
+}
+
 .pagination-bar {
   display: flex;
   align-items: center;
@@ -1240,6 +1256,15 @@ select {
   .login-layout,
   .kpi-grid-setup {
     grid-template-columns: 1fr;
+  }
+
+  .search-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .search-input {
+    max-width: none;
   }
 
   .drawer {

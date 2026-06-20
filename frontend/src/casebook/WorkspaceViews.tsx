@@ -43,6 +43,9 @@ type ManagerProps = {
   assignments: AssignmentRecord[]
   selfRecord: SelfAppraisalRecord | null
   finalResult: FinalResultRecord | null
+  searchQuery: string
+  searchLoading: boolean
+  onSearchChange: (query: string) => void
   onSelectEmployee: (employeeId: string) => void
   onUpdateAssignment: (assignmentId: string, patch: Partial<AssignmentRecord>) => void
   onUpdateFinalResult: (employeeId: string, patch: Partial<FinalResultRecord>) => void
@@ -65,6 +68,10 @@ type AdminProps = ManagerProps & {
 
 type ReleaseProps = {
   state: AppState
+  results: FinalResultRecord[]
+  searchQuery: string
+  searchLoading: boolean
+  onSearchChange: (query: string) => void
   onUpdateFinalResult: (employeeId: string, patch: Partial<FinalResultRecord>) => void
 }
 
@@ -361,6 +368,9 @@ export function CasebookManagerWorkspace({
   assignments,
   selfRecord,
   finalResult,
+  searchQuery,
+  searchLoading,
+  onSearchChange,
   onSelectEmployee,
   onUpdateAssignment,
   onUpdateFinalResult,
@@ -369,6 +379,10 @@ export function CasebookManagerWorkspace({
   const [toast, setToast] = useState<string | null>(null)
   const [employeePage, setEmployeePage] = useState(1)
   const pagedEmployees = paginateRows(employees, employeePage)
+
+  useEffect(() => {
+    setEmployeePage(1)
+  }, [searchQuery])
 
   return (
     <>
@@ -382,6 +396,12 @@ export function CasebookManagerWorkspace({
 
         <MiniStepper mode="manager" currentStep={2} finalReleased={false} />
 
+        <SearchToolbar
+          value={searchQuery}
+          loading={searchLoading}
+          placeholder="Search by name, employee code, role or department"
+          onChange={onSearchChange}
+        />
         <ListSectionHeader title="Review queue" total={employees.length} page={employeePage} pageSize={PAGE_SIZE} />
         <div className="team-list">
           {pagedEmployees.map((employee) => {
@@ -444,6 +464,9 @@ export function CasebookAdminWorkspace({
   assignments,
   selfRecord,
   finalResult,
+  searchQuery,
+  searchLoading,
+  onSearchChange,
   onSelectEmployee,
   onUpdateAssignment,
   onUpdateFinalResult,
@@ -462,6 +485,10 @@ export function CasebookAdminWorkspace({
   const roleOptions = [...rolePackLibrary.keys()].sort((left, right) => left.localeCompare(right))
   const pagedEmployees = paginateRows(employees, employeePage)
   const pagedUnresolvedDesignations = paginateRows(state.unresolvedDesignations, unresolvedPage)
+
+  useEffect(() => {
+    setEmployeePage(1)
+  }, [searchQuery])
 
   function draftFor(designation: string, defaults?: { role?: string; manager?: string }) {
     return (
@@ -514,6 +541,12 @@ export function CasebookAdminWorkspace({
           </div>
         </div>
 
+        <SearchToolbar
+          value={searchQuery}
+          loading={searchLoading}
+          placeholder="Search by name, employee code, role or department"
+          onChange={onSearchChange}
+        />
         <ListSectionHeader title="Review queue" total={employees.length} page={employeePage} pageSize={PAGE_SIZE} />
         <div className="team-list" style={{ marginBottom: 16 }}>
           {pagedEmployees.map((employee) => {
@@ -657,11 +690,19 @@ export function CasebookAdminWorkspace({
 
 export function CasebookReleaseWorkspace({
   state,
+  results,
+  searchQuery,
+  searchLoading,
+  onSearchChange,
   onUpdateFinalResult,
 }: ReleaseProps) {
   const [releasePage, setReleasePage] = useState(1)
-  const pagedFinalResults = paginateRows(state.finalResults, releasePage)
+  const pagedFinalResults = paginateRows(results, releasePage)
   const releasedCount = state.finalResults.filter((record) => record.releasedToEmployee).length
+
+  useEffect(() => {
+    setReleasePage(1)
+  }, [searchQuery])
 
   return (
     <section className="view active">
@@ -694,7 +735,13 @@ export function CasebookReleaseWorkspace({
 
       <div className="card" style={{ marginBottom: 18 }}>
         <div className="card-eyebrow">Release queue</div>
-        <ListSectionHeader title="Final result visibility" total={state.finalResults.length} page={releasePage} pageSize={PAGE_SIZE} />
+        <SearchToolbar
+          value={searchQuery}
+          loading={searchLoading}
+          placeholder="Search by name, employee code, role or department"
+          onChange={onSearchChange}
+        />
+        <ListSectionHeader title="Final result visibility" total={results.length} page={releasePage} pageSize={PAGE_SIZE} />
         <div className="team-list">
           {pagedFinalResults.map((result) => (
             <div key={result.employeeId} className="cycle-row">
@@ -714,9 +761,33 @@ export function CasebookReleaseWorkspace({
             </div>
           ))}
         </div>
-        <PaginationControls page={releasePage} total={state.finalResults.length} pageSize={PAGE_SIZE} onChange={setReleasePage} />
+        <PaginationControls page={releasePage} total={results.length} pageSize={PAGE_SIZE} onChange={setReleasePage} />
       </div>
     </section>
+  )
+}
+
+function SearchToolbar({
+  value,
+  loading,
+  placeholder,
+  onChange,
+}: {
+  value: string
+  loading: boolean
+  placeholder: string
+  onChange: (query: string) => void
+}) {
+  return (
+    <div className="search-toolbar">
+      <input
+        className="text-input search-input"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder}
+      />
+      <span className="search-status">{loading ? 'Searching...' : value.trim() ? 'Filtered across full list' : 'Showing full list'}</span>
+    </div>
   )
 }
 

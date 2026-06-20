@@ -5,7 +5,7 @@ from datetime import UTC, datetime, timedelta, timezone
 from decimal import Decimal
 from uuid import UUID
 
-from fastapi import Depends, FastAPI, HTTPException, Response, status
+from fastapi import Depends, FastAPI, HTTPException, Query, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import Engine, select
 from sqlalchemy.orm import Session, selectinload
@@ -39,6 +39,7 @@ from app.schemas import (
     LoginResponse,
     ManagerAssignmentUpdateRequest,
     ResolveDesignationSetupRequest,
+    SearchEmployeeCodesResponse,
     SelfAppraisalItemResponse,
     SelfAppraisalResponse,
     SelfAppraisalUpdateRequest,
@@ -439,6 +440,29 @@ def build_excluded_designations(assignments: list[EmployeeCycleAssignment]) -> l
     return sorted(grouped.values(), key=lambda item: item.designation.lower())
 
 
+def normalize_search_query(query: str) -> str:
+    return " ".join(query.strip().lower().split())
+
+
+def assignment_matches_search(assignment: EmployeeCycleAssignment, query: str) -> bool:
+    normalized = normalize_search_query(query)
+    if not normalized:
+        return True
+
+    employee = assignment.employee
+    searchable_parts = [
+        employee.employee_code,
+        employee.full_name,
+        employee.designation,
+        employee.department or "",
+        assignment.appraisal_role_name or "",
+        assignment.line_manager_label or "",
+        assignment.primary_owner_label or "",
+    ]
+    haystack = " ".join(part.lower() for part in searchable_parts if part)
+    return normalized in haystack
+
+
 def serialize_admin_workspace(assignments: list[EmployeeCycleAssignment], cycle: AppraisalCycle) -> AdminWorkspaceResponse:
     return AdminWorkspaceResponse(
         workspaces=[serialize_workspace(assignment, cycle) for assignment in assignments],
@@ -625,6 +649,21 @@ def create_app(*, db_engine: Engine = engine) -> FastAPI:
         assignments = get_managed_assignments(db, current_user, cycle)
         return WorkspaceCollectionResponse(workspaces=[serialize_workspace(item, cycle) for item in assignments])
 
+    @app.get("/manager/search", response_model=SearchEmployeeCodesResponse)
+    def manager_search(
+        query: str = Query(default=""),
+        current_user: User = Depends(get_current_user),
+        db: Session = Depends(get_db),
+    ) -> SearchEmployeeCodesResponse:
+        cycle = get_open_cycle(db)
+        assignments = get_managed_assignments(db, current_user, cycle)
+        matching_codes = [
+            item.employee.employee_code
+            for item in assignments
+            if assignment_matches_search(item, query)
+        ]
+        return SearchEmployeeCodesResponse(employee_codes=matching_codes)
+
     @app.patch("/manager/assignments/{assignment_id}", response_model=EmployeeWorkspaceResponse)
     def update_manager_assignment(
         assignment_id: str,
@@ -707,6 +746,22 @@ def create_app(*, db_engine: Engine = engine) -> FastAPI:
         cycle = get_open_cycle(db)
         assignments = get_all_assignments(db, cycle)
         return serialize_admin_workspace(assignments, cycle)
+
+    @app.get("/admin/search", response_model=SearchEmployeeCodesResponse)
+    def admin_search(
+        query: str = Query(default=""),
+        current_user: User = Depends(get_current_user),
+        db: Session = Depends(get_db),
+    ) -> SearchEmployeeCodesResponse:
+        require_capability(current_user, "admin")
+        cycle = get_open_cycle(db)
+        assignments = get_all_assignments(db, cycle)
+        matching_codes = [
+            item.employee.employee_code
+            for item in assignments
+            if assignment_matches_search(item, query)
+        ]
+        return SearchEmployeeCodesResponse(employee_codes=matching_codes)
 
     @app.patch("/admin/final-results/{employee_code}", response_model=EmployeeWorkspaceResponse)
     def update_admin_final_result(

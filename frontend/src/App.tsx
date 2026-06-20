@@ -481,6 +481,12 @@ function AppraisalWorkspace({
   const [workspaceLoadState, setWorkspaceLoadState] = useState({ loading: false, error: '', ready: false })
   const [reviewLoadState, setReviewLoadState] = useState({ loading: false, error: '', ready: false })
   const [selfActionState, setSelfActionState] = useState<'idle' | 'saving' | 'submitting' | 'editing'>('idle')
+  const [teamSearchQuery, setTeamSearchQuery] = useState('')
+  const [teamSearchIds, setTeamSearchIds] = useState<string[] | null>(null)
+  const [teamSearchLoading, setTeamSearchLoading] = useState(false)
+  const [releaseSearchQuery, setReleaseSearchQuery] = useState('')
+  const [releaseSearchIds, setReleaseSearchIds] = useState<string[] | null>(null)
+  const [releaseSearchLoading, setReleaseSearchLoading] = useState(false)
   const [reloadNonce, setReloadNonce] = useState(0)
   const lastSyncedSelfPayloadRef = useRef<string | null>(null)
   const autosaveTimerRef = useRef<number | null>(null)
@@ -555,15 +561,27 @@ function AppraisalWorkspace({
     [activeEmployees, canUseAdminFlow, managedEmployees],
   )
 
+  const visibleReviewEmployees = useMemo(() => {
+    if (!teamSearchIds) return reviewEmployees
+    const allowedIds = new Set(teamSearchIds)
+    return reviewEmployees.filter((employee) => allowedIds.has(employee.employeeId))
+  }, [reviewEmployees, teamSearchIds])
+
+  const visibleReleaseResults = useMemo(() => {
+    if (!releaseSearchIds) return state.finalResults
+    const allowedIds = new Set(releaseSearchIds)
+    return state.finalResults.filter((result) => allowedIds.has(result.employeeId))
+  }, [releaseSearchIds, state.finalResults])
+
   useEffect(() => {
-    if (reviewEmployees.length && !reviewEmployees.some((employee) => employee.employeeId === selectedManagedEmployeeId)) {
-      setSelectedManagedEmployeeId(reviewEmployees[0].employeeId)
+    if (visibleReviewEmployees.length && !visibleReviewEmployees.some((employee) => employee.employeeId === selectedManagedEmployeeId)) {
+      setSelectedManagedEmployeeId(visibleReviewEmployees[0].employeeId)
     }
-  }, [reviewEmployees, selectedManagedEmployeeId])
+  }, [visibleReviewEmployees, selectedManagedEmployeeId])
 
   const selectedReviewEmployee = useMemo(
-    () => reviewEmployees.find((employee) => employee.employeeId === selectedManagedEmployeeId) ?? null,
-    [reviewEmployees, selectedManagedEmployeeId],
+    () => visibleReviewEmployees.find((employee) => employee.employeeId === selectedManagedEmployeeId) ?? null,
+    [visibleReviewEmployees, selectedManagedEmployeeId],
   )
 
   const selectedReviewAssignments = useMemo(() => {
@@ -1056,6 +1074,67 @@ function AppraisalWorkspace({
     setReloadNonce((current) => current + 1)
   }
 
+  function resolveSearchEndpoint(scope: 'manager' | 'admin') {
+    return scope === 'admin' ? '/admin/search' : '/manager/search'
+  }
+
+  async function searchEmployeeCodes(
+    query: string,
+    scope: 'manager' | 'admin',
+    setter: (employeeIds: string[] | null) => void,
+    loadingSetter: (loading: boolean) => void,
+  ) {
+    const normalized = query.trim()
+    if (!normalized) {
+      setter(null)
+      loadingSetter(false)
+      return
+    }
+
+    loadingSetter(true)
+    try {
+      const params = new URLSearchParams({ query: normalized })
+      const payload = await apiClient<{ employee_codes: string[] }>(`${resolveSearchEndpoint(scope)}?${params.toString()}`)
+      setter(payload.employee_codes)
+    } catch (error: unknown) {
+      if (isUnauthorizedApiError(error)) {
+        void logout()
+      }
+      setter([])
+    } finally {
+      loadingSetter(false)
+    }
+  }
+
+  useEffect(() => {
+    const scope = canUseAdminFlow ? 'admin' : 'manager'
+    if (!canUseManagerFlow && !canUseAdminFlow) {
+      setTeamSearchIds(null)
+      setTeamSearchLoading(false)
+      return
+    }
+
+    const timer = window.setTimeout(() => {
+      void searchEmployeeCodes(teamSearchQuery, scope, setTeamSearchIds, setTeamSearchLoading)
+    }, 250)
+
+    return () => window.clearTimeout(timer)
+  }, [canUseAdminFlow, canUseManagerFlow, logout, teamSearchQuery])
+
+  useEffect(() => {
+    if (!canUseAdminFlow) {
+      setReleaseSearchIds(null)
+      setReleaseSearchLoading(false)
+      return
+    }
+
+    const timer = window.setTimeout(() => {
+      void searchEmployeeCodes(releaseSearchQuery, 'admin', setReleaseSearchIds, setReleaseSearchLoading)
+    }, 250)
+
+    return () => window.clearTimeout(timer)
+  }, [canUseAdminFlow, logout, releaseSearchQuery])
+
   if (sessionPending) {
     return (
       <section className="surface-card section-card">
@@ -1185,11 +1264,14 @@ function AppraisalWorkspace({
       return (
         <CasebookManagerWorkspace
           state={state}
-          employees={reviewEmployees}
+          employees={visibleReviewEmployees}
           selectedEmployee={selectedReviewEmployee}
           assignments={selectedReviewAssignments}
           selfRecord={selectedReviewSelfRecord}
           finalResult={selectedReviewFinalResult}
+          searchQuery={teamSearchQuery}
+          searchLoading={teamSearchLoading}
+          onSearchChange={setTeamSearchQuery}
           onSelectEmployee={setSelectedManagedEmployeeId}
           onUpdateAssignment={updateAssignment}
           onUpdateFinalResult={updateFinalResult}
@@ -1201,11 +1283,14 @@ function AppraisalWorkspace({
       <CasebookAdminWorkspace
         state={state}
         rolePackLibrary={rolePackLibrary}
-        employees={reviewEmployees}
+        employees={visibleReviewEmployees}
         selectedEmployee={selectedReviewEmployee}
         assignments={selectedReviewAssignments}
         selfRecord={selectedReviewSelfRecord}
         finalResult={selectedReviewFinalResult}
+        searchQuery={teamSearchQuery}
+        searchLoading={teamSearchLoading}
+        onSearchChange={setTeamSearchQuery}
         onSelectEmployee={setSelectedManagedEmployeeId}
         onUpdateAssignment={updateAssignment}
         onUpdateFinalResult={updateFinalResult}
@@ -1233,7 +1318,16 @@ function AppraisalWorkspace({
       )
     }
 
-    return <CasebookReleaseWorkspace state={state} onUpdateFinalResult={updateFinalResult} />
+    return (
+      <CasebookReleaseWorkspace
+        state={state}
+        results={visibleReleaseResults}
+        searchQuery={releaseSearchQuery}
+        searchLoading={releaseSearchLoading}
+        onSearchChange={setReleaseSearchQuery}
+        onUpdateFinalResult={updateFinalResult}
+      />
+    )
   }
 
   return (

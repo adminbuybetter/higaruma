@@ -208,6 +208,28 @@ class ApiTest(unittest.TestCase):
         self.assertEqual(response.status_code, 409)
         self.assertEqual(response.json()["detail"], "Self appraisal editing is closed for this cycle")
 
+    def test_manager_search_returns_matching_employee_codes_across_full_queue(self):
+        manager_token = self.login("dare.peters", "Appraise058!")
+
+        response = self.client.get(
+            "/manager/search",
+            headers={"Authorization": f"Bearer {manager_token}"},
+            params={"query": "francis"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("EMP-013", response.json()["employee_codes"])
+
+    def test_admin_search_returns_matching_employee_codes_for_release_queue(self):
+        admin_token = self.login("samuel.mbudinma", "Appraise043!")
+
+        response = self.client.get(
+            "/admin/search",
+            headers={"Authorization": f"Bearer {admin_token}"},
+            params={"query": "rebecca"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()["employee_codes"])
+
     def test_manager_update_assignment_recalculates_final_score(self):
         employee_token = self.login("francis.fanen", "Appraise013!")
         employee_workspace = self.client.get(
