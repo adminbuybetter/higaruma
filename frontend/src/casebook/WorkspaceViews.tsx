@@ -374,29 +374,41 @@ export function CasebookEmployeeWorkspace({
   const [selfOpen, setSelfOpen] = useState(false)
   const [resultOpen, setResultOpen] = useState(false)
   const [toast, setToast] = useState<ToastMessage | null>(null)
+  const greeting = partOfDayGreeting()
+  const dueCopy = buildEmployeeDueCopy(selfRecord.cycleClosesAt)
 
   return (
     <>
       <section className="view active">
-        <div className="topbar">
-          <div>
-            <div className="title-with-stamp">
-              <h1>My Appraisal</h1>
-              <Stamp kind={selfRecord.status === 'submitted' ? 'ready' : 'draft'} label={selfRecord.status === 'submitted' ? 'Ready' : 'Draft'} />
+        <div className="employee-hero">
+          <div className="employee-hero__row">
+            <div className="employee-hero__copy">
+              <div className="title-with-stamp">
+                <h1>
+                  {greeting}, {firstName(employee.employeeName)} <span className="wave-hand" aria-hidden="true">👋</span>
+                </h1>
+                <Stamp kind={selfRecord.status === 'submitted' ? 'ready' : 'draft'} label={selfRecord.status === 'submitted' ? 'Ready' : 'Draft'} />
+              </div>
+              <div className="employee-hero__role">{employee.designation}</div>
+              <p className="employee-hero__message">
+                Welcome to your {selfRecord.cycle} appraisal. We really do appreciate all the work you&apos;ve done, and we&apos;d
+                like to know more about the wonderful work you&apos;ve done in the past first quarter. Please ensure to fill and
+                submit your form.
+              </p>
+              <p className="employee-hero__deadline">{dueCopy}</p>
             </div>
-            <div className="meta">
-              {selfRecord.cycle} Cycle · {assignments.length} KPIs · {employee.designation}
-            </div>
-            <div className="meta">
-              Deadline: {formatDeadline(selfRecord.cycleClosesAt)} · {hasCycleClosed(selfRecord.cycleClosesAt) ? 'Editing closed' : 'Editing open'}
+            <div className="employee-hero__action">
+              <button className="btn btn--primary" onClick={() => setSelfOpen(true)}>
+                Open self appraisal
+              </button>
             </div>
           </div>
-          <button className="btn btn--primary" onClick={() => setSelfOpen(true)}>
-            Open self appraisal
-          </button>
-        </div>
 
-        <MiniStepper mode="employee" currentStep={2} finalReleased={finalResult.releasedToEmployee} />
+          <div className="employee-hero__divider" />
+
+          <div className="progress-label">Your progress</div>
+          <MiniStepper mode="employee" currentStep={2} finalReleased={finalResult.releasedToEmployee} />
+        </div>
 
         <div className="section-label">Assigned KPIs</div>
         <div className="kpi-summary-list" style={{ marginBottom: 20 }}>
@@ -2004,10 +2016,6 @@ function initials(name: string) {
     .join('')
 }
 
-function firstName(name: string) {
-  return name.split(/\s+/)[0] ?? name
-}
-
 function hasCycleClosed(cycleClosesAt: string | null) {
   if (!cycleClosesAt) return false
   return new Date(cycleClosesAt).getTime() <= Date.now()
@@ -2030,4 +2038,36 @@ function formatSubmittedAt(submittedAt: string) {
     hour: 'numeric',
     minute: '2-digit',
   }).format(new Date(submittedAt))
+}
+
+function firstName(fullName: string) {
+  return fullName.trim().split(/\s+/)[0] || fullName
+}
+
+function partOfDayGreeting() {
+  const hour = new Date().getHours()
+  if (hour < 12) return 'Good morning'
+  if (hour < 17) return 'Good afternoon'
+  return 'Good evening'
+}
+
+function daysLeftUntil(cycleClosesAt: string | null) {
+  if (!cycleClosesAt) return null
+  const close = new Date(cycleClosesAt)
+  const now = new Date()
+  const msPerDay = 1000 * 60 * 60 * 24
+  const diff = close.getTime() - now.getTime()
+  return Math.max(0, Math.ceil(diff / msPerDay))
+}
+
+function buildEmployeeDueCopy(cycleClosesAt: string | null) {
+  if (!cycleClosesAt) return 'Your submission deadline will be shared shortly.'
+  if (hasCycleClosed(cycleClosesAt)) {
+    return `Your submission window closed on ${formatDeadline(cycleClosesAt)}.`
+  }
+  const daysLeft = daysLeftUntil(cycleClosesAt)
+  if (daysLeft === 0) {
+    return `You have less than 1 day left and your submission is due by ${formatDeadline(cycleClosesAt)}.`
+  }
+  return `You have ${daysLeft} day${daysLeft === 1 ? '' : 's'} left and your submission is due by ${formatDeadline(cycleClosesAt)}.`
 }

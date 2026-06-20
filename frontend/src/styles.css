@@ -311,6 +311,102 @@ select {
   margin-top: 4px;
 }
 
+.employee-hero {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+  padding: 24px 28px;
+  margin-bottom: 26px;
+}
+
+.employee-hero__row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.employee-hero__copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.employee-hero__copy h1 {
+  font-size: 24px;
+  color: var(--navy);
+}
+
+.employee-hero__role {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.employee-hero__message,
+.employee-hero__deadline {
+  max-width: 720px;
+  margin: 10px 0 0;
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--muted);
+}
+
+.employee-hero__deadline {
+  color: var(--navy);
+  font-weight: 500;
+}
+
+.employee-hero__action {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  flex-shrink: 0;
+}
+
+.employee-hero__divider {
+  height: 1px;
+  background: var(--line);
+  margin: 20px 0 18px;
+}
+
+.progress-label {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted-2);
+  font-weight: 600;
+  margin-bottom: 14px;
+}
+
+.wave-hand {
+  display: inline-block;
+  transform-origin: 70% 70%;
+  animation: wave-hand 1.8s ease-in-out infinite;
+}
+
+@keyframes wave-hand {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+
+  15% {
+    transform: rotate(14deg);
+  }
+
+  30% {
+    transform: rotate(-8deg);
+  }
+
+  45% {
+    transform: rotate(12deg);
+  }
+
+  60% {
+    transform: rotate(-4deg);
+  }
+}
+
 .view {
   display: none;
 }
@@ -1020,6 +1116,22 @@ select {
 .held-card p {
   font-size: 12.5px;
   margin: 0;
+}
+
+@media (max-width: 900px) {
+  .employee-hero {
+    padding: 20px;
+  }
+
+  .employee-hero__row {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .employee-hero__action {
+    width: 100%;
+    justify-content: flex-start;
+  }
 }
 
 .overlay {
