@@ -50,9 +50,7 @@ export function Sidebar({ currentPath, onNavigate, authState }: SidebarProps) {
         <div className="avatar">{(authState?.displayName ?? 'A').slice(0, 1).toUpperCase()}</div>
         <div className="sidebar-user-copy">
           <div className="profile-name">{authState?.displayName ?? 'Appraisal user'}</div>
-          <div className="profile-role">
-            {authState?.designation ?? 'Sign in to unlock the appraisal workspace.'}
-          </div>
+          <div className="profile-role">{sidebarRoleLabel(authState)}</div>
         </div>
         <button className="sidebar-footer-logout" type="button" onClick={() => void logout()} disabled={logoutPending} aria-label={logoutPending ? 'Signing out' : 'Logout'}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
@@ -64,6 +62,16 @@ export function Sidebar({ currentPath, onNavigate, authState }: SidebarProps) {
       </div>
     </aside>
   )
+}
+
+function sidebarRoleLabel(authState: AuthState | null) {
+  if (!authState) return 'Sign in to unlock the appraisal workspace.'
+  if (authState.designation) return authState.designation
+  const capabilities = new Set(authState.capabilities)
+  if (capabilities.has('admin') && capabilities.has('manager')) return 'Admin reviewer'
+  if (capabilities.has('admin')) return 'HR console'
+  if (capabilities.has('manager')) return 'Manager workspace'
+  return 'Appraisal workspace'
 }
 
 function NavIcon({ icon }: { icon: 'overview' | 'appraisal' | 'team' | 'release' }) {
