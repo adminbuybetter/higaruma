@@ -27,6 +27,13 @@ class Settings(BaseSettings):
     session_cookie_name: str = "buybetter_appraisal_session"
     session_cookie_samesite: str = "lax"
     session_cookie_secure: bool = False
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_username: str = ""
+    smtp_password: str = ""
+    smtp_from_name: str = ""
+    smtp_from_email: str = ""
+    smtp_secure: bool = False
 
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -57,6 +64,17 @@ class Settings(BaseSettings):
         if self.is_hosted_env and not self.session_cookie_secure:
             return True
         return self.session_cookie_secure
+
+    @property
+    def smtp_configured(self) -> bool:
+        return all(
+            [
+                self.smtp_host.strip(),
+                self.smtp_username.strip(),
+                self.smtp_password.strip(),
+                self.smtp_from_email.strip(),
+            ]
+        )
 
 
 @lru_cache

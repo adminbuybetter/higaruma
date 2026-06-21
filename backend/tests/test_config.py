@@ -43,6 +43,17 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(settings.effective_session_cookie_samesite, "lax")
         self.assertFalse(settings.effective_session_cookie_secure)
 
+    def test_smtp_configured_requires_core_fields(self):
+        self.assertFalse(Settings().smtp_configured)
+        self.assertTrue(
+            Settings(
+                smtp_host="smtp.zoho.com",
+                smtp_username="admin@buybetter.ng",
+                smtp_password="secret",
+                smtp_from_email="admin@buybetter.ng",
+            ).smtp_configured
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
