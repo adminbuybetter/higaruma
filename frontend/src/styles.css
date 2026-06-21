@@ -974,6 +974,25 @@ select {
   background: #f8f6f1;
 }
 
+.table-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.table-result-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.table-result-meta {
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
 .empty-row td {
   text-align: center;
   color: var(--muted);

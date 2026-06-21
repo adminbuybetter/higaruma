@@ -816,72 +816,149 @@ export function CasebookHrReleaseWorkspace({
         <div className="card" style={{ marginBottom: 18 }}>
           <div className="card-eyebrow">Pending releases</div>
           <ListSectionHeader title="Ready to release" total={pendingResults.length} page={pendingPage} pageSize={PAGE_SIZE} />
-          <div className="team-list">
-            {pagedPendingResults.map((result) => {
-              const employee = state.employees.find((record) => record.employeeId === result.employeeId)
-              if (!employee) return null
-              return (
-                <div key={result.employeeId} className="cycle-row">
-                  <div className="info">
-                    <h4>{result.employeeName}</h4>
-                    <p>{employee.primaryOwnerLabel || employee.managerLabel || 'Manager not mapped'} · {result.performanceBand}</p>
-                  </div>
-                  <Stamp kind="ready" label="Ready to release" />
-                  <div className="right">
-                    <button
-                      className="btn btn--secondary btn--sm"
-                      onClick={() => {
-                        onSelectEmployee(result.employeeId)
-                        setDetailOpen(true)
-                      }}
-                    >
-                      Review
-                    </button>
-                    <button
-                      className="btn btn--primary btn--sm"
-                      onClick={() => onUpdateFinalResult(result.employeeId, { releasedToEmployee: true })}
-                    >
-                      Release
-                    </button>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
+          <table className="emp-table">
+            <thead>
+              <tr>
+                <th>Employee</th>
+                <th>Manager</th>
+                <th>Self-appraisal</th>
+                <th>Manager review</th>
+                <th>Result</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pagedPendingResults.length ? (
+                pagedPendingResults.map((result) => {
+                  const employee = state.employees.find((record) => record.employeeId === result.employeeId)
+                  if (!employee) return null
+                  return (
+                    <tr key={result.employeeId}>
+                      <td>
+                        <div className="who">
+                          <div className="name">{result.employeeName}</div>
+                          <div className="role">{employee.designation}</div>
+                        </div>
+                      </td>
+                      <td>{employee.primaryOwnerLabel || employee.managerLabel || 'Not mapped'}</td>
+                      <td>
+                        <Stamp kind="ready" label="Submitted" />
+                      </td>
+                      <td>
+                        <Stamp kind="ready" label="Complete" />
+                      </td>
+                      <td>
+                        <Stamp kind="ready" label="Ready to release" />
+                      </td>
+                      <td>
+                        <div className="table-actions">
+                          <button
+                            className="open-btn"
+                            onClick={() => {
+                              onSelectEmployee(result.employeeId)
+                              setDetailOpen(true)
+                            }}
+                          >
+                            Review
+                          </button>
+                          <button
+                            className="btn btn--primary btn--sm"
+                            onClick={() => onUpdateFinalResult(result.employeeId, { releasedToEmployee: true })}
+                          >
+                            Release
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })
+              ) : (
+                <tr className="empty-row">
+                  <td colSpan={6}>No release-ready appraisal packets match this search.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
           <PaginationControls page={pendingPage} total={pendingResults.length} pageSize={PAGE_SIZE} onChange={setPendingPage} />
         </div>
 
         <div className="card">
           <div className="card-eyebrow">Released results</div>
           <ListSectionHeader title="Already visible to employees" total={releasedResults.length} page={releasedPage} pageSize={PAGE_SIZE} />
-          <div className="team-list">
-            {pagedReleasedResults.map((result) => (
-              <div key={result.employeeId} className="cycle-row">
-                <div className="info">
-                  <h4>{result.employeeName}</h4>
-                  <p>{result.performanceBand} · score {result.finalScore}</p>
-                </div>
-                <Stamp kind="released" label="Released" />
-                <div className="right">
-                  <button
-                    className="btn btn--secondary btn--sm"
-                    onClick={() => {
-                      onSelectEmployee(result.employeeId)
-                      setDetailOpen(true)
-                    }}
-                  >
-                    Open
-                  </button>
-                  <button
-                    className="btn btn--ghost btn--sm"
-                    onClick={() => onUpdateFinalResult(result.employeeId, { releasedToEmployee: false })}
-                  >
-                    Hide result
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
+          <table className="emp-table">
+            <thead>
+              <tr>
+                <th>Employee</th>
+                <th>Manager</th>
+                <th>Self-appraisal</th>
+                <th>Manager review</th>
+                <th>Result</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pagedReleasedResults.length ? (
+                pagedReleasedResults.map((result) => {
+                  const employee = state.employees.find((record) => record.employeeId === result.employeeId)
+                  if (!employee) return null
+                  return (
+                    <tr key={result.employeeId}>
+                      <td>
+                        <div className="who">
+                          <div className="name">{result.employeeName}</div>
+                          <div className="role">{employee.designation}</div>
+                        </div>
+                      </td>
+                      <td>{employee.primaryOwnerLabel || employee.managerLabel || 'Not mapped'}</td>
+                      <td>
+                        <Stamp
+                          kind={selfSubmissionStateForEmployee(employee, state) === 'submitted' ? 'ready' : 'waiting'}
+                          label={selfSubmissionStateForEmployee(employee, state) === 'submitted' ? 'Submitted' : 'Awaiting self'}
+                        />
+                      </td>
+                      <td>
+                        <Stamp
+                          kind={managerReviewStateForEmployee(employee, state) === 'complete' ? 'ready' : 'waiting'}
+                          label={managerReviewStateForEmployee(employee, state) === 'complete' ? 'Complete' : 'Awaiting manager'}
+                        />
+                      </td>
+                      <td>
+                        <div className="table-result-cell">
+                          <Stamp kind="released" label="Released" />
+                          <div className="table-result-meta">
+                            {result.performanceBand} · score {result.finalScore}
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <div className="table-actions">
+                          <button
+                            className="open-btn"
+                            onClick={() => {
+                              onSelectEmployee(result.employeeId)
+                              setDetailOpen(true)
+                            }}
+                          >
+                            Open
+                          </button>
+                          <button
+                            className="btn btn--ghost btn--sm"
+                            onClick={() => onUpdateFinalResult(result.employeeId, { releasedToEmployee: false })}
+                          >
+                            Hide result
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })
+              ) : (
+                <tr className="empty-row">
+                  <td colSpan={6}>No released appraisal packets match this search.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
           <PaginationControls page={releasedPage} total={releasedResults.length} pageSize={PAGE_SIZE} onChange={setReleasedPage} />
         </div>
       </section>
