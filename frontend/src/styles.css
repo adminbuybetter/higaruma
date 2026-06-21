@@ -993,6 +993,14 @@ select {
   color: var(--muted);
 }
 
+.release-table-section {
+  margin-bottom: 18px;
+}
+
+.release-table-section:last-of-type {
+  margin-bottom: 0;
+}
+
 .empty-row td {
   text-align: center;
   color: var(--muted);

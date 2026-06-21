@@ -813,9 +813,8 @@ export function CasebookHrReleaseWorkspace({
           onChange={onSearchChange}
         />
 
-        <div className="card" style={{ marginBottom: 18 }}>
-          <div className="card-eyebrow">Pending releases</div>
-          <ListSectionHeader title="Ready to release" total={pendingResults.length} page={pendingPage} pageSize={PAGE_SIZE} />
+        <div className="release-table-section">
+          <ListSectionHeader title="Pending releases" total={pendingResults.length} page={pendingPage} pageSize={PAGE_SIZE} />
           <table className="emp-table">
             <thead>
               <tr>
@@ -882,9 +881,8 @@ export function CasebookHrReleaseWorkspace({
           <PaginationControls page={pendingPage} total={pendingResults.length} pageSize={PAGE_SIZE} onChange={setPendingPage} />
         </div>
 
-        <div className="card">
-          <div className="card-eyebrow">Released results</div>
-          <ListSectionHeader title="Already visible to employees" total={releasedResults.length} page={releasedPage} pageSize={PAGE_SIZE} />
+        <div className="release-table-section">
+          <ListSectionHeader title="Released results" total={releasedResults.length} page={releasedPage} pageSize={PAGE_SIZE} />
           <table className="emp-table">
             <thead>
               <tr>
