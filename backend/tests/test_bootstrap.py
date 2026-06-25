@@ -7,7 +7,7 @@ from unittest.mock import patch
 
 from app import bootstrap
 from app.db import Base
-from app.models import Employee, EmployeeCycleAssignment, User
+from app.models import Employee, EmployeeCycleAssignment, EmployeeKpiAssignment, User
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import sessionmaker
 
@@ -89,6 +89,68 @@ class BootstrapTest(unittest.TestCase):
                 self.assertEqual(assignment.kpi_owner_label, "Ololade Shoyemi")
                 self.assertEqual(assignment.primary_owner_label, "Ololade Shoyemi")
                 self.assertEqual(assignment.status, "ready")
+            finally:
+                db.close()
+                engine.dispose()
+
+    def test_bootstrap_creates_missing_kpi_rows_when_employee_becomes_appraisable(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            db_path = Path(temp_dir) / "bootstrap_kpis.db"
+            seed_v1_path = Path(temp_dir) / "seed-v1.json"
+            seed_v2_path = Path(temp_dir) / "seed-v2.json"
+
+            blocked_seed = json.loads(SEED_PATH.read_text(encoding="utf-8"))
+            for row in blocked_seed["employees"]:
+                if row["employeeId"] == "EMP-010":
+                    row["appraisalRole"] = ""
+                    row["department"] = "Unassigned"
+                    row["status"] = "blocked"
+                    row["blockers"] = ["No KPI role mapped yet"]
+                    row["excludedThisCycle"] = True
+                    row["canSelfAppraise"] = False
+                    row["canViewFinalResult"] = False
+                    break
+            blocked_seed["assignments"] = [
+                row for row in blocked_seed["assignments"] if row["employeeId"] != "EMP-010"
+            ]
+            seed_v1_path.write_text(json.dumps(blocked_seed), encoding="utf-8")
+
+            ready_seed = json.loads(SEED_PATH.read_text(encoding="utf-8"))
+            seed_v2_path.write_text(json.dumps(ready_seed), encoding="utf-8")
+
+            engine = create_engine(f"sqlite:///{db_path}", future=True)
+            SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
+            Base.metadata.create_all(bind=engine)
+
+            with patch.dict(os.environ, {"APPRAISAL_SEED_PATH": str(seed_v1_path)}, clear=False):
+                db = SessionLocal()
+                try:
+                    bootstrap.bootstrap_from_seed(db)
+                finally:
+                    db.close()
+
+            with patch.dict(os.environ, {"APPRAISAL_SEED_PATH": str(seed_v2_path)}, clear=False):
+                db = SessionLocal()
+                try:
+                    bootstrap.bootstrap_from_seed(db)
+                finally:
+                    db.close()
+
+            db = SessionLocal()
+            try:
+                ephraim = db.scalar(select(Employee).where(Employee.employee_code == "EMP-010"))
+                self.assertIsNotNone(ephraim)
+                assignment = ephraim.cycle_assignments[0]
+                self.assertEqual(assignment.appraisal_role_name, "Order Processing & Fulfilment")
+                self.assertEqual(assignment.status, "ready")
+                self.assertFalse(assignment.excluded_this_cycle)
+
+                kpi_rows = db.scalars(
+                    select(EmployeeKpiAssignment).where(
+                        EmployeeKpiAssignment.employee_cycle_assignment_id == assignment.id
+                    )
+                ).all()
+                self.assertGreater(len(kpi_rows), 0)
             finally:
                 db.close()
                 engine.dispose()

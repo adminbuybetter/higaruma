@@ -163,6 +163,59 @@ def sync_users_from_seed(db: Session, seed: dict) -> None:
         db.commit()
 
 
+def _ensure_role_pack(
+    db: Session,
+    role_packs: dict[str, KpiPack],
+    appraisal_role: str,
+    department: str | None,
+) -> KpiPack:
+    pack = role_packs.get(appraisal_role)
+    if pack is not None:
+        return pack
+
+    pack = db.scalar(select(KpiPack).where(KpiPack.role_name == appraisal_role))
+    if pack is None:
+        pack = KpiPack(role_name=appraisal_role, department=department)
+        db.add(pack)
+        db.flush()
+    role_packs[appraisal_role] = pack
+    return pack
+
+
+def _ensure_pack_item(
+    db: Session,
+    role_pack_items: dict[tuple[str, str, str], KpiPackItem],
+    pack: KpiPack,
+    appraisal_role: str,
+    sort_order: int,
+    assignment_row: dict,
+) -> KpiPackItem:
+    key = (appraisal_role, assignment_row["kpiArea"], assignment_row["kpiStatement"])
+    item = role_pack_items.get(key)
+    if item is not None:
+        return item
+
+    item = db.scalar(
+        select(KpiPackItem).where(
+            KpiPackItem.kpi_pack_id == pack.id,
+            KpiPackItem.kpi_area == assignment_row["kpiArea"],
+            KpiPackItem.kpi_statement == assignment_row["kpiStatement"],
+        )
+    )
+    if item is None:
+        item = KpiPackItem(
+            kpi_pack_id=pack.id,
+            sort_order=sort_order,
+            kpi_area=assignment_row["kpiArea"],
+            kpi_statement=assignment_row["kpiStatement"],
+            weight_percent=Decimal(str(assignment_row["weightPercent"])),
+        )
+        db.add(item)
+        db.flush()
+    role_pack_items[key] = item
+    return item
+
+
 def sync_employees_and_assignments_from_seed(db: Session, seed: dict) -> None:
     cycle_row = seed.get("cycle", {})
     cycle = db.scalar(select(AppraisalCycle).where(AppraisalCycle.code == cycle_row.get("id")))
@@ -170,10 +223,28 @@ def sync_employees_and_assignments_from_seed(db: Session, seed: dict) -> None:
         return
 
     employee_rows = {row["employeeId"]: row for row in seed.get("employees", [])}
+    assignments_by_employee: dict[str, list[dict]] = {}
+    for assignment_row in seed.get("assignments", []):
+        assignments_by_employee.setdefault(assignment_row["employeeId"], []).append(assignment_row)
+    self_by_employee = {row["employeeId"]: row for row in seed.get("selfAppraisals", [])}
+    final_by_employee = {row["employeeId"]: row for row in seed.get("finalResults", [])}
     users_by_username = {user.username: user for user in db.scalars(select(User))}
+    role_packs = {
+        pack.role_name: pack
+        for pack in db.scalars(select(KpiPack))
+    }
+    role_pack_items = {
+        (pack.role_name, item.kpi_area, item.kpi_statement): item
+        for pack in role_packs.values()
+        for item in pack.items
+    }
     employees = list(
         db.scalars(
-            select(Employee).options(selectinload(Employee.cycle_assignments))
+            select(Employee).options(
+                selectinload(Employee.cycle_assignments).selectinload(EmployeeCycleAssignment.kpi_assignments),
+                selectinload(Employee.cycle_assignments).selectinload(EmployeeCycleAssignment.self_appraisal).selectinload(SelfAppraisal.items),
+                selectinload(Employee.cycle_assignments).selectinload(EmployeeCycleAssignment.final_result),
+            )
         )
     )
     updated = False
@@ -225,6 +296,10 @@ def sync_employees_and_assignments_from_seed(db: Session, seed: dict) -> None:
         if assignment is None:
             continue
 
+        employee_assignments = sorted(
+            assignments_by_employee.get(employee.employee_code, []),
+            key=lambda item: item["assignmentId"],
+        )
         next_values = {
             "appraisal_role_name": row.get("appraisalRole") or None,
             "line_manager_label": row.get("managerLabel") or None,
@@ -239,6 +314,109 @@ def sync_employees_and_assignments_from_seed(db: Session, seed: dict) -> None:
         for field_name, value in next_values.items():
             if getattr(assignment, field_name) != value:
                 setattr(assignment, field_name, value)
+                updated = True
+
+        appraisal_role = row.get("appraisalRole") or None
+        if appraisal_role and employee_assignments:
+            pack = _ensure_role_pack(db, role_packs, appraisal_role, row.get("department"))
+            if assignment.kpi_pack_id != pack.id:
+                assignment.kpi_pack_id = pack.id
+                updated = True
+
+            existing_kpis_by_sort = {item.sort_order: item for item in assignment.kpi_assignments}
+            seeded_entities_by_sort: dict[int, EmployeeKpiAssignment] = {}
+            for sort_order, assignment_row in enumerate(employee_assignments, start=1):
+                pack_item = _ensure_pack_item(
+                    db,
+                    role_pack_items,
+                    pack,
+                    appraisal_role,
+                    sort_order,
+                    assignment_row,
+                )
+                entity = existing_kpis_by_sort.get(sort_order)
+                next_entity_values = {
+                    "kpi_pack_item_id": pack_item.id,
+                    "kpi_area": assignment_row["kpiArea"],
+                    "kpi_statement": assignment_row["kpiStatement"],
+                    "weight_percent": Decimal(str(assignment_row["weightPercent"])),
+                }
+                if entity is None:
+                    entity = EmployeeKpiAssignment(
+                        employee_cycle_assignment_id=assignment.id,
+                        sort_order=sort_order,
+                        manager_score=assignment_row.get("score", 0),
+                        manager_comment=assignment_row.get("managerComment") or None,
+                        evidence_note=assignment_row.get("evidenceNote") or None,
+                        development_action=assignment_row.get("developmentAction") or None,
+                        manager_status=assignment_row.get("status") or "pending",
+                        **next_entity_values,
+                    )
+                    db.add(entity)
+                    db.flush()
+                    updated = True
+                else:
+                    for field_name, value in next_entity_values.items():
+                        if getattr(entity, field_name) != value:
+                            setattr(entity, field_name, value)
+                            updated = True
+                seeded_entities_by_sort[sort_order] = entity
+
+            self_row = self_by_employee.get(employee.employee_code)
+            self_appraisal = assignment.self_appraisal
+            if self_row and self_appraisal is None:
+                self_appraisal = SelfAppraisal(
+                    employee_cycle_assignment_id=assignment.id,
+                    status=self_row.get("status", "draft"),
+                    overall_achievements=self_row.get("overallAchievements") or None,
+                    major_challenges=self_row.get("majorChallenges") or None,
+                    support_needed=self_row.get("supportNeeded") or None,
+                    development_focus=self_row.get("developmentFocus") or None,
+                    employee_comments=self_row.get("employeeComments") or None,
+                )
+                db.add(self_appraisal)
+                db.flush()
+                assignment.self_appraisal = self_appraisal
+                updated = True
+
+            if self_row and self_appraisal is not None:
+                existing_self_items = {
+                    item.employee_kpi_assignment_id: item
+                    for item in self_appraisal.items
+                }
+                self_entries_by_sort = {
+                    index: entry
+                    for index, entry in enumerate(self_row.get("kpiEntries", []), start=1)
+                }
+                for sort_order, entity in seeded_entities_by_sort.items():
+                    if entity.id in existing_self_items:
+                        continue
+                    entry = self_entries_by_sort.get(sort_order, {})
+                    db.add(
+                        SelfAppraisalItem(
+                            self_appraisal_id=self_appraisal.id,
+                            employee_kpi_assignment_id=entity.id,
+                            self_score=entry.get("selfScore", 0),
+                            reason_for_score=entry.get("reasonForScore") or None,
+                            key_evidence=entry.get("keyEvidence") or None,
+                            challenges_faced=entry.get("challengesFaced") or None,
+                        )
+                    )
+                    updated = True
+
+            final_row = final_by_employee.get(employee.employee_code)
+            if final_row and assignment.final_result is None:
+                db.add(
+                    FinalResult(
+                        employee_cycle_assignment_id=assignment.id,
+                        self_summary=final_row.get("selfSummary") or None,
+                        manager_summary=final_row.get("managerSummary") or None,
+                        final_recommendation=final_row.get("finalRecommendation") or None,
+                        final_score=Decimal(str(final_row.get("finalScore", 0))),
+                        performance_band=final_row.get("performanceBand") or "Not rated",
+                        released_to_employee=final_row.get("releasedToEmployee", False),
+                    )
+                )
                 updated = True
 
     if updated:
