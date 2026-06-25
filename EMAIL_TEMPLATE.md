@@ -80,7 +80,7 @@ Use these variables in your Brevo template:
 
 Recommended fixed value:
 
-- `portal_url` = `https://appraisal-frontend-staging.up.railway.app`
+- `portal_url` = `https://people.buybetter.ng`
 
 Recommended `kpi_list` format:
 

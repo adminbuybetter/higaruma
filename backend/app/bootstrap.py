@@ -73,20 +73,60 @@ def sync_employee_designations_from_seed(db: Session, seed: dict) -> None:
         db.commit()
 
 
+def parse_optional_datetime(raw_value: str | None) -> datetime | None:
+    if not raw_value:
+        return None
+    return datetime.fromisoformat(raw_value)
+
+
+def sync_cycle_windows_from_seed(db: Session, seed: dict) -> None:
+    cycle_row = seed.get("cycle", {})
+    cycle = db.scalar(select(AppraisalCycle).where(AppraisalCycle.code == cycle_row.get("id")))
+    if not cycle:
+        return
+
+    next_values = {
+        "opens_at": parse_optional_datetime(cycle_row.get("opensAt")),
+        "closes_at": parse_optional_datetime(cycle_row.get("closesAt")),
+        "self_opens_at": parse_optional_datetime(cycle_row.get("selfOpensAt")),
+        "self_closes_at": parse_optional_datetime(cycle_row.get("selfClosesAt")),
+        "manager_opens_at": parse_optional_datetime(cycle_row.get("managerOpensAt")),
+        "manager_closes_at": parse_optional_datetime(cycle_row.get("managerClosesAt")),
+    }
+
+    updated = False
+    for field_name, value in next_values.items():
+        if getattr(cycle, field_name) != value:
+            setattr(cycle, field_name, value)
+            updated = True
+
+    if updated:
+        db.commit()
+
+
 def bootstrap_from_seed(db: Session) -> None:
     seed = _load_seed()
     if db.scalar(select(User.id).limit(1)):
         sync_employee_designations_from_seed(db, seed)
+        sync_cycle_windows_from_seed(db, seed)
         return
 
     opens_at = seed["cycle"].get("opensAt")
     closes_at = seed["cycle"].get("closesAt")
+    self_opens_at = seed["cycle"].get("selfOpensAt")
+    self_closes_at = seed["cycle"].get("selfClosesAt")
+    manager_opens_at = seed["cycle"].get("managerOpensAt")
+    manager_closes_at = seed["cycle"].get("managerClosesAt")
     cycle = AppraisalCycle(
         code=seed["cycle"]["id"],
         name=seed["cycle"]["name"],
         status="open",
-        opens_at=datetime.fromisoformat(opens_at) if opens_at else None,
-        closes_at=datetime.fromisoformat(closes_at) if closes_at else None,
+        opens_at=parse_optional_datetime(opens_at),
+        closes_at=parse_optional_datetime(closes_at),
+        self_opens_at=parse_optional_datetime(self_opens_at),
+        self_closes_at=parse_optional_datetime(self_closes_at),
+        manager_opens_at=parse_optional_datetime(manager_opens_at),
+        manager_closes_at=parse_optional_datetime(manager_closes_at),
     )
     db.add(cycle)
     db.flush()

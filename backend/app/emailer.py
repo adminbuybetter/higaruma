@@ -12,7 +12,7 @@ from app.bootstrap import resolve_seed_path
 from app.config import Settings, get_settings
 
 
-PORTAL_URL = "https://appraisal-frontend-staging.up.railway.app"
+PORTAL_URL = "https://people.buybetter.ng"
 
 
 @dataclass(frozen=True)
@@ -93,7 +93,7 @@ def build_recipient_contexts(seed: dict) -> dict[str, RecipientContext]:
         assignments_by_employee.setdefault(row["employeeId"], []).append(row)
 
     contexts: dict[str, RecipientContext] = {}
-    deadline = _format_deadline(seed["cycle"].get("closesAt", ""))
+    deadline = _format_deadline(seed["cycle"].get("selfClosesAt") or seed["cycle"].get("closesAt", ""))
     cycle_name = seed["cycle"]["name"]
 
     for user in seed["users"]:
@@ -235,17 +235,17 @@ BuyBetter HR / Appraisal Admin
         <p style="margin:0 0 16px;font-size:15px;line-height:1.75;">Hello {html.escape(context.display_name)},</p>
         <p style="margin:0 0 16px;font-size:15px;line-height:1.75;">You can sign in using the details below to complete your H1 2026 self-appraisal.</p>
 
-        <div style="margin:22px 0;padding:20px;background:#1b2a3d;border-radius:16px;color:#f7f5ef;">
-          <div style="margin-bottom:10px;font-size:13px;opacity:.8;">Portal</div>
-          <div style="font-size:15px;font-weight:600;margin-bottom:14px;">{html.escape(PORTAL_URL)}</div>
+        <div style="margin:22px 0;padding:20px;background:#f8f5ee;border:1px solid #e4dccd;border-radius:16px;color:#1f2420;">
+          <div style="margin-bottom:10px;font-size:13px;color:#7f7868;">Portal</div>
+          <div style="font-size:15px;font-weight:700;margin-bottom:14px;color:#1b2a3d;word-break:break-word;">{html.escape(PORTAL_URL)}</div>
           <div style="display:grid;grid-template-columns:1fr;gap:12px;">
             <div>
-              <div style="font-size:13px;opacity:.8;">Username</div>
-              <div style="font-size:16px;font-weight:700;">{html.escape(context.username)}</div>
+              <div style="font-size:13px;color:#7f7868;">Username</div>
+              <div style="font-size:16px;font-weight:700;color:#1b2a3d;">{html.escape(context.username)}</div>
             </div>
             <div>
-              <div style="font-size:13px;opacity:.8;">Password</div>
-              <div style="font-size:16px;font-weight:700;">{html.escape(context.password)}</div>
+              <div style="font-size:13px;color:#7f7868;">Password</div>
+              <div style="font-size:16px;font-weight:700;color:#1b2a3d;">{html.escape(context.password)}</div>
             </div>
           </div>
         </div>

@@ -101,7 +101,7 @@ def admin_password() -> str:
     return "AppraisalAdmin2026!"
 
 
-PORTAL_URL = "https://appraisal-frontend-staging.up.railway.app"
+PORTAL_URL = "https://people.buybetter.ng"
 EMAIL_SUBJECT = "BuyBetter Appraisal 2026: login details and process"
 
 
@@ -694,6 +694,10 @@ seed = {
         "name": "2026 Mid-Year Appraisal",
         "opensAt": "2026-06-16T09:00:00+01:00",
         "closesAt": "2026-06-30T23:59:59+01:00",
+        "selfOpensAt": "2026-06-16T09:00:00+01:00",
+        "selfClosesAt": "2026-06-30T23:59:59+01:00",
+        "managerOpensAt": "2026-07-01T00:00:00+01:00",
+        "managerClosesAt": "2026-07-07T23:59:59+01:00",
         "prototype": True,
     },
     "users": users,

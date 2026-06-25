@@ -28,6 +28,12 @@ import type {
 interface BackendWorkspaceResponse {
   cycle_code: string
   cycle_closes_at: string | null
+  self_opens_at: string | null
+  self_closes_at: string | null
+  self_phase_state: 'upcoming' | 'open' | 'closed'
+  manager_opens_at: string | null
+  manager_closes_at: string | null
+  manager_phase_state: 'upcoming' | 'open' | 'closed'
   employee: {
     employee_code: string
     full_name: string
@@ -193,7 +199,12 @@ function mergeEmployeeWorkspaceIntoState(
     employeeName,
     employeeUsername: username,
     cycle: workspace.cycle_code,
-    cycleClosesAt: workspace.cycle_closes_at,
+    selfOpensAt: workspace.self_opens_at,
+    selfClosesAt: workspace.self_closes_at,
+    selfPhaseState: workspace.self_phase_state,
+    managerOpensAt: workspace.manager_opens_at,
+    managerClosesAt: workspace.manager_closes_at,
+    managerPhaseState: workspace.manager_phase_state,
     kpiEntries: assignmentsForEmployee.map((assignment) => {
       const item = selfItemsByAssignment.get(assignment.assignmentId)
       return {
@@ -336,9 +347,9 @@ function buildSelfPayloadFromWorkspace(workspace: BackendWorkspaceResponse) {
   })
 }
 
-function hasCycleClosed(cycleClosesAt: string | null) {
-  if (!cycleClosesAt) return false
-  return new Date(cycleClosesAt).getTime() <= Date.now()
+function hasWindowClosed(closesAt: string | null) {
+  if (!closesAt) return false
+  return new Date(closesAt).getTime() <= Date.now()
 }
 
 function isUnauthorizedApiError(error: unknown) {
@@ -678,7 +689,7 @@ function AppraisalWorkspace({
       }
       return
     }
-    if (selfRecord.status !== 'draft' || hasCycleClosed(selfRecord.cycleClosesAt) || selfActionState !== 'idle') {
+    if (selfRecord.status !== 'draft' || selfRecord.selfPhaseState !== 'open' || hasWindowClosed(selfRecord.selfClosesAt) || selfActionState !== 'idle') {
       return
     }
 
@@ -855,7 +866,7 @@ function AppraisalWorkspace({
         if (isUnauthorizedApiError(error)) {
           void logout()
         }
-        // Keep optimistic local state if backend sync fails.
+        setReloadNonce((current) => current + 1)
       }
     })()
   }
@@ -887,7 +898,7 @@ function AppraisalWorkspace({
         if (isUnauthorizedApiError(error)) {
           void logout()
         }
-        // Keep optimistic local state if backend sync fails.
+        setReloadNonce((current) => current + 1)
       }
     })()
   }
