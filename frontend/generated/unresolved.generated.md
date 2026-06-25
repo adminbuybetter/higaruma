@@ -2,7 +2,7 @@
 
 - unresolved designations: 0
 - unresolved employees: 0
-- unresolved manager links: 2
+- unresolved manager links: 0
 
 - excluded designations this cycle: 5
 

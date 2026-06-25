@@ -136,34 +136,93 @@ EMPLOYEE_ROLE_OVERRIDES = {
     },
     "Alice Ochigbo": {
         "appraisal_role": "Inventory Officers & Leads",
-        "manager_label": "Growth Lead",
-        "kpi_owner_label": "Growth Lead",
-        "department": "Partnerships Inventory",
+        "manager_label": "Ololade Shoyemi",
+        "kpi_owner_label": "Ololade Shoyemi",
+        "department": "Inventory",
         "self_required": True,
         "excluded_this_cycle": False,
     },
     "Chukwuejim Alexandra": {
         "appraisal_role": "Inventory Officers & Leads",
-        "manager_label": "Growth Lead",
-        "kpi_owner_label": "Growth Lead",
-        "department": "Partnerships Inventory",
+        "manager_label": "Ololade Shoyemi",
+        "kpi_owner_label": "Ololade Shoyemi",
+        "department": "Inventory",
         "self_required": True,
         "excluded_this_cycle": False,
     },
 }
 
+DIRECT_MANAGER_BY_EMPLOYEE = {
+    "Dare Peters": "Sandra Dunkwu",
+    "Samuel Mbudinma": "Dare Peters",
+    "Valentine Unyi Ternenge": "Dare Peters",
+    "Akintomide Akindele": "Dare Peters",
+    "Mary Favour Okorji": "Dare Peters",
+    "Chisom Ugoh": "Dare Peters",
+    "Victoria Daniel Igo": "Dare Peters",
+    "Eniola Ojekunle": "Dare Peters",
+    "Happiness  Oyewale": "Dare Peters",
+    "Pamela Edeh": "Dare Peters",
+    "Mary Edun Abidemi": "Dare Peters",
+    "Rose Uka": "Dare Peters",
+    "Rofiat Gbemisola": "Dare Peters",
+    "Victor Ugwu": "Dare Peters",
+    "Imemba Goodluck Ikechukwu": "Victor Ugwu",
+    "Anyanwu Kelechi Anthony": "Victor Ugwu",
+    "Olayinka Olabiran": "Victor Ugwu",
+    "Ugwuogor Nnamdi Samuel": "Victor Ugwu",
+    "Ephraim Yisa": "Victor Ugwu",
+    "Felix Aondoemba Nguuma": "Dare Peters",
+    "Stephanie Uwaezuoke": "Felix Aondoemba Nguuma",
+    "Francis Fanen": "Felix Aondoemba Nguuma",
+    "Sandra Ihkimioya": "Dare Peters",
+    "Vivian Udu": "Chinwe Enemokwu",
+    "Benedicta Chidubem Udeigwe": "Chinwe Enemokwu",
+    "Okoro Victor": "Dare Peters",
+    "Nnamani Chioma Helen": "Okoro Victor",
+    "Arasi Oluwatobi": "Okoro Victor",
+    "Lorreta Nwabuaja": "Okoro Victor",
+    "Chiamaka Mbaeru": "Okoro Victor",
+    "Titoluwanimi Ige": "Okoro Victor",
+    "Akinyemi Boluwatito": "Okoro Victor",
+    "Rebecca Lasekan": "Sandra Dunkwu",
+    "Ngozika Grace Omaka": "Rebecca Lasekan",
+    "Motunrayo Adejumobi": "Rebecca Lasekan",
+    "Kamsiriochi Nwaukwa": "Sandra Dunkwu",
+    "Ojo Bunmi": "Kamsiriochi Nwaukwa",
+    "Adams Temidayo": "Kamsiriochi Nwaukwa",
+    "Ololade Shoyemi": "Sandra Dunkwu",
+    "Chinemerem Mgbaruike": "Ololade Shoyemi",
+    "Chioma Eze": "Ololade Shoyemi",
+    "Toluwanimi Yusuff": "Ololade Shoyemi",
+    "Dexter Onuorah": "Ololade Shoyemi",
+    "Udeh Ifeanyi Clement": "Ololade Shoyemi",
+    "Ebenezer Okechukwu": "Ololade Shoyemi",
+    "Moses Oregbuyide": "Ololade Shoyemi",
+    "Alice Ochigbo": "Ololade Shoyemi",
+    "Chukwuejim Alexandra": "Ololade Shoyemi",
+    "Olorunfemi Adegoke": "Ololade Shoyemi",
+    "Ajayi Abimbola Opeoluwa": "Dare Peters",
+    "Chinonyerem Onyeaba": "Dare Peters",
+    "Patrick Ikegwuonu": "Dare Peters",
+    "Maureen Kutuh": "Ololade Shoyemi",
+}
+
 MANAGER_SCOPE_BY_EMPLOYEE = {
-    "Sandra Dunkwu": ["Chief of Staff"],
+    "Sandra Dunkwu": ["Chief of Staff", "Sandra Dunkwu"],
     "Dare Peters": [
         "Head of Operations",
         "Operations Manager",
         "Operations Supervisor",
         "Procurement Lead / Head of Operations",
+        "Dare Peters",
     ],
-    "Ololade Shoyemi": ["Growth Lead", "Growth Manager", "Head of Growth"],
-    "Rebecca Lasekan": ["Finance Lead"],
-    "Kamsiriochi Nwaukwa": ["Head of IT", "IT Manager"],
-    "Udeh Ifeanyi Clement": ["Head of Inventory"],
+    "Ololade Shoyemi": ["Growth Lead", "Growth Manager", "Head of Growth", "Ololade Shoyemi"],
+    "Rebecca Lasekan": ["Finance Lead", "Rebecca Lasekan"],
+    "Kamsiriochi Nwaukwa": ["Head of IT", "IT Manager", "Kamsiriochi Nwaukwa"],
+    "Victor Ugwu": ["Victor Ugwu"],
+    "Felix Aondoemba Nguuma": ["Felix Aondoemba Nguuma"],
+    "Okoro Victor": ["Okoro Victor"],
 }
 
 EXTRA_USERS = [
@@ -461,8 +520,11 @@ for roster_row in roster_rows:
     self_required = override.get("self_required", default_self_required)
     role = override.get("appraisal_role") or effective_role(roster_row, designation_row)
     ownership = ownership_map.get(role, {})
+    direct_manager_label = (DIRECT_MANAGER_BY_EMPLOYEE.get(employee_name) or "").strip()
     manager_label = (
         (override.get("manager_label") or "").strip()
+        or
+        direct_manager_label
         or
         (roster_row.get("line_manager") or "").strip()
         or (designation_row.get("line_manager") or "").strip()
@@ -475,6 +537,8 @@ for roster_row in roster_rows:
     )
     kpi_owner_label = (
         (override.get("kpi_owner_label") or "").strip()
+        or
+        direct_manager_label
         or
         (roster_row.get("kpi_owner") or "").strip()
         or (designation_row.get("kpi_owner") or "").strip()

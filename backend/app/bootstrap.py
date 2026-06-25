@@ -8,7 +8,7 @@ from decimal import Decimal
 from pathlib import Path
 
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app.models import (
     AppraisalCycle,
@@ -73,6 +73,178 @@ def sync_employee_designations_from_seed(db: Session, seed: dict) -> None:
         db.commit()
 
 
+def _sync_string_collection(db: Session, existing_items, desired_values: set[str], attribute_name: str, factory, owner_id) -> bool:
+    existing_values = {getattr(item, attribute_name) for item in existing_items}
+    changed = False
+
+    for item in existing_items:
+        value = getattr(item, attribute_name)
+        if value not in desired_values:
+            db.delete(item)
+            changed = True
+
+    missing_values = desired_values - existing_values
+    for value in sorted(missing_values):
+        db.add(factory(owner_id, value))
+        changed = True
+
+    return changed
+
+
+def sync_users_from_seed(db: Session, seed: dict) -> None:
+    users_by_username = {
+        user.username: user
+        for user in db.scalars(
+            select(User).options(
+                selectinload(User.capabilities),
+                selectinload(User.manager_scopes),
+            )
+        )
+    }
+    updated = False
+
+    for user_row in seed.get("users", []):
+        username = user_row["username"]
+        user = users_by_username.get(username)
+        password_hash = hash_password(user_row["password"])
+
+        if user is None:
+            user = User(
+                username=username,
+                email=user_row.get("email") or None,
+                password_hash=password_hash,
+                display_name=user_row["displayName"],
+                is_active=True,
+            )
+            db.add(user)
+            db.flush()
+            users_by_username[username] = user
+            updated = True
+        else:
+            next_email = user_row.get("email") or None
+            next_display_name = user_row["displayName"]
+            if user.email != next_email:
+                user.email = next_email
+                updated = True
+            if user.display_name != next_display_name:
+                user.display_name = next_display_name
+                updated = True
+            if user.password_hash != password_hash:
+                user.password_hash = password_hash
+                updated = True
+            if not user.is_active:
+                user.is_active = True
+                updated = True
+
+        capability_values = set(user_row.get("capabilities", []))
+        scope_values = set(user_row.get("managerScopes", []))
+
+        existing_capabilities = list(user.capabilities)
+        existing_scopes = list(user.manager_scopes)
+
+        updated = _sync_string_collection(
+            db,
+            existing_capabilities,
+            capability_values,
+            "capability",
+            lambda user_id, value: UserCapability(user_id=user_id, capability=value),
+            user.id,
+        ) or updated
+        updated = _sync_string_collection(
+            db,
+            existing_scopes,
+            scope_values,
+            "owner_label",
+            lambda user_id, value: ManagerScope(user_id=user_id, owner_label=value),
+            user.id,
+        ) or updated
+
+    if updated:
+        db.commit()
+
+
+def sync_employees_and_assignments_from_seed(db: Session, seed: dict) -> None:
+    cycle_row = seed.get("cycle", {})
+    cycle = db.scalar(select(AppraisalCycle).where(AppraisalCycle.code == cycle_row.get("id")))
+    if not cycle:
+        return
+
+    employee_rows = {row["employeeId"]: row for row in seed.get("employees", [])}
+    users_by_username = {user.username: user for user in db.scalars(select(User))}
+    employees = list(
+        db.scalars(
+            select(Employee).options(selectinload(Employee.cycle_assignments))
+        )
+    )
+    updated = False
+
+    for employee in employees:
+        row = employee_rows.get(employee.employee_code)
+        if not row:
+            continue
+
+        next_full_name = row["employeeName"]
+        next_designation = row.get("designation") or employee.designation
+        next_department = row.get("department")
+        next_level = row.get("level")
+        next_can_self_appraise = row.get("canSelfAppraise", True)
+        next_excluded_default = row.get("excludedThisCycle", False)
+        next_user = users_by_username.get(row.get("employeeUsername") or "")
+        next_user_id = next_user.id if next_user else None
+
+        if employee.full_name != next_full_name:
+            employee.full_name = next_full_name
+            updated = True
+        if employee.designation != next_designation:
+            employee.designation = next_designation
+            updated = True
+        if employee.department != next_department:
+            employee.department = next_department
+            updated = True
+        if employee.level != next_level:
+            employee.level = next_level
+            updated = True
+        if employee.can_self_appraise != next_can_self_appraise:
+            employee.can_self_appraise = next_can_self_appraise
+            updated = True
+        if employee.excluded_this_cycle_default != next_excluded_default:
+            employee.excluded_this_cycle_default = next_excluded_default
+            updated = True
+        if employee.user_id != next_user_id:
+            employee.user_id = next_user_id
+            updated = True
+
+        assignment = next(
+            (
+                item
+                for item in employee.cycle_assignments
+                if item.appraisal_cycle_id == cycle.id
+            ),
+            None,
+        )
+        if assignment is None:
+            continue
+
+        next_values = {
+            "appraisal_role_name": row.get("appraisalRole") or None,
+            "line_manager_label": row.get("managerLabel") or None,
+            "reviewer_label": row.get("reviewerLabel") or None,
+            "kpi_owner_label": row.get("kpiOwnerLabel") or None,
+            "primary_owner_label": row.get("primaryOwnerLabel") or None,
+            "status": row.get("status") or "blocked",
+            "excluded_this_cycle": row.get("excludedThisCycle", False),
+            "blockers_json": row.get("blockers", []),
+        }
+
+        for field_name, value in next_values.items():
+            if getattr(assignment, field_name) != value:
+                setattr(assignment, field_name, value)
+                updated = True
+
+    if updated:
+        db.commit()
+
+
 def parse_optional_datetime(raw_value: str | None) -> datetime | None:
     if not raw_value:
         return None
@@ -107,7 +279,9 @@ def sync_cycle_windows_from_seed(db: Session, seed: dict) -> None:
 def bootstrap_from_seed(db: Session) -> None:
     seed = _load_seed()
     if db.scalar(select(User.id).limit(1)):
+        sync_users_from_seed(db, seed)
         sync_employee_designations_from_seed(db, seed)
+        sync_employees_and_assignments_from_seed(db, seed)
         sync_cycle_windows_from_seed(db, seed)
         return
 
