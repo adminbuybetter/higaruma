@@ -71,9 +71,11 @@ def main() -> None:
 
     cycle_name = seed["cycle"]["name"]
     deadline = format_deadline(seed["cycle"].get("selfClosesAt") or seed["cycle"].get("closesAt", ""))
+    manager_deadline = format_deadline(seed["cycle"].get("managerClosesAt") or "")
 
     staff_rows: list[dict[str, str]] = []
     reviewer_rows: list[dict[str, str]] = []
+    manager_rows: list[dict[str, str]] = []
 
     for user in seed["users"]:
         email = (user.get("email") or "").strip()
@@ -114,8 +116,32 @@ def main() -> None:
         else:
             reviewer_rows.append(row)
 
+        capabilities = set(user.get("capabilities") or [])
+        manager_scopes = user.get("managerScopes") or []
+        if manager_scopes:
+            manager_rows.append(
+                {
+                    "Email Address": email,
+                    "First Name": first_name,
+                    "Last Name": last_name,
+                    "display_name": user["displayName"],
+                    "portal_url": PORTAL_URL,
+                    "username": user["username"],
+                    "password": user["password"],
+                    "self_appraisal_role": role_name,
+                    "line_manager": line_manager,
+                    "self_deadline": deadline,
+                    "manager_review_deadline": manager_deadline,
+                    "manager_scope_labels": ", ".join(manager_scopes),
+                    "employee_id": employee_id,
+                    "capabilities": ", ".join(user.get("capabilities", [])),
+                    "cycle_name": cycle_name,
+                }
+            )
+
     staff_output = GENERATED_DIR / "zoho_campaigns_staff.generated.csv"
     reviewer_output = GENERATED_DIR / "zoho_campaigns_reviewer_only.generated.csv"
+    manager_output = GENERATED_DIR / "zoho_campaigns_managers.generated.csv"
 
     fieldnames = [
         "Email Address",
@@ -134,6 +160,24 @@ def main() -> None:
         "cycle_name",
     ]
 
+    manager_fieldnames = [
+        "Email Address",
+        "First Name",
+        "Last Name",
+        "display_name",
+        "portal_url",
+        "username",
+        "password",
+        "self_appraisal_role",
+        "line_manager",
+        "self_deadline",
+        "manager_review_deadline",
+        "manager_scope_labels",
+        "employee_id",
+        "capabilities",
+        "cycle_name",
+    ]
+
     with staff_output.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=fieldnames)
         writer.writeheader()
@@ -144,8 +188,14 @@ def main() -> None:
         writer.writeheader()
         writer.writerows(sorted(reviewer_rows, key=lambda row: row["display_name"].lower()))
 
+    with manager_output.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=manager_fieldnames)
+        writer.writeheader()
+        writer.writerows(sorted(manager_rows, key=lambda row: row["display_name"].lower()))
+
     print(f"Wrote {staff_output}")
     print(f"Wrote {reviewer_output}")
+    print(f"Wrote {manager_output}")
 
 
 if __name__ == "__main__":
