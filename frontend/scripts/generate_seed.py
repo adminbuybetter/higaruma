@@ -150,6 +150,14 @@ EMPLOYEE_ROLE_OVERRIDES = {
         "self_required": True,
         "excluded_this_cycle": False,
     },
+    "Ephraim Yisa": {
+        "appraisal_role": "Order Processing & Fulfilment",
+        "manager_label": "Dare Peters",
+        "kpi_owner_label": "Dare Peters",
+        "department": "Operations",
+        "self_required": True,
+        "excluded_this_cycle": False,
+    },
 }
 
 DIRECT_MANAGER_BY_EMPLOYEE = {
