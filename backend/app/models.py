@@ -108,6 +108,10 @@ class AppraisalCycle(Base, TimestampMixin):
     status: Mapped[str] = mapped_column(String(64), nullable=False)
     opens_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     closes_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    self_opens_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    self_closes_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    manager_opens_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    manager_closes_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 class KpiPack(Base, TimestampMixin):

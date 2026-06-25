@@ -2,555 +2,596 @@
   "cycle": {
     "id": "2026-H1",
     "name": "2026 Mid-Year Appraisal",
+    "opensAt": "2026-06-16T09:00:00+01:00",
+    "closesAt": "2026-06-30T23:59:59+01:00",
+    "selfOpensAt": "2026-06-16T09:00:00+01:00",
+    "selfClosesAt": "2026-06-30T23:59:59+01:00",
+    "managerOpensAt": "2026-07-01T00:00:00+01:00",
+    "managerClosesAt": "2026-07-07T23:59:59+01:00",
     "prototype": true
   },
   "users": [
-    {
-      "id": "EMP-004",
-      "username": "david.adjei",
-      "password": "Appraise004!",
-      "displayName": "David Adjei",
-      "kind": "employee",
-      "capabilities": [
-        "employee"
-      ],
-      "employeeId": "EMP-004",
-      "managerScopes": []
-    },
-    {
-      "id": "EMP-005",
-      "username": "ibrahim.musa",
-      "password": "Appraise005!",
-      "displayName": "Ibrahim Musa",
-      "kind": "employee",
-      "capabilities": [
-        "employee"
-      ],
-      "employeeId": "EMP-005",
-      "managerScopes": []
-    },
     {
       "id": "EMP-006",
       "username": "akintomide.akindele",
       "password": "Appraise006!",
       "displayName": "Akintomide Akindele",
+      "email": "tomide@buybetter.ng",
       "kind": "employee",
       "capabilities": [
         "employee"
       ],
       "employeeId": "EMP-006",
-      "managerScopes": []
+      "managerScopes": [],
+      "outreachEmail": "tomide@buybetter.ng"
     },
     {
       "id": "EMP-007",
       "username": "vivian.udu",
       "password": "Appraise007!",
       "displayName": "Vivian Udu",
+      "email": "vivian@buybetter.ng",
       "kind": "employee",
       "capabilities": [
         "employee"
       ],
       "employeeId": "EMP-007",
-      "managerScopes": []
+      "managerScopes": [],
+      "outreachEmail": "vivian@buybetter.ng"
     },
     {
       "id": "EMP-008",
       "username": "benedicta.udeigwe",
       "password": "Appraise008!",
       "displayName": "Benedicta Chidubem Udeigwe",
+      "email": "benedicta@buybetter.ng",
       "kind": "employee",
       "capabilities": [
         "employee"
       ],
       "employeeId": "EMP-008",
-      "managerScopes": []
+      "managerScopes": [],
+      "outreachEmail": "benedicta@buybetter.ng"
     },
     {
       "id": "EMP-009",
       "username": "alice.ochigbo",
       "password": "Appraise009!",
       "displayName": "Alice Ochigbo",
+      "email": "alice@buybetter.ng",
       "kind": "employee",
       "capabilities": [
         "employee"
       ],
       "employeeId": "EMP-009",
-      "managerScopes": []
+      "managerScopes": [],
+      "outreachEmail": "alice@buybetter.ng"
     },
     {
       "id": "EMP-010",
       "username": "ephraim.yisa",
       "password": "Appraise010!",
       "displayName": "Ephraim Yisa",
+      "email": "ephraim@buybetter.ng",
       "kind": "employee",
       "capabilities": [
         "employee"
       ],
       "employeeId": "EMP-010",
-      "managerScopes": []
+      "managerScopes": [],
+      "outreachEmail": "ephraim@buybetter.ng"
     },
     {
       "id": "EMP-011",
       "username": "chukwuejim.alexandra",
       "password": "Appraise011!",
       "displayName": "Chukwuejim Alexandra",
+      "email": "alexandra@buybetter.ng",
       "kind": "employee",
       "capabilities": [
         "employee"
       ],
       "employeeId": "EMP-011",
-      "managerScopes": []
+      "managerScopes": [],
+      "outreachEmail": "alexandra@buybetter.ng"
     },
     {
       "id": "EMP-012",
       "username": "akinyemi.boluwatito",
       "password": "Appraise012!",
       "displayName": "Akinyemi Boluwatito",
+      "email": "bolu@buybetter.ng",
       "kind": "employee",
       "capabilities": [
         "employee"
       ],
       "employeeId": "EMP-012",
-      "managerScopes": []
+      "managerScopes": [],
+      "outreachEmail": "bolu@buybetter.ng"
     },
     {
       "id": "EMP-013",
       "username": "francis.fanen",
       "password": "Appraise013!",
       "displayName": "Francis Fanen",
+      "email": "francis@buybetter.ng",
       "kind": "employee",
       "capabilities": [
         "employee"
       ],
       "employeeId": "EMP-013",
-      "managerScopes": []
+      "managerScopes": [],
+      "outreachEmail": "francis@buybetter.ng"
     },
     {
       "id": "EMP-014",
       "username": "chinonyerem.onyeaba",
       "password": "Appraise014!",
       "displayName": "Chinonyerem Onyeaba",
+      "email": "chinonyerem@buybetter.ng",
       "kind": "employee",
       "capabilities": [
         "employee"
       ],
       "employeeId": "EMP-014",
-      "managerScopes": []
+      "managerScopes": [],
+      "outreachEmail": "chinonyerem@buybetter.ng"
     },
     {
       "id": "EMP-015",
       "username": "patrick.ikegwuonu",
       "password": "Appraise015!",
       "displayName": "Patrick Ikegwuonu",
+      "email": "patrick.ikegwuonu@buybetter.ng",
       "kind": "employee",
       "capabilities": [
         "employee"
       ],
       "employeeId": "EMP-015",
-      "managerScopes": []
+      "managerScopes": [],
+      "outreachEmail": "patrick.ikegwuonu@buybetter.ng"
     },
     {
       "id": "EMP-016",
       "username": "maureen.kutuh",
       "password": "Appraise016!",
       "displayName": "Maureen Kutuh",
+      "email": "maureen@buybetter.ng",
       "kind": "employee",
       "capabilities": [
         "employee"
       ],
       "employeeId": "EMP-016",
-      "managerScopes": []
+      "managerScopes": [],
+      "outreachEmail": "maureen@buybetter.ng"
     },
     {
       "id": "EMP-017",
       "username": "nnamani.helen",
       "password": "Appraise017!",
       "displayName": "Nnamani Chioma Helen",
+      "email": "chioma@buybetter.ng",
       "kind": "employee",
       "capabilities": [
         "employee"
       ],
       "employeeId": "EMP-017",
-      "managerScopes": []
+      "managerScopes": [],
+      "outreachEmail": "chioma@buybetter.ng"
     },
     {
       "id": "EMP-018",
       "username": "arasi.oluwatobi",
       "password": "Appraise018!",
       "displayName": "Arasi Oluwatobi",
+      "email": "oluwatobi@buybetter.ng",
       "kind": "employee",
       "capabilities": [
         "employee"
       ],
       "employeeId": "EMP-018",
-      "managerScopes": []
+      "managerScopes": [],
+      "outreachEmail": "oluwatobi@buybetter.ng"
     },
     {
       "id": "EMP-019",
       "username": "imemba.ikechukwu",
       "password": "Appraise019!",
       "displayName": "Imemba Goodluck Ikechukwu",
+      "email": "ikechukwu@buybetter.ng",
       "kind": "employee",
       "capabilities": [
         "employee"
       ],
       "employeeId": "EMP-019",
-      "managerScopes": []
+      "managerScopes": [],
+      "outreachEmail": "ikechukwu@buybetter.ng"
     },
     {
       "id": "EMP-020",
       "username": "victoria.igo",
       "password": "Appraise020!",
       "displayName": "Victoria Daniel Igo",
+      "email": "victoria@buybetter.ng",
       "kind": "employee",
       "capabilities": [
         "employee"
       ],
       "employeeId": "EMP-020",
-      "managerScopes": []
+      "managerScopes": [],
+      "outreachEmail": "victoria@buybetter.ng"
     },
     {
       "id": "EMP-021",
       "username": "valentine.ternenge",
       "password": "Appraise021!",
       "displayName": "Valentine Unyi Ternenge",
+      "email": "valentine@buybetter.ng",
       "kind": "employee",
       "capabilities": [
         "employee"
       ],
       "employeeId": "EMP-021",
-      "managerScopes": []
-    },
-    {
-      "id": "EMP-022",
-      "username": "hope.haruna",
-      "password": "Appraise022!",
-      "displayName": "Hope Haruna",
-      "kind": "employee",
-      "capabilities": [
-        "employee"
-      ],
-      "employeeId": "EMP-022",
-      "managerScopes": []
+      "managerScopes": [],
+      "outreachEmail": "valentine@buybetter.ng"
     },
     {
       "id": "EMP-023",
       "username": "rose.uka",
       "password": "Appraise023!",
       "displayName": "Rose Uka",
+      "email": "rose.uka@buybetter.ng",
       "kind": "employee",
       "capabilities": [
         "employee"
       ],
       "employeeId": "EMP-023",
-      "managerScopes": []
-    },
-    {
-      "id": "EMP-024",
-      "username": "uduak.umoh",
-      "password": "Appraise024!",
-      "displayName": "Uduak Umoh",
-      "kind": "employee",
-      "capabilities": [
-        "employee"
-      ],
-      "employeeId": "EMP-024",
-      "managerScopes": []
+      "managerScopes": [],
+      "outreachEmail": "rose.uka@buybetter.ng"
     },
     {
       "id": "EMP-025",
       "username": "eniola.ojekunle",
       "password": "Appraise025!",
       "displayName": "Eniola Ojekunle",
+      "email": "",
       "kind": "employee",
       "capabilities": [
         "employee"
       ],
       "employeeId": "EMP-025",
-      "managerScopes": []
+      "managerScopes": [],
+      "outreachEmail": "eniola.ojekunle@buybetter.ng"
     },
     {
       "id": "EMP-026",
       "username": "moses.oregbuyide",
       "password": "Appraise026!",
       "displayName": "Moses Oregbuyide",
+      "email": "moses.oregbuyide@buybetter.ng",
       "kind": "employee",
       "capabilities": [
         "employee"
       ],
       "employeeId": "EMP-026",
-      "managerScopes": []
+      "managerScopes": [],
+      "outreachEmail": "moses.oregbuyide@buybetter.ng"
     },
     {
       "id": "EMP-027",
       "username": "lorreta.nwabuaja",
       "password": "Appraise027!",
       "displayName": "Lorreta Nwabuaja",
+      "email": "lorreta.nwabuaju@buybetter.ng",
       "kind": "employee",
       "capabilities": [
         "employee"
       ],
       "employeeId": "EMP-027",
-      "managerScopes": []
+      "managerScopes": [],
+      "outreachEmail": "lorreta.nwabuaju@buybetter.ng"
     },
     {
       "id": "EMP-028",
       "username": "chiamaka.mbaeru",
       "password": "Appraise028!",
       "displayName": "Chiamaka Mbaeru",
+      "email": "chiamaka.mbaeru@buybetter.ng",
       "kind": "employee",
       "capabilities": [
         "employee"
       ],
       "employeeId": "EMP-028",
-      "managerScopes": []
+      "managerScopes": [],
+      "outreachEmail": "chiamaka.mbaeru@buybetter.ng"
     },
     {
       "id": "EMP-029",
       "username": "titoluwanimi.ige",
       "password": "Appraise029!",
       "displayName": "Titoluwanimi Ige",
+      "email": "titoluwanimi@buybetter.ng",
       "kind": "employee",
       "capabilities": [
         "employee"
       ],
       "employeeId": "EMP-029",
-      "managerScopes": []
+      "managerScopes": [],
+      "outreachEmail": "titoluwanimi@buybetter.ng"
     },
     {
       "id": "EMP-030",
       "username": "happiness.oyewale",
       "password": "Appraise030!",
       "displayName": "Happiness  Oyewale",
+      "email": "",
       "kind": "employee",
       "capabilities": [
         "employee"
       ],
       "employeeId": "EMP-030",
-      "managerScopes": []
+      "managerScopes": [],
+      "outreachEmail": "eniola.ojekunle@buybetter.ng"
     },
     {
       "id": "EMP-031",
       "username": "pamela.edeh",
       "password": "Appraise031!",
       "displayName": "Pamela Edeh",
+      "email": "pamela@buybetter.ng",
       "kind": "employee",
       "capabilities": [
         "employee"
       ],
       "employeeId": "EMP-031",
-      "managerScopes": []
+      "managerScopes": [],
+      "outreachEmail": "pamela@buybetter.ng"
     },
     {
       "id": "EMP-032",
       "username": "adams.temidayo",
       "password": "Appraise032!",
       "displayName": "Adams Temidayo",
+      "email": "temidayo@buybetter.ng",
       "kind": "employee",
       "capabilities": [
         "employee"
       ],
       "employeeId": "EMP-032",
-      "managerScopes": []
+      "managerScopes": [],
+      "outreachEmail": "temidayo@buybetter.ng"
     },
     {
       "id": "EMP-033",
       "username": "stephanie.uwaezuoke",
       "password": "Appraise033!",
       "displayName": "Stephanie Uwaezuoke",
+      "email": "stephanie@buybetter.ng",
       "kind": "employee",
       "capabilities": [
         "employee"
       ],
       "employeeId": "EMP-033",
-      "managerScopes": []
+      "managerScopes": [],
+      "outreachEmail": "stephanie@buybetter.ng"
     },
     {
       "id": "EMP-034",
       "username": "anyanwu.anthony",
       "password": "Appraise034!",
       "displayName": "Anyanwu Kelechi Anthony",
+      "email": "kelechi@buybetter.ng",
       "kind": "employee",
       "capabilities": [
         "employee"
       ],
       "employeeId": "EMP-034",
-      "managerScopes": []
+      "managerScopes": [],
+      "outreachEmail": "kelechi@buybetter.ng"
     },
     {
       "id": "EMP-035",
       "username": "olayinka.olabiran",
       "password": "Appraise035!",
       "displayName": "Olayinka Olabiran",
+      "email": "olayinka@buybetter.ng",
       "kind": "employee",
       "capabilities": [
         "employee"
       ],
       "employeeId": "EMP-035",
-      "managerScopes": []
+      "managerScopes": [],
+      "outreachEmail": "olayinka@buybetter.ng"
     },
     {
       "id": "EMP-036",
       "username": "ugwuogor.samuel",
       "password": "Appraise036!",
       "displayName": "Ugwuogor Nnamdi Samuel",
+      "email": "nnamdi@buybetter.ng",
       "kind": "employee",
       "capabilities": [
         "employee"
       ],
       "employeeId": "EMP-036",
-      "managerScopes": []
+      "managerScopes": [],
+      "outreachEmail": "nnamdi@buybetter.ng"
     },
     {
       "id": "EMP-037",
       "username": "mary.abidemi",
       "password": "Appraise037!",
       "displayName": "Mary Edun Abidemi",
+      "email": "mary@buybetter.ng",
       "kind": "employee",
       "capabilities": [
         "employee"
       ],
       "employeeId": "EMP-037",
-      "managerScopes": []
+      "managerScopes": [],
+      "outreachEmail": "mary@buybetter.ng"
     },
     {
       "id": "EMP-038",
       "username": "sandra.ihkimioya",
       "password": "Appraise038!",
       "displayName": "Sandra Ihkimioya",
+      "email": "sandra@buybetter.ng",
       "kind": "employee",
       "capabilities": [
         "employee"
       ],
       "employeeId": "EMP-038",
-      "managerScopes": []
+      "managerScopes": [],
+      "outreachEmail": "sandra@buybetter.ng"
     },
     {
       "id": "EMP-039",
       "username": "toluwanimi.yusuff",
       "password": "Appraise039!",
       "displayName": "Toluwanimi Yusuff",
+      "email": "toluwanimi@buybetter.ng",
       "kind": "employee",
       "capabilities": [
         "employee"
       ],
       "employeeId": "EMP-039",
-      "managerScopes": []
+      "managerScopes": [],
+      "outreachEmail": "toluwanimi@buybetter.ng"
     },
     {
       "id": "EMP-040",
       "username": "ajayi.opeoluwa",
       "password": "Appraise040!",
       "displayName": "Ajayi Abimbola Opeoluwa",
+      "email": "ope@buybetter.ng",
       "kind": "employee",
       "capabilities": [
         "employee"
       ],
       "employeeId": "EMP-040",
-      "managerScopes": []
+      "managerScopes": [],
+      "outreachEmail": "ope@buybetter.ng"
     },
     {
       "id": "EMP-041",
       "username": "ngozika.omaka",
       "password": "Appraise041!",
       "displayName": "Ngozika Grace Omaka",
+      "email": "ngozika@buybetter.ng",
       "kind": "employee",
       "capabilities": [
         "employee"
       ],
       "employeeId": "EMP-041",
-      "managerScopes": []
+      "managerScopes": [],
+      "outreachEmail": "ngozika@buybetter.ng"
     },
     {
       "id": "EMP-042",
       "username": "motunrayo.adejumobi",
       "password": "Appraise042!",
       "displayName": "Motunrayo Adejumobi",
+      "email": "motunrayo@buybetter.ng",
       "kind": "employee",
       "capabilities": [
         "employee"
       ],
       "employeeId": "EMP-042",
-      "managerScopes": []
+      "managerScopes": [],
+      "outreachEmail": "motunrayo@buybetter.ng"
     },
     {
       "id": "EMP-043",
       "username": "samuel.mbudinma",
       "password": "Appraise043!",
       "displayName": "Samuel Mbudinma",
+      "email": "samuel.mbudinma@buybetter.ng",
       "kind": "employee",
       "capabilities": [
         "employee",
         "admin"
       ],
       "employeeId": "EMP-043",
-      "managerScopes": []
+      "managerScopes": [],
+      "outreachEmail": "samuel.mbudinma@buybetter.ng"
     },
     {
       "id": "EMP-044",
       "username": "ebenezer.okechukwu",
       "password": "Appraise044!",
       "displayName": "Ebenezer Okechukwu",
+      "email": "ebenezer@buybetter.ng",
       "kind": "employee",
       "capabilities": [
         "employee"
       ],
       "employeeId": "EMP-044",
-      "managerScopes": []
+      "managerScopes": [],
+      "outreachEmail": "ebenezer@buybetter.ng"
     },
     {
       "id": "EMP-045",
       "username": "chioma.eze",
       "password": "Appraise045!",
       "displayName": "Chioma Eze",
+      "email": "chioma.eze@buybetter.ng",
       "kind": "employee",
       "capabilities": [
         "employee"
       ],
       "employeeId": "EMP-045",
-      "managerScopes": []
+      "managerScopes": [],
+      "outreachEmail": "chioma.eze@buybetter.ng"
     },
     {
       "id": "EMP-046",
       "username": "ojo.bunmi",
       "password": "Appraise046!",
       "displayName": "Ojo Bunmi",
+      "email": "bunmi@buybetter.ng",
       "kind": "employee",
       "capabilities": [
         "employee"
       ],
       "employeeId": "EMP-046",
-      "managerScopes": []
+      "managerScopes": [],
+      "outreachEmail": "bunmi@buybetter.ng"
     },
     {
       "id": "EMP-047",
       "username": "felix.nguuma",
       "password": "Appraise047!",
       "displayName": "Felix Aondoemba Nguuma",
+      "email": "felix@buybetter.ng",
       "kind": "employee",
       "capabilities": [
         "employee"
       ],
       "employeeId": "EMP-047",
-      "managerScopes": []
+      "managerScopes": [],
+      "outreachEmail": "felix@buybetter.ng"
     },
     {
       "id": "EMP-048",
       "username": "victor.ugwu",
       "password": "Appraise048!",
       "displayName": "Victor Ugwu",
+      "email": "victor.ugwu@buybetter.ng",
       "kind": "employee",
       "capabilities": [
         "employee"
       ],
       "employeeId": "EMP-048",
-      "managerScopes": []
+      "managerScopes": [],
+      "outreachEmail": "victor.ugwu@buybetter.ng"
     },
     {
       "id": "EMP-049",
       "username": "udeh.clement",
       "password": "Appraise049!",
       "displayName": "Udeh Ifeanyi Clement",
+      "email": "ifeanyi@buybetter.ng",
       "kind": "employee",
       "capabilities": [
         "employee",
@@ -559,73 +600,85 @@
       "employeeId": "EMP-049",
       "managerScopes": [
         "Head of Inventory"
-      ]
+      ],
+      "outreachEmail": "ifeanyi@buybetter.ng"
     },
     {
       "id": "EMP-050",
       "username": "mary.okorji",
       "password": "Appraise050!",
       "displayName": "Mary Favour Okorji",
+      "email": "maryfavour@buybetter.ng",
       "kind": "employee",
       "capabilities": [
         "employee"
       ],
       "employeeId": "EMP-050",
-      "managerScopes": []
+      "managerScopes": [],
+      "outreachEmail": "maryfavour@buybetter.ng"
     },
     {
       "id": "EMP-051",
       "username": "okoro.victor",
       "password": "Appraise051!",
       "displayName": "Okoro Victor",
+      "email": "victor.okoro@buybetter.ng",
       "kind": "employee",
       "capabilities": [
         "employee"
       ],
       "employeeId": "EMP-051",
-      "managerScopes": []
+      "managerScopes": [],
+      "outreachEmail": "victor.okoro@buybetter.ng"
     },
     {
       "id": "EMP-052",
       "username": "chinemerem.mgbaruike",
       "password": "Appraise052!",
       "displayName": "Chinemerem Mgbaruike",
+      "email": "chinemerem@buybetter.ng",
       "kind": "employee",
       "capabilities": [
         "employee"
       ],
       "employeeId": "EMP-052",
-      "managerScopes": []
+      "managerScopes": [],
+      "outreachEmail": "chinemerem@buybetter.ng"
     },
     {
       "id": "EMP-053",
       "username": "olorunfemi.adegoke",
       "password": "Appraise053!",
       "displayName": "Olorunfemi Adegoke",
+      "email": "olorunfemi@buybetter.ng",
       "kind": "employee",
       "capabilities": [
         "employee"
       ],
       "employeeId": "EMP-053",
-      "managerScopes": []
+      "managerScopes": [],
+      "outreachEmail": "olorunfemi@buybetter.ng"
     },
     {
       "id": "EMP-054",
       "username": "chisom.ugoh",
       "password": "Appraise054!",
       "displayName": "Chisom Ugoh",
+      "email": "chisom.ugoh@buybetter.ng",
       "kind": "employee",
       "capabilities": [
         "employee"
       ],
       "employeeId": "EMP-054",
-      "managerScopes": []
+      "managerScopes": [],
+      "outreachEmail": "chisom.ugoh@buybetter.ng"
     },
     {
       "id": "EMP-055",
       "username": "kamsiriochi.nwaukwa",
       "password": "Appraise055!",
       "displayName": "Kamsiriochi Nwaukwa",
+      "email": "kamsi@buybetter.ng",
       "kind": "employee",
       "capabilities": [
         "employee",
@@ -635,13 +688,15 @@
       "managerScopes": [
         "Head of IT",
         "IT Manager"
-      ]
+      ],
+      "outreachEmail": "kamsi@buybetter.ng"
     },
     {
       "id": "EMP-056",
       "username": "ololade.shoyemi",
       "password": "Appraise056!",
       "displayName": "Ololade Shoyemi",
+      "email": "lolade@buybetter.ng",
       "kind": "employee",
       "capabilities": [
         "employee",
@@ -652,13 +707,15 @@
         "Growth Lead",
         "Growth Manager",
         "Head of Growth"
-      ]
+      ],
+      "outreachEmail": "lolade@buybetter.ng"
     },
     {
       "id": "EMP-057",
       "username": "rebecca.lasekan",
       "password": "Appraise057!",
       "displayName": "Rebecca Lasekan",
+      "email": "rebecca@buybetter.ng",
       "kind": "employee",
       "capabilities": [
         "employee",
@@ -667,13 +724,15 @@
       "employeeId": "EMP-057",
       "managerScopes": [
         "Finance Lead"
-      ]
+      ],
+      "outreachEmail": "rebecca@buybetter.ng"
     },
     {
       "id": "EMP-058",
       "username": "dare.peters",
       "password": "Appraise058!",
       "displayName": "Dare Peters",
+      "email": "dare@buybetter.ng",
       "kind": "employee",
       "capabilities": [
         "employee",
@@ -685,13 +744,15 @@
         "Operations Manager",
         "Operations Supervisor",
         "Procurement Lead / Head of Operations"
-      ]
+      ],
+      "outreachEmail": "dare@buybetter.ng"
     },
     {
       "id": "EMP-060",
       "username": "sandra.dunkwu",
       "password": "Appraise060!",
       "displayName": "Sandra Dunkwu",
+      "email": "sandra.dunkwu@buybetter.ng",
       "kind": "manager",
       "capabilities": [
         "manager",
@@ -700,76 +761,56 @@
       "employeeId": null,
       "managerScopes": [
         "Chief of Staff"
-      ]
+      ],
+      "outreachEmail": "sandra.dunkwu@buybetter.ng"
     },
     {
       "id": "EMP-061",
       "username": "dexter.onuorah",
       "password": "Appraise061!",
       "displayName": "Dexter Onuorah",
+      "email": "dexter@buybetter.ng",
       "kind": "employee",
       "capabilities": [
         "employee"
       ],
       "employeeId": "EMP-061",
-      "managerScopes": []
+      "managerScopes": [],
+      "outreachEmail": "dexter@buybetter.ng"
     },
     {
       "id": "EMP-062",
       "username": "rofiat.gbemisola",
       "password": "Appraise062!",
       "displayName": "Rofiat Gbemisola",
+      "email": "rofiat@buybetter.ng",
       "kind": "employee",
       "capabilities": [
         "employee"
       ],
       "employeeId": "EMP-062",
-      "managerScopes": []
+      "managerScopes": [],
+      "outreachEmail": "rofiat@buybetter.ng"
+    },
+    {
+      "id": "USR-CHINWE-001",
+      "displayName": "Chinwe Enemokwu",
+      "username": "chinwe.enemokwu",
+      "password": "AppraiseCEO2026!",
+      "email": "chinwe@buybetter.ng",
+      "kind": "manager",
+      "capabilities": [
+        "manager",
+        "admin"
+      ],
+      "employeeId": null,
+      "managerScopes": [
+        "Chinwe Enemokwu"
+      ],
+      "outreachEmail": "chinwe@buybetter.ng"
     }
   ],
   "employees": [
-    {
-      "employeeId": "EMP-004",
-      "employeeName": "David Adjei",
-      "designation": "Driver",
-      "appraisalRole": "",
-      "department": "Unassigned",
-      "level": "Contract",
-      "employeeUsername": "david.adjei",
-      "managerLabel": "",
-      "reviewerLabel": "",
-      "kpiOwnerLabel": "",
-      "primaryOwnerLabel": "",
-      "status": "blocked",
-      "blockers": [
-        "No KPI role mapped yet",
-        "No appraisal owner / manager relationship mapped yet"
-      ],
-      "excludedThisCycle": true,
-      "canSelfAppraise": false,
-      "canViewFinalResult": false
-    },
-    {
-      "employeeId": "EMP-005",
-      "employeeName": "Ibrahim Musa",
-      "designation": "Loader",
-      "appraisalRole": "",
-      "department": "Unassigned",
-      "level": "Contract",
-      "employeeUsername": "ibrahim.musa",
-      "managerLabel": "",
-      "reviewerLabel": "",
-      "kpiOwnerLabel": "",
-      "primaryOwnerLabel": "",
-      "status": "blocked",
-      "blockers": [
-        "No KPI role mapped yet",
-        "No appraisal owner / manager relationship mapped yet"
-      ],
-      "excludedThisCycle": true,
-      "canSelfAppraise": false,
-      "canViewFinalResult": false
-    },
     {
       "employeeId": "EMP-006",
       "employeeName": "Akintomide Akindele",
@@ -796,10 +837,10 @@
       "department": "Operations",
       "level": "Contract",
       "employeeUsername": "vivian.udu",
-      "managerLabel": "Head of Operations",
+      "managerLabel": "Chinwe Enemokwu",
       "reviewerLabel": "",
-      "kpiOwnerLabel": "Head of Operations",
-      "primaryOwnerLabel": "Head of Operations",
+      "kpiOwnerLabel": "Chinwe Enemokwu",
+      "primaryOwnerLabel": "Chinwe Enemokwu",
       "status": "ready",
       "blockers": [],
       "excludedThisCycle": false,
@@ -814,10 +855,10 @@
       "department": "Operations",
       "level": "Contract",
       "employeeUsername": "benedicta.udeigwe",
-      "managerLabel": "Head of Operations",
+      "managerLabel": "Chinwe Enemokwu",
       "reviewerLabel": "",
-      "kpiOwnerLabel": "Head of Operations",
-      "primaryOwnerLabel": "Head of Operations",
+      "kpiOwnerLabel": "Chinwe Enemokwu",
+      "primaryOwnerLabel": "Chinwe Enemokwu",
       "status": "ready",
       "blockers": [],
       "excludedThisCycle": false,
@@ -905,7 +946,7 @@
     {
       "employeeId": "EMP-013",
       "employeeName": "Francis Fanen",
-      "designation": "Order Processing Officer",
+      "designation": "Logistics Officer",
       "appraisalRole": "Order Processing & Fulfilment",
       "department": "Operations",
       "level": "Officer 1",
@@ -941,7 +982,7 @@
     {
       "employeeId": "EMP-015",
       "employeeName": "Patrick Ikegwuonu",
-      "designation": "Order Processing Officer",
+      "designation": "Order Fulfilment Officer",
       "appraisalRole": "Order Processing & Fulfilment",
       "department": "Operations",
       "level": "Officer 1",
@@ -977,7 +1018,7 @@
     {
       "employeeId": "EMP-017",
       "employeeName": "Nnamani Chioma Helen",
-      "designation": "Customer Care Representative",
+      "designation": "Customer Experience",
       "appraisalRole": "Customer Support Specialist",
       "department": "Customer Service",
       "level": "Officer 1",
@@ -995,7 +1036,7 @@
     {
       "employeeId": "EMP-018",
       "employeeName": "Arasi Oluwatobi",
-      "designation": "Customer Service",
+      "designation": "Customer Experience",
       "appraisalRole": "Customer Support Specialist",
       "department": "Customer Service",
       "level": "Officer 1",
@@ -1013,7 +1054,7 @@
     {
       "employeeId": "EMP-019",
       "employeeName": "Imemba Goodluck Ikechukwu",
-      "designation": "Order Processing Officer",
+      "designation": "Order Fulfilment Officer",
       "appraisalRole": "Order Processing & Fulfilment",
       "department": "Operations",
       "level": "Officer 1",
@@ -1031,7 +1072,7 @@
     {
       "employeeId": "EMP-020",
       "employeeName": "Victoria Daniel Igo",
-      "designation": "Beauty Attendant",
+      "designation": "Beauty Attendant (Surulere)",
       "appraisalRole": "Beauty Attendant",
       "department": "Operations",
       "level": "Officer 1",
@@ -1065,27 +1106,9 @@
       "canViewFinalResult": true
     },
     {
-      "employeeId": "EMP-022",
-      "employeeName": "Hope Haruna",
-      "designation": "Content Creator",
-      "appraisalRole": "Content Creator",
-      "department": "Growth Team",
-      "level": "Officer 1",
-      "employeeUsername": "hope.haruna",
-      "managerLabel": "Head of Growth, COO, & CEO",
-      "reviewerLabel": "",
-      "kpiOwnerLabel": "Head of Growth",
-      "primaryOwnerLabel": "Head of Growth",
-      "status": "ready",
-      "blockers": [],
-      "excludedThisCycle": false,
-      "canSelfAppraise": true,
-      "canViewFinalResult": true
-    },
-    {
       "employeeId": "EMP-023",
       "employeeName": "Rose Uka",
-      "designation": "Beauty Attendant",
+      "designation": "Beauty Attendant (Surulere)",
       "appraisalRole": "Beauty Attendant",
       "department": "Operations",
       "level": "Officer 1",
@@ -1101,27 +1124,9 @@
       "canViewFinalResult": true
     },
     {
-      "employeeId": "EMP-024",
-      "employeeName": "Uduak Umoh",
-      "designation": "Beauty Attendant",
-      "appraisalRole": "Beauty Attendant",
-      "department": "Operations",
-      "level": "Officer 1",
-      "employeeUsername": "uduak.umoh",
-      "managerLabel": "Operations Manager",
-      "reviewerLabel": "",
-      "kpiOwnerLabel": "Operations Manager",
-      "primaryOwnerLabel": "Operations Manager",
-      "status": "ready",
-      "blockers": [],
-      "excludedThisCycle": false,
-      "canSelfAppraise": true,
-      "canViewFinalResult": true
-    },
-    {
       "employeeId": "EMP-025",
       "employeeName": "Eniola Ojekunle",
-      "designation": "Beauty Attendant",
+      "designation": "Beauty Attendant (Surulere)",
       "appraisalRole": "Beauty Attendant",
       "department": "Operations",
       "level": "Officer 1",
@@ -1157,7 +1162,7 @@
     {
       "employeeId": "EMP-027",
       "employeeName": "Lorreta Nwabuaja",
-      "designation": "Customer Service Representative",
+      "designation": "Customer Experience",
       "appraisalRole": "Customer Service Representative",
       "department": "Growth and Development Department",
       "level": "Officer 1",
@@ -1211,7 +1216,7 @@
     {
       "employeeId": "EMP-030",
       "employeeName": "Happiness  Oyewale",
-      "designation": "Beauty Attendant",
+      "designation": "Beauty Attendant (Lekki)",
       "appraisalRole": "Beauty Attendant",
       "department": "Operations",
       "level": "Officer 1",
@@ -1229,7 +1234,7 @@
     {
       "employeeId": "EMP-031",
       "employeeName": "Pamela Edeh",
-      "designation": "Beauty Attendant",
+      "designation": "Beauty Attendant (Lekki)",
       "appraisalRole": "Beauty Attendant",
       "department": "Operations",
       "level": "Officer 1",
@@ -1247,7 +1252,7 @@
     {
       "employeeId": "EMP-032",
       "employeeName": "Adams Temidayo",
-      "designation": "Technology & Facility Officer",
+      "designation": "IT Infrastructure",
       "appraisalRole": "Technology & Facility Officer",
       "department": "Information Technology",
       "level": "Officer 1",
@@ -1283,7 +1288,7 @@
     {
       "employeeId": "EMP-034",
       "employeeName": "Anyanwu Kelechi Anthony",
-      "designation": "Order Processing Officer",
+      "designation": "Order Fulfilment Officer",
       "appraisalRole": "Order Processing & Fulfilment",
       "department": "Operations",
       "level": "Officer 1",
@@ -1301,7 +1306,7 @@
     {
       "employeeId": "EMP-035",
       "employeeName": "Olayinka Olabiran",
-      "designation": "Order Processing Officer",
+      "designation": "Order Fulfilment Officer",
       "appraisalRole": "Order Processing & Fulfilment",
       "department": "Operations",
       "level": "Officer 1",
@@ -1319,7 +1324,7 @@
     {
       "employeeId": "EMP-036",
       "employeeName": "Ugwuogor Nnamdi Samuel",
-      "designation": "Order Processing Officer",
+      "designation": "Order Fulfilment Officer",
       "appraisalRole": "Order Processing & Fulfilment",
       "department": "Operations",
       "level": "Officer 1",
@@ -1337,7 +1342,7 @@
     {
       "employeeId": "EMP-037",
       "employeeName": "Mary Edun Abidemi",
-      "designation": "Beauty Attendant",
+      "designation": "Beauty Attendant (Lekki)",
       "appraisalRole": "Beauty Attendant",
       "department": "Operations",
       "level": "Officer 1",
@@ -1391,7 +1396,7 @@
     {
       "employeeId": "EMP-040",
       "employeeName": "Ajayi Abimbola Opeoluwa",
-      "designation": "Customer Care Representative",
+      "designation": "Customer Experience/Retention (Wholesale)",
       "appraisalRole": "Customer Support Specialist",
       "department": "Customer Service",
       "level": "Officer 2",
@@ -1445,7 +1450,7 @@
     {
       "employeeId": "EMP-043",
       "employeeName": "Samuel Mbudinma",
-      "designation": "Admin/People Operation Officer",
+      "designation": "Admin/People Operations Officer",
       "appraisalRole": "Admin/People Operation Officer",
       "department": "Operations",
       "level": "Officer 2",
@@ -1499,7 +1504,7 @@
     {
       "employeeId": "EMP-046",
       "employeeName": "Ojo Bunmi",
-      "designation": "Junior IT Officer",
+      "designation": "IT Business Analyst",
       "appraisalRole": "Technology & Facility Officer",
       "department": "Information Technology",
       "level": "Officer 2",
@@ -1517,7 +1522,7 @@
     {
       "employeeId": "EMP-047",
       "employeeName": "Felix Aondoemba Nguuma",
-      "designation": "Logistics Officer",
+      "designation": "Logistics Officer (Teamlead)",
       "appraisalRole": "Logistics Officer",
       "department": "Logistics",
       "level": "Senior Officer",
@@ -1535,7 +1540,7 @@
     {
       "employeeId": "EMP-048",
       "employeeName": "Victor Ugwu",
-      "designation": "Order Processing Officer (Teamlead)",
+      "designation": "Order Fulfilment (Teamlead)",
       "appraisalRole": "Order Processing & Fulfilment",
       "department": "Operations",
       "level": "Senior Officer",
@@ -1571,7 +1576,7 @@
     {
       "employeeId": "EMP-050",
       "employeeName": "Mary Favour Okorji",
-      "designation": "Beauty Attendant",
+      "designation": "Beauty Attendant (Floor Manager Lekki)",
       "appraisalRole": "Beauty Attendant",
       "department": "Operations",
       "level": "Senior Officer",
@@ -1589,7 +1594,7 @@
     {
       "employeeId": "EMP-051",
       "employeeName": "Okoro Victor",
-      "designation": "Customer Service Representative  (Teamlead)",
+      "designation": "Customer Service Representative (Teamlead)",
       "appraisalRole": "Customer Service Representative",
       "department": "Growth and Development Department",
       "level": "Senior Officer",
@@ -1607,7 +1612,7 @@
     {
       "employeeId": "EMP-052",
       "employeeName": "Chinemerem Mgbaruike",
-      "designation": "Digital Marketing Executive",
+      "designation": "Digital Marketing/Content Lead",
       "appraisalRole": "Digital Marketing Manager",
       "department": "Growth",
       "level": "Senior Officer",
@@ -1625,7 +1630,7 @@
     {
       "employeeId": "EMP-053",
       "employeeName": "Olorunfemi Adegoke",
-      "designation": "Key Account Manager",
+      "designation": "Key Account Retention and Acquisition",
       "appraisalRole": "Key Account Manager",
       "department": "Growth Department",
       "level": "Senior Officer",
@@ -1643,7 +1648,7 @@
     {
       "employeeId": "EMP-054",
       "employeeName": "Chisom Ugoh",
-      "designation": "Beauty Attendant",
+      "designation": "Beauty Attendant (Floor Manager Surulere)",
       "appraisalRole": "Beauty Attendant",
       "department": "Operations",
       "level": "Senior Officer",
@@ -1680,7 +1685,7 @@
       "employeeId": "EMP-056",
       "employeeName": "Ololade Shoyemi",
       "designation": "Growth Lead",
-      "appraisalRole": "",
+      "appraisalRole": "Growth Lead",
       "department": "Growth",
       "level": "Manager",
       "employeeUsername": "ololade.shoyemi",
@@ -1688,13 +1693,11 @@
       "reviewerLabel": "",
       "kpiOwnerLabel": "Chief of Staff",
       "primaryOwnerLabel": "Chief of Staff",
-      "status": "blocked",
-      "blockers": [
-        "No KPI role mapped yet"
-      ],
+      "status": "ready",
+      "blockers": [],
       "excludedThisCycle": false,
       "canSelfAppraise": true,
-      "canViewFinalResult": false
+      "canViewFinalResult": true
     },
     {
       "employeeId": "EMP-057",
@@ -1865,10 +1868,10 @@
       "kpiArea": "Hygiene Safety & Compliance",
       "kpiStatement": "Hygiene Safety & Compliance",
       "weightPercent": 0,
-      "managerLabel": "Head of Operations",
+      "managerLabel": "Chinwe Enemokwu",
       "reviewerLabel": "",
-      "kpiOwnerLabel": "Head of Operations",
-      "primaryOwnerLabel": "Head of Operations",
+      "kpiOwnerLabel": "Chinwe Enemokwu",
+      "primaryOwnerLabel": "Chinwe Enemokwu",
       "score": 0,
       "managerComment": "",
       "evidenceNote": "",
@@ -1886,10 +1889,10 @@
       "kpiArea": "Merchandising & Inventory Management",
       "kpiStatement": "Merchandising & Inventory Management",
       "weightPercent": 0,
-      "managerLabel": "Head of Operations",
+      "managerLabel": "Chinwe Enemokwu",
       "reviewerLabel": "",
-      "kpiOwnerLabel": "Head of Operations",
-      "primaryOwnerLabel": "Head of Operations",
+      "kpiOwnerLabel": "Chinwe Enemokwu",
+      "primaryOwnerLabel": "Chinwe Enemokwu",
       "score": 0,
       "managerComment": "",
       "evidenceNote": "",
@@ -1907,10 +1910,10 @@
       "kpiArea": "Product Knowledge & Advisory Accuracy",
       "kpiStatement": "Product Knowledge & Advisory Accuracy",
       "weightPercent": 0,
-      "managerLabel": "Head of Operations",
+      "managerLabel": "Chinwe Enemokwu",
       "reviewerLabel": "",
-      "kpiOwnerLabel": "Head of Operations",
-      "primaryOwnerLabel": "Head of Operations",
+      "kpiOwnerLabel": "Chinwe Enemokwu",
+      "primaryOwnerLabel": "Chinwe Enemokwu",
       "score": 0,
       "managerComment": "",
       "evidenceNote": "",
@@ -1928,10 +1931,10 @@
       "kpiArea": "Teamwork Attendance & Engagement",
       "kpiStatement": "Teamwork Attendance & Engagement",
       "weightPercent": 0,
-      "managerLabel": "Head of Operations",
+      "managerLabel": "Chinwe Enemokwu",
       "reviewerLabel": "",
-      "kpiOwnerLabel": "Head of Operations",
-      "primaryOwnerLabel": "Head of Operations",
+      "kpiOwnerLabel": "Chinwe Enemokwu",
+      "primaryOwnerLabel": "Chinwe Enemokwu",
       "score": 0,
       "managerComment": "",
       "evidenceNote": "",
@@ -1949,10 +1952,10 @@
       "kpiArea": "Hygiene Safety & Compliance",
       "kpiStatement": "Hygiene Safety & Compliance",
       "weightPercent": 0,
-      "managerLabel": "Head of Operations",
+      "managerLabel": "Chinwe Enemokwu",
       "reviewerLabel": "",
-      "kpiOwnerLabel": "Head of Operations",
-      "primaryOwnerLabel": "Head of Operations",
+      "kpiOwnerLabel": "Chinwe Enemokwu",
+      "primaryOwnerLabel": "Chinwe Enemokwu",
       "score": 0,
       "managerComment": "",
       "evidenceNote": "",
@@ -1970,10 +1973,10 @@
       "kpiArea": "Merchandising & Inventory Management",
       "kpiStatement": "Merchandising & Inventory Management",
       "weightPercent": 0,
-      "managerLabel": "Head of Operations",
+      "managerLabel": "Chinwe Enemokwu",
       "reviewerLabel": "",
-      "kpiOwnerLabel": "Head of Operations",
-      "primaryOwnerLabel": "Head of Operations",
+      "kpiOwnerLabel": "Chinwe Enemokwu",
+      "primaryOwnerLabel": "Chinwe Enemokwu",
       "score": 0,
       "managerComment": "",
       "evidenceNote": "",
@@ -1991,10 +1994,10 @@
       "kpiArea": "Product Knowledge & Advisory Accuracy",
       "kpiStatement": "Product Knowledge & Advisory Accuracy",
       "weightPercent": 0,
-      "managerLabel": "Head of Operations",
+      "managerLabel": "Chinwe Enemokwu",
       "reviewerLabel": "",
-      "kpiOwnerLabel": "Head of Operations",
-      "primaryOwnerLabel": "Head of Operations",
+      "kpiOwnerLabel": "Chinwe Enemokwu",
+      "primaryOwnerLabel": "Chinwe Enemokwu",
       "score": 0,
       "managerComment": "",
       "evidenceNote": "",
@@ -2012,10 +2015,10 @@
       "kpiArea": "Teamwork Attendance & Engagement",
       "kpiStatement": "Teamwork Attendance & Engagement",
       "weightPercent": 0,
-      "managerLabel": "Head of Operations",
+      "managerLabel": "Chinwe Enemokwu",
       "reviewerLabel": "",
-      "kpiOwnerLabel": "Head of Operations",
-      "primaryOwnerLabel": "Head of Operations",
+      "kpiOwnerLabel": "Chinwe Enemokwu",
+      "primaryOwnerLabel": "Chinwe Enemokwu",
       "score": 0,
       "managerComment": "",
       "evidenceNote": "",
@@ -3241,111 +3244,6 @@
       "status": "pending"
     },
     {
-      "assignmentId": "EMP-022-KPI-01",
-      "cycle": "2026-H1",
-      "employeeId": "EMP-022",
-      "employeeName": "Hope Haruna",
-      "employeeUsername": "hope.haruna",
-      "jobTitle": "Content Creator",
-      "department": "Growth Team",
-      "kpiArea": "Campaign Support",
-      "kpiStatement": "Campaign Support",
-      "weightPercent": 0,
-      "managerLabel": "Head of Growth, COO, & CEO",
-      "reviewerLabel": "",
-      "kpiOwnerLabel": "Head of Growth",
-      "primaryOwnerLabel": "Head of Growth",
-      "score": 0,
-      "managerComment": "",
-      "evidenceNote": "",
-      "developmentAction": "",
-      "status": "pending"
-    },
-    {
-      "assignmentId": "EMP-022-KPI-02",
-      "cycle": "2026-H1",
-      "employeeId": "EMP-022",
-      "employeeName": "Hope Haruna",
-      "employeeUsername": "hope.haruna",
-      "jobTitle": "Content Creator",
-      "department": "Growth Team",
-      "kpiArea": "Content Alignment",
-      "kpiStatement": "Content Alignment",
-      "weightPercent": 0,
-      "managerLabel": "Head of Growth, COO, & CEO",
-      "reviewerLabel": "",
-      "kpiOwnerLabel": "Head of Growth",
-      "primaryOwnerLabel": "Head of Growth",
-      "score": 0,
-      "managerComment": "",
-      "evidenceNote": "",
-      "developmentAction": "",
-      "status": "pending"
-    },
-    {
-      "assignmentId": "EMP-022-KPI-03",
-      "cycle": "2026-H1",
-      "employeeId": "EMP-022",
-      "employeeName": "Hope Haruna",
-      "employeeUsername": "hope.haruna",
-      "jobTitle": "Content Creator",
-      "department": "Growth Team",
-      "kpiArea": "Content Output",
-      "kpiStatement": "Content Output",
-      "weightPercent": 0,
-      "managerLabel": "Head of Growth, COO, & CEO",
-      "reviewerLabel": "",
-      "kpiOwnerLabel": "Head of Growth",
-      "primaryOwnerLabel": "Head of Growth",
-      "score": 0,
-      "managerComment": "",
-      "evidenceNote": "",
-      "developmentAction": "",
-      "status": "pending"
-    },
-    {
-      "assignmentId": "EMP-022-KPI-04",
-      "cycle": "2026-H1",
-      "employeeId": "EMP-022",
-      "employeeName": "Hope Haruna",
-      "employeeUsername": "hope.haruna",
-      "jobTitle": "Content Creator",
-      "department": "Growth Team",
-      "kpiArea": "Engagement Contribution",
-      "kpiStatement": "Engagement Contribution",
-      "weightPercent": 0,
-      "managerLabel": "Head of Growth, COO, & CEO",
-      "reviewerLabel": "",
-      "kpiOwnerLabel": "Head of Growth",
-      "primaryOwnerLabel": "Head of Growth",
-      "score": 0,
-      "managerComment": "",
-      "evidenceNote": "",
-      "developmentAction": "",
-      "status": "pending"
-    },
-    {
-      "assignmentId": "EMP-022-KPI-05",
-      "cycle": "2026-H1",
-      "employeeId": "EMP-022",
-      "employeeName": "Hope Haruna",
-      "employeeUsername": "hope.haruna",
-      "jobTitle": "Content Creator",
-      "department": "Growth Team",
-      "kpiArea": "UGC Management",
-      "kpiStatement": "UGC Management",
-      "weightPercent": 0,
-      "managerLabel": "Head of Growth, COO, & CEO",
-      "reviewerLabel": "",
-      "kpiOwnerLabel": "Head of Growth",
-      "primaryOwnerLabel": "Head of Growth",
-      "score": 0,
-      "managerComment": "",
-      "evidenceNote": "",
-      "developmentAction": "",
-      "status": "pending"
-    },
-    {
       "assignmentId": "EMP-023-KPI-01",
       "cycle": "2026-H1",
       "employeeId": "EMP-023",
@@ -3414,90 +3312,6 @@
       "employeeId": "EMP-023",
       "employeeName": "Rose Uka",
       "employeeUsername": "rose.uka",
-      "jobTitle": "Beauty Attendant",
-      "department": "Operations",
-      "kpiArea": "Teamwork Attendance & Engagement",
-      "kpiStatement": "Teamwork Attendance & Engagement",
-      "weightPercent": 0,
-      "managerLabel": "Operations Manager",
-      "reviewerLabel": "",
-      "kpiOwnerLabel": "Operations Manager",
-      "primaryOwnerLabel": "Operations Manager",
-      "score": 0,
-      "managerComment": "",
-      "evidenceNote": "",
-      "developmentAction": "",
-      "status": "pending"
-    },
-    {
-      "assignmentId": "EMP-024-KPI-01",
-      "cycle": "2026-H1",
-      "employeeId": "EMP-024",
-      "employeeName": "Uduak Umoh",
-      "employeeUsername": "uduak.umoh",
-      "jobTitle": "Beauty Attendant",
-      "department": "Operations",
-      "kpiArea": "Hygiene Safety & Compliance",
-      "kpiStatement": "Hygiene Safety & Compliance",
-      "weightPercent": 0,
-      "managerLabel": "Operations Manager",
-      "reviewerLabel": "",
-      "kpiOwnerLabel": "Operations Manager",
-      "primaryOwnerLabel": "Operations Manager",
-      "score": 0,
-      "managerComment": "",
-      "evidenceNote": "",
-      "developmentAction": "",
-      "status": "pending"
-    },
-    {
-      "assignmentId": "EMP-024-KPI-02",
-      "cycle": "2026-H1",
-      "employeeId": "EMP-024",
-      "employeeName": "Uduak Umoh",
-      "employeeUsername": "uduak.umoh",
-      "jobTitle": "Beauty Attendant",
-      "department": "Operations",
-      "kpiArea": "Merchandising & Inventory Management",
-      "kpiStatement": "Merchandising & Inventory Management",
-      "weightPercent": 0,
-      "managerLabel": "Operations Manager",
-      "reviewerLabel": "",
-      "kpiOwnerLabel": "Operations Manager",
-      "primaryOwnerLabel": "Operations Manager",
-      "score": 0,
-      "managerComment": "",
-      "evidenceNote": "",
-      "developmentAction": "",
-      "status": "pending"
-    },
-    {
-      "assignmentId": "EMP-024-KPI-03",
-      "cycle": "2026-H1",
-      "employeeId": "EMP-024",
-      "employeeName": "Uduak Umoh",
-      "employeeUsername": "uduak.umoh",
-      "jobTitle": "Beauty Attendant",
-      "department": "Operations",
-      "kpiArea": "Product Knowledge & Advisory Accuracy",
-      "kpiStatement": "Product Knowledge & Advisory Accuracy",
-      "weightPercent": 0,
-      "managerLabel": "Operations Manager",
-      "reviewerLabel": "",
-      "kpiOwnerLabel": "Operations Manager",
-      "primaryOwnerLabel": "Operations Manager",
-      "score": 0,
-      "managerComment": "",
-      "evidenceNote": "",
-      "developmentAction": "",
-      "status": "pending"
-    },
-    {
-      "assignmentId": "EMP-024-KPI-04",
-      "cycle": "2026-H1",
-      "employeeId": "EMP-024",
-      "employeeName": "Uduak Umoh",
-      "employeeUsername": "uduak.umoh",
       "jobTitle": "Beauty Attendant",
       "department": "Operations",
       "kpiArea": "Teamwork Attendance & Engagement",
@@ -7168,6 +6982,300 @@
       "status": "pending"
     },
     {
+      "assignmentId": "EMP-056-KPI-01",
+      "cycle": "2026-H1",
+      "employeeId": "EMP-056",
+      "employeeName": "Ololade Shoyemi",
+      "employeeUsername": "ololade.shoyemi",
+      "jobTitle": "Growth Lead",
+      "department": "Growth",
+      "kpiArea": "Daily Order Volume Growth",
+      "kpiStatement": "Grow combined daily order volume toward approved targets and reverse recent order decline through repeatable commercial execution.",
+      "weightPercent": 14,
+      "managerLabel": "Chief of Staff",
+      "reviewerLabel": "",
+      "kpiOwnerLabel": "Chief of Staff",
+      "primaryOwnerLabel": "Chief of Staff",
+      "score": 0,
+      "managerComment": "",
+      "evidenceNote": "",
+      "developmentAction": "",
+      "status": "pending"
+    },
+    {
+      "assignmentId": "EMP-056-KPI-02",
+      "cycle": "2026-H1",
+      "employeeId": "EMP-056",
+      "employeeName": "Ololade Shoyemi",
+      "employeeUsername": "ololade.shoyemi",
+      "jobTitle": "Growth Lead",
+      "department": "Growth",
+      "kpiArea": "Same-Day Delivery Expansion",
+      "kpiStatement": "Scale same-day delivery order throughput while protecting fulfilment quality and execution consistency.",
+      "weightPercent": 10,
+      "managerLabel": "Chief of Staff",
+      "reviewerLabel": "",
+      "kpiOwnerLabel": "Chief of Staff",
+      "primaryOwnerLabel": "Chief of Staff",
+      "score": 0,
+      "managerComment": "",
+      "evidenceNote": "",
+      "developmentAction": "",
+      "status": "pending"
+    },
+    {
+      "assignmentId": "EMP-056-KPI-03",
+      "cycle": "2026-H1",
+      "employeeId": "EMP-056",
+      "employeeName": "Ololade Shoyemi",
+      "employeeUsername": "ololade.shoyemi",
+      "jobTitle": "Growth Lead",
+      "department": "Growth",
+      "kpiArea": "Promotional Cadence Execution",
+      "kpiStatement": "Run the approved free-delivery promotional cadence consistently and on schedule.",
+      "weightPercent": 6,
+      "managerLabel": "Chief of Staff",
+      "reviewerLabel": "",
+      "kpiOwnerLabel": "Chief of Staff",
+      "primaryOwnerLabel": "Chief of Staff",
+      "score": 0,
+      "managerComment": "",
+      "evidenceNote": "",
+      "developmentAction": "",
+      "status": "pending"
+    },
+    {
+      "assignmentId": "EMP-056-KPI-04",
+      "cycle": "2026-H1",
+      "employeeId": "EMP-056",
+      "employeeName": "Ololade Shoyemi",
+      "employeeUsername": "ololade.shoyemi",
+      "jobTitle": "Growth Lead",
+      "department": "Growth",
+      "kpiArea": "Promotional Revenue Capture",
+      "kpiStatement": "Convert promotional campaigns into measurable revenue uplift against approved promo targets.",
+      "weightPercent": 5,
+      "managerLabel": "Chief of Staff",
+      "reviewerLabel": "",
+      "kpiOwnerLabel": "Chief of Staff",
+      "primaryOwnerLabel": "Chief of Staff",
+      "score": 0,
+      "managerComment": "",
+      "evidenceNote": "",
+      "developmentAction": "",
+      "status": "pending"
+    },
+    {
+      "assignmentId": "EMP-056-KPI-05",
+      "cycle": "2026-H1",
+      "employeeId": "EMP-056",
+      "employeeName": "Ololade Shoyemi",
+      "employeeUsername": "ololade.shoyemi",
+      "jobTitle": "Growth Lead",
+      "department": "Growth",
+      "kpiArea": "Nivea Revenue Growth",
+      "kpiStatement": "Increase the Nivea monthly revenue line against target through focused commercial actions.",
+      "weightPercent": 8,
+      "managerLabel": "Chief of Staff",
+      "reviewerLabel": "",
+      "kpiOwnerLabel": "Chief of Staff",
+      "primaryOwnerLabel": "Chief of Staff",
+      "score": 0,
+      "managerComment": "",
+      "evidenceNote": "",
+      "developmentAction": "",
+      "status": "pending"
+    },
+    {
+      "assignmentId": "EMP-056-KPI-06",
+      "cycle": "2026-H1",
+      "employeeId": "EMP-056",
+      "employeeName": "Ololade Shoyemi",
+      "employeeUsername": "ololade.shoyemi",
+      "jobTitle": "Growth Lead",
+      "department": "Growth",
+      "kpiArea": "Beesline Merchandising Performance",
+      "kpiStatement": "Improve Beesline monthly unit movement through strong in-store merchandising and sell-through execution.",
+      "weightPercent": 5,
+      "managerLabel": "Chief of Staff",
+      "reviewerLabel": "",
+      "kpiOwnerLabel": "Chief of Staff",
+      "primaryOwnerLabel": "Chief of Staff",
+      "score": 0,
+      "managerComment": "",
+      "evidenceNote": "",
+      "developmentAction": "",
+      "status": "pending"
+    },
+    {
+      "assignmentId": "EMP-056-KPI-07",
+      "cycle": "2026-H1",
+      "employeeId": "EMP-056",
+      "employeeName": "Ololade Shoyemi",
+      "employeeUsername": "ololade.shoyemi",
+      "jobTitle": "Growth Lead",
+      "department": "Growth",
+      "kpiArea": "New Revenue Line Introduction",
+      "kpiStatement": "Launch and stabilise new revenue lines using the brand introduction playbook.",
+      "weightPercent": 5,
+      "managerLabel": "Chief of Staff",
+      "reviewerLabel": "",
+      "kpiOwnerLabel": "Chief of Staff",
+      "primaryOwnerLabel": "Chief of Staff",
+      "score": 0,
+      "managerComment": "",
+      "evidenceNote": "",
+      "developmentAction": "",
+      "status": "pending"
+    },
+    {
+      "assignmentId": "EMP-056-KPI-08",
+      "cycle": "2026-H1",
+      "employeeId": "EMP-056",
+      "employeeName": "Ololade Shoyemi",
+      "employeeUsername": "ololade.shoyemi",
+      "jobTitle": "Growth Lead",
+      "department": "Growth",
+      "kpiArea": "Department Revenue Delivery",
+      "kpiStatement": "Deliver all-channel daily department revenue against target and keep the team focused on the highest-yield levers.",
+      "weightPercent": 15,
+      "managerLabel": "Chief of Staff",
+      "reviewerLabel": "",
+      "kpiOwnerLabel": "Chief of Staff",
+      "primaryOwnerLabel": "Chief of Staff",
+      "score": 0,
+      "managerComment": "",
+      "evidenceNote": "",
+      "developmentAction": "",
+      "status": "pending"
+    },
+    {
+      "assignmentId": "EMP-056-KPI-09",
+      "cycle": "2026-H1",
+      "employeeId": "EMP-056",
+      "employeeName": "Ololade Shoyemi",
+      "employeeUsername": "ololade.shoyemi",
+      "jobTitle": "Growth Lead",
+      "department": "Growth",
+      "kpiArea": "Core Channel Revenue Growth",
+      "kpiStatement": "Grow the largest channel revenue line against daily target and sustain momentum in the strongest commercial lane.",
+      "weightPercent": 10,
+      "managerLabel": "Chief of Staff",
+      "reviewerLabel": "",
+      "kpiOwnerLabel": "Chief of Staff",
+      "primaryOwnerLabel": "Chief of Staff",
+      "score": 0,
+      "managerComment": "",
+      "evidenceNote": "",
+      "developmentAction": "",
+      "status": "pending"
+    },
+    {
+      "assignmentId": "EMP-056-KPI-10",
+      "cycle": "2026-H1",
+      "employeeId": "EMP-056",
+      "employeeName": "Ololade Shoyemi",
+      "employeeUsername": "ololade.shoyemi",
+      "jobTitle": "Growth Lead",
+      "department": "Growth",
+      "kpiArea": "Average Order Value Defense",
+      "kpiStatement": "Maintain average order value at or above the agreed floor through bundling and cross-sell discipline.",
+      "weightPercent": 5,
+      "managerLabel": "Chief of Staff",
+      "reviewerLabel": "",
+      "kpiOwnerLabel": "Chief of Staff",
+      "primaryOwnerLabel": "Chief of Staff",
+      "score": 0,
+      "managerComment": "",
+      "evidenceNote": "",
+      "developmentAction": "",
+      "status": "pending"
+    },
+    {
+      "assignmentId": "EMP-056-KPI-11",
+      "cycle": "2026-H1",
+      "employeeId": "EMP-056",
+      "employeeName": "Ololade Shoyemi",
+      "employeeUsername": "ololade.shoyemi",
+      "jobTitle": "Growth Lead",
+      "department": "Growth",
+      "kpiArea": "Same-Day Delivery SLA",
+      "kpiStatement": "Maintain on-time same-day delivery performance at the agreed service level.",
+      "weightPercent": 5,
+      "managerLabel": "Chief of Staff",
+      "reviewerLabel": "",
+      "kpiOwnerLabel": "Chief of Staff",
+      "primaryOwnerLabel": "Chief of Staff",
+      "score": 0,
+      "managerComment": "",
+      "evidenceNote": "",
+      "developmentAction": "",
+      "status": "pending"
+    },
+    {
+      "assignmentId": "EMP-056-KPI-12",
+      "cycle": "2026-H1",
+      "employeeId": "EMP-056",
+      "employeeName": "Ololade Shoyemi",
+      "employeeUsername": "ololade.shoyemi",
+      "jobTitle": "Growth Lead",
+      "department": "Growth",
+      "kpiArea": "Top-SKU Stockout Control",
+      "kpiStatement": "Reduce stockout incidents across top SKUs through forecasting follow-up and replenishment coordination.",
+      "weightPercent": 4,
+      "managerLabel": "Chief of Staff",
+      "reviewerLabel": "",
+      "kpiOwnerLabel": "Chief of Staff",
+      "primaryOwnerLabel": "Chief of Staff",
+      "score": 0,
+      "managerComment": "",
+      "evidenceNote": "",
+      "developmentAction": "",
+      "status": "pending"
+    },
+    {
+      "assignmentId": "EMP-056-KPI-13",
+      "cycle": "2026-H1",
+      "employeeId": "EMP-056",
+      "employeeName": "Ololade Shoyemi",
+      "employeeUsername": "ololade.shoyemi",
+      "jobTitle": "Growth Lead",
+      "department": "Growth",
+      "kpiArea": "Direct Report KPI Delivery",
+      "kpiStatement": "Drive direct reports to achieve department KPIs through clear cascade, follow-up, and performance management.",
+      "weightPercent": 5,
+      "managerLabel": "Chief of Staff",
+      "reviewerLabel": "",
+      "kpiOwnerLabel": "Chief of Staff",
+      "primaryOwnerLabel": "Chief of Staff",
+      "score": 0,
+      "managerComment": "",
+      "evidenceNote": "",
+      "developmentAction": "",
+      "status": "pending"
+    },
+    {
+      "assignmentId": "EMP-056-KPI-14",
+      "cycle": "2026-H1",
+      "employeeId": "EMP-056",
+      "employeeName": "Ololade Shoyemi",
+      "employeeUsername": "ololade.shoyemi",
+      "jobTitle": "Growth Lead",
+      "department": "Growth",
+      "kpiArea": "Wholesale Partner Retention",
+      "kpiStatement": "Maintain target retention across key wholesale partners through joint planning and disciplined relationship management.",
+      "weightPercent": 3,
+      "managerLabel": "Chief of Staff",
+      "reviewerLabel": "",
+      "kpiOwnerLabel": "Chief of Staff",
+      "primaryOwnerLabel": "Chief of Staff",
+      "score": 0,
+      "managerComment": "",
+      "evidenceNote": "",
+      "developmentAction": "",
+      "status": "pending"
+    },
+    {
       "assignmentId": "EMP-057-KPI-01",
       "cycle": "2026-H1",
       "employeeId": "EMP-057",
@@ -7652,32 +7760,6 @@
     }
   ],
   "selfAppraisals": [
-    {
-      "employeeId": "EMP-004",
-      "employeeName": "David Adjei",
-      "employeeUsername": "david.adjei",
-      "cycle": "2026-H1",
-      "kpiEntries": [],
-      "overallAchievements": "",
-      "majorChallenges": "",
-      "supportNeeded": "",
-      "developmentFocus": "",
-      "employeeComments": "",
-      "status": "draft"
-    },
-    {
-      "employeeId": "EMP-005",
-      "employeeName": "Ibrahim Musa",
-      "employeeUsername": "ibrahim.musa",
-      "cycle": "2026-H1",
-      "kpiEntries": [],
-      "overallAchievements": "",
-      "majorChallenges": "",
-      "supportNeeded": "",
-      "developmentFocus": "",
-      "employeeComments": "",
-      "status": "draft"
-    },
     {
       "employeeId": "EMP-006",
       "employeeName": "Akintomide Akindele",
@@ -8531,65 +8613,6 @@
       "status": "draft"
     },
     {
-      "employeeId": "EMP-022",
-      "employeeName": "Hope Haruna",
-      "employeeUsername": "hope.haruna",
-      "cycle": "2026-H1",
-      "kpiEntries": [
-        {
-          "assignmentId": "EMP-022-KPI-01",
-          "kpiArea": "Campaign Support",
-          "kpiStatement": "Campaign Support",
-          "selfScore": 0,
-          "reasonForScore": "",
-          "keyEvidence": "",
-          "challengesFaced": ""
-        },
-        {
-          "assignmentId": "EMP-022-KPI-02",
-          "kpiArea": "Content Alignment",
-          "kpiStatement": "Content Alignment",
-          "selfScore": 0,
-          "reasonForScore": "",
-          "keyEvidence": "",
-          "challengesFaced": ""
-        },
-        {
-          "assignmentId": "EMP-022-KPI-03",
-          "kpiArea": "Content Output",
-          "kpiStatement": "Content Output",
-          "selfScore": 0,
-          "reasonForScore": "",
-          "keyEvidence": "",
-          "challengesFaced": ""
-        },
-        {
-          "assignmentId": "EMP-022-KPI-04",
-          "kpiArea": "Engagement Contribution",
-          "kpiStatement": "Engagement Contribution",
-          "selfScore": 0,
-          "reasonForScore": "",
-          "keyEvidence": "",
-          "challengesFaced": ""
-        },
-        {
-          "assignmentId": "EMP-022-KPI-05",
-          "kpiArea": "UGC Management",
-          "kpiStatement": "UGC Management",
-          "selfScore": 0,
-          "reasonForScore": "",
-          "keyEvidence": "",
-          "challengesFaced": ""
-        }
-      ],
-      "overallAchievements": "",
-      "majorChallenges": "",
-      "supportNeeded": "",
-      "developmentFocus": "",
-      "employeeComments": "",
-      "status": "draft"
-    },
-    {
       "employeeId": "EMP-023",
       "employeeName": "Rose Uka",
       "employeeUsername": "rose.uka",
@@ -8624,56 +8647,6 @@
         },
         {
           "assignmentId": "EMP-023-KPI-04",
-          "kpiArea": "Teamwork Attendance & Engagement",
-          "kpiStatement": "Teamwork Attendance & Engagement",
-          "selfScore": 0,
-          "reasonForScore": "",
-          "keyEvidence": "",
-          "challengesFaced": ""
-        }
-      ],
-      "overallAchievements": "",
-      "majorChallenges": "",
-      "supportNeeded": "",
-      "developmentFocus": "",
-      "employeeComments": "",
-      "status": "draft"
-    },
-    {
-      "employeeId": "EMP-024",
-      "employeeName": "Uduak Umoh",
-      "employeeUsername": "uduak.umoh",
-      "cycle": "2026-H1",
-      "kpiEntries": [
-        {
-          "assignmentId": "EMP-024-KPI-01",
-          "kpiArea": "Hygiene Safety & Compliance",
-          "kpiStatement": "Hygiene Safety & Compliance",
-          "selfScore": 0,
-          "reasonForScore": "",
-          "keyEvidence": "",
-          "challengesFaced": ""
-        },
-        {
-          "assignmentId": "EMP-024-KPI-02",
-          "kpiArea": "Merchandising & Inventory Management",
-          "kpiStatement": "Merchandising & Inventory Management",
-          "selfScore": 0,
-          "reasonForScore": "",
-          "keyEvidence": "",
-          "challengesFaced": ""
-        },
-        {
-          "assignmentId": "EMP-024-KPI-03",
-          "kpiArea": "Product Knowledge & Advisory Accuracy",
-          "kpiStatement": "Product Knowledge & Advisory Accuracy",
-          "selfScore": 0,
-          "reasonForScore": "",
-          "keyEvidence": "",
-          "challengesFaced": ""
-        },
-        {
-          "assignmentId": "EMP-024-KPI-04",
           "kpiArea": "Teamwork Attendance & Engagement",
           "kpiStatement": "Teamwork Attendance & Engagement",
           "selfScore": 0,
@@ -10694,7 +10667,134 @@
       "employeeName": "Ololade Shoyemi",
       "employeeUsername": "ololade.shoyemi",
       "cycle": "2026-H1",
-      "kpiEntries": [],
+      "kpiEntries": [
+        {
+          "assignmentId": "EMP-056-KPI-01",
+          "kpiArea": "Daily Order Volume Growth",
+          "kpiStatement": "Grow combined daily order volume toward approved targets and reverse recent order decline through repeatable commercial execution.",
+          "selfScore": 0,
+          "reasonForScore": "",
+          "keyEvidence": "",
+          "challengesFaced": ""
+        },
+        {
+          "assignmentId": "EMP-056-KPI-02",
+          "kpiArea": "Same-Day Delivery Expansion",
+          "kpiStatement": "Scale same-day delivery order throughput while protecting fulfilment quality and execution consistency.",
+          "selfScore": 0,
+          "reasonForScore": "",
+          "keyEvidence": "",
+          "challengesFaced": ""
+        },
+        {
+          "assignmentId": "EMP-056-KPI-03",
+          "kpiArea": "Promotional Cadence Execution",
+          "kpiStatement": "Run the approved free-delivery promotional cadence consistently and on schedule.",
+          "selfScore": 0,
+          "reasonForScore": "",
+          "keyEvidence": "",
+          "challengesFaced": ""
+        },
+        {
+          "assignmentId": "EMP-056-KPI-04",
+          "kpiArea": "Promotional Revenue Capture",
+          "kpiStatement": "Convert promotional campaigns into measurable revenue uplift against approved promo targets.",
+          "selfScore": 0,
+          "reasonForScore": "",
+          "keyEvidence": "",
+          "challengesFaced": ""
+        },
+        {
+          "assignmentId": "EMP-056-KPI-05",
+          "kpiArea": "Nivea Revenue Growth",
+          "kpiStatement": "Increase the Nivea monthly revenue line against target through focused commercial actions.",
+          "selfScore": 0,
+          "reasonForScore": "",
+          "keyEvidence": "",
+          "challengesFaced": ""
+        },
+        {
+          "assignmentId": "EMP-056-KPI-06",
+          "kpiArea": "Beesline Merchandising Performance",
+          "kpiStatement": "Improve Beesline monthly unit movement through strong in-store merchandising and sell-through execution.",
+          "selfScore": 0,
+          "reasonForScore": "",
+          "keyEvidence": "",
+          "challengesFaced": ""
+        },
+        {
+          "assignmentId": "EMP-056-KPI-07",
+          "kpiArea": "New Revenue Line Introduction",
+          "kpiStatement": "Launch and stabilise new revenue lines using the brand introduction playbook.",
+          "selfScore": 0,
+          "reasonForScore": "",
+          "keyEvidence": "",
+          "challengesFaced": ""
+        },
+        {
+          "assignmentId": "EMP-056-KPI-08",
+          "kpiArea": "Department Revenue Delivery",
+          "kpiStatement": "Deliver all-channel daily department revenue against target and keep the team focused on the highest-yield levers.",
+          "selfScore": 0,
+          "reasonForScore": "",
+          "keyEvidence": "",
+          "challengesFaced": ""
+        },
+        {
+          "assignmentId": "EMP-056-KPI-09",
+          "kpiArea": "Core Channel Revenue Growth",
+          "kpiStatement": "Grow the largest channel revenue line against daily target and sustain momentum in the strongest commercial lane.",
+          "selfScore": 0,
+          "reasonForScore": "",
+          "keyEvidence": "",
+          "challengesFaced": ""
+        },
+        {
+          "assignmentId": "EMP-056-KPI-10",
+          "kpiArea": "Average Order Value Defense",
+          "kpiStatement": "Maintain average order value at or above the agreed floor through bundling and cross-sell discipline.",
+          "selfScore": 0,
+          "reasonForScore": "",
+          "keyEvidence": "",
+          "challengesFaced": ""
+        },
+        {
+          "assignmentId": "EMP-056-KPI-11",
+          "kpiArea": "Same-Day Delivery SLA",
+          "kpiStatement": "Maintain on-time same-day delivery performance at the agreed service level.",
+          "selfScore": 0,
+          "reasonForScore": "",
+          "keyEvidence": "",
+          "challengesFaced": ""
+        },
+        {
+          "assignmentId": "EMP-056-KPI-12",
+          "kpiArea": "Top-SKU Stockout Control",
+          "kpiStatement": "Reduce stockout incidents across top SKUs through forecasting follow-up and replenishment coordination.",
+          "selfScore": 0,
+          "reasonForScore": "",
+          "keyEvidence": "",
+          "challengesFaced": ""
+        },
+        {
+          "assignmentId": "EMP-056-KPI-13",
+          "kpiArea": "Direct Report KPI Delivery",
+          "kpiStatement": "Drive direct reports to achieve department KPIs through clear cascade, follow-up, and performance management.",
+          "selfScore": 0,
+          "reasonForScore": "",
+          "keyEvidence": "",
+          "challengesFaced": ""
+        },
+        {
+          "assignmentId": "EMP-056-KPI-14",
+          "kpiArea": "Wholesale Partner Retention",
+          "kpiStatement": "Maintain target retention across key wholesale partners through joint planning and disciplined relationship management.",
+          "selfScore": 0,
+          "reasonForScore": "",
+          "keyEvidence": "",
+          "challengesFaced": ""
+        }
+      ],
       "overallAchievements": "",
       "majorChallenges": "",
       "supportNeeded": "",
@@ -10968,30 +11068,6 @@
   ],
   "finalResults": [
     {
-      "employeeId": "EMP-004",
-      "employeeName": "David Adjei",
-      "employeeUsername": "david.adjei",
-      "cycle": "2026-H1",
-      "managerSummary": "",
-      "selfSummary": "",
-      "finalRecommendation": "",
-      "finalScore": 0,
-      "performanceBand": "Not rated",
-      "releasedToEmployee": false
-    },
-    {
-      "employeeId": "EMP-005",
-      "employeeName": "Ibrahim Musa",
-      "employeeUsername": "ibrahim.musa",
-      "cycle": "2026-H1",
-      "managerSummary": "",
-      "selfSummary": "",
-      "finalRecommendation": "",
-      "finalScore": 0,
-      "performanceBand": "Not rated",
-      "releasedToEmployee": false
-    },
-    {
       "employeeId": "EMP-006",
       "employeeName": "Akintomide Akindele",
       "employeeUsername": "akintomide.akindele",
@@ -11184,33 +11260,9 @@
       "releasedToEmployee": false
     },
     {
-      "employeeId": "EMP-022",
-      "employeeName": "Hope Haruna",
-      "employeeUsername": "hope.haruna",
-      "cycle": "2026-H1",
-      "managerSummary": "",
-      "selfSummary": "",
-      "finalRecommendation": "",
-      "finalScore": 0,
-      "performanceBand": "Not rated",
-      "releasedToEmployee": false
-    },
-    {
       "employeeId": "EMP-023",
       "employeeName": "Rose Uka",
       "employeeUsername": "rose.uka",
-      "cycle": "2026-H1",
-      "managerSummary": "",
-      "selfSummary": "",
-      "finalRecommendation": "",
-      "finalScore": 0,
-      "performanceBand": "Not rated",
-      "releasedToEmployee": false
-    },
-    {
-      "employeeId": "EMP-024",
-      "employeeName": "Uduak Umoh",
-      "employeeUsername": "uduak.umoh",
       "cycle": "2026-H1",
       "managerSummary": "",
       "selfSummary": "",
@@ -11653,31 +11705,9 @@
     }
   ],
   "customRolePacks": [],
-  "unresolvedDesignations": [
-    {
-      "designation": "Growth Lead",
-      "suggestedAppraisalRole": "",
-      "lineManagerLabel": "Chief of Staff",
-      "notes": "Reporting line supplied manually by user; KPI role still needs mapping"
-    }
-  ],
-  "unresolvedEmployees": [
-    {
-      "employeeName": "Ololade Shoyemi",
-      "designation": "Growth Lead",
-      "employeeId": "EMP-056",
-      "status": "blocked",
-      "blockers": [
-        "No KPI role mapped yet"
-      ]
-    }
-  ],
+  "unresolvedDesignations": [],
+  "unresolvedEmployees": [],
   "unresolvedManagers": [
-    {
-      "employeeName": "Hope Haruna",
-      "designation": "Content Creator",
-      "issue": "Manager label is ambiguous: Head of Growth, COO, & CEO"
-    },
     {
       "employeeName": "Sandra Ihkimioya",
       "designation": "Procurement Officer",

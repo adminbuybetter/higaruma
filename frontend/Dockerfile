@@ -10,7 +10,7 @@ COPY package*.json ./
 RUN npm ci
 
 COPY . .
-RUN npx tsc -b && node node_modules/vite/bin/vite.js build
+RUN npm run build
 
 FROM node:20-alpine
 

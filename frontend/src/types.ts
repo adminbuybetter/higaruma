@@ -57,6 +57,12 @@ export interface SelfAppraisalRecord {
   employeeName: string
   employeeUsername: string
   cycle: string
+  selfOpensAt: string | null
+  selfClosesAt: string | null
+  selfPhaseState: 'upcoming' | 'open' | 'closed'
+  managerOpensAt: string | null
+  managerClosesAt: string | null
+  managerPhaseState: 'upcoming' | 'open' | 'closed'
   kpiEntries: SelfKpiEntry[]
   overallAchievements: string
   majorChallenges: string
@@ -64,6 +70,7 @@ export interface SelfAppraisalRecord {
   developmentFocus: string
   employeeComments: string
   status: 'draft' | 'submitted'
+  submittedAt: string | null
 }
 
 export interface SelfKpiEntry {

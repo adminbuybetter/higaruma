@@ -1,6 +1,6 @@
 import unittest
 
-from app.config import normalize_database_url, parse_cors_allow_origins
+from app.config import Settings, normalize_database_url, parse_cors_allow_origins
 
 
 class ConfigTest(unittest.TestCase):
@@ -29,6 +29,29 @@ class ConfigTest(unittest.TestCase):
                 "https://example.com",
                 "http://127.0.0.1:5173",
             ],
+        )
+
+    def test_hosted_env_upgrades_cookie_policy_for_cross_origin_frontend(self):
+        settings = Settings(app_env="staging")
+        self.assertTrue(settings.is_hosted_env)
+        self.assertEqual(settings.effective_session_cookie_samesite, "none")
+        self.assertTrue(settings.effective_session_cookie_secure)
+
+    def test_local_env_keeps_dev_cookie_policy(self):
+        settings = Settings(app_env="development")
+        self.assertFalse(settings.is_hosted_env)
+        self.assertEqual(settings.effective_session_cookie_samesite, "lax")
+        self.assertFalse(settings.effective_session_cookie_secure)
+
+    def test_smtp_configured_requires_core_fields(self):
+        self.assertFalse(Settings().smtp_configured)
+        self.assertTrue(
+            Settings(
+                smtp_host="smtp.zoho.com",
+                smtp_username="admin@buybetter.ng",
+                smtp_password="secret",
+                smtp_from_email="admin@buybetter.ng",
+            ).smtp_configured
         )
 
 

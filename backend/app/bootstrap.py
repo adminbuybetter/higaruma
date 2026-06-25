@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import re
+from datetime import datetime
 from decimal import Decimal
 from pathlib import Path
 
@@ -27,7 +28,6 @@ from app.security import hash_password
 
 
 BACKEND_SEED_PATH = Path(__file__).with_name("seed.generated.json")
-FRONTEND_SEED_PATH = Path(__file__).resolve().parents[2] / "frontend" / "src" / "data" / "seed.generated.ts"
 
 
 def resolve_seed_path() -> Path:
@@ -39,11 +39,9 @@ def resolve_seed_path() -> Path:
 
     if BACKEND_SEED_PATH.exists():
         return BACKEND_SEED_PATH
-    if FRONTEND_SEED_PATH.exists():
-        return FRONTEND_SEED_PATH
 
     raise FileNotFoundError(
-        f"Seed file not found. Checked: {BACKEND_SEED_PATH}, {FRONTEND_SEED_PATH}"
+        f"Seed file not found. Checked: {BACKEND_SEED_PATH}"
     )
 
 
@@ -57,13 +55,79 @@ def _load_seed() -> dict:
     return json.loads(text)
 
 
-def bootstrap_from_seed(db: Session) -> None:
-    if db.scalar(select(User.id).limit(1)):
+def sync_employee_designations_from_seed(db: Session, seed: dict) -> None:
+    employee_rows = {row["employeeId"]: row for row in seed.get("employees", [])}
+    employees = list(db.scalars(select(Employee)))
+    updated = False
+
+    for employee in employees:
+        row = employee_rows.get(employee.employee_code)
+        if not row:
+            continue
+        next_designation = row.get("designation") or employee.designation
+        if employee.designation != next_designation:
+            employee.designation = next_designation
+            updated = True
+
+    if updated:
+        db.commit()
+
+
+def parse_optional_datetime(raw_value: str | None) -> datetime | None:
+    if not raw_value:
+        return None
+    return datetime.fromisoformat(raw_value)
+
+
+def sync_cycle_windows_from_seed(db: Session, seed: dict) -> None:
+    cycle_row = seed.get("cycle", {})
+    cycle = db.scalar(select(AppraisalCycle).where(AppraisalCycle.code == cycle_row.get("id")))
+    if not cycle:
         return
 
-    seed = _load_seed()
+    next_values = {
+        "opens_at": parse_optional_datetime(cycle_row.get("opensAt")),
+        "closes_at": parse_optional_datetime(cycle_row.get("closesAt")),
+        "self_opens_at": parse_optional_datetime(cycle_row.get("selfOpensAt")),
+        "self_closes_at": parse_optional_datetime(cycle_row.get("selfClosesAt")),
+        "manager_opens_at": parse_optional_datetime(cycle_row.get("managerOpensAt")),
+        "manager_closes_at": parse_optional_datetime(cycle_row.get("managerClosesAt")),
+    }
 
-    cycle = AppraisalCycle(code=seed["cycle"]["id"], name=seed["cycle"]["name"], status="open")
+    updated = False
+    for field_name, value in next_values.items():
+        if getattr(cycle, field_name) != value:
+            setattr(cycle, field_name, value)
+            updated = True
+
+    if updated:
+        db.commit()
+
+
+def bootstrap_from_seed(db: Session) -> None:
+    seed = _load_seed()
+    if db.scalar(select(User.id).limit(1)):
+        sync_employee_designations_from_seed(db, seed)
+        sync_cycle_windows_from_seed(db, seed)
+        return
+
+    opens_at = seed["cycle"].get("opensAt")
+    closes_at = seed["cycle"].get("closesAt")
+    self_opens_at = seed["cycle"].get("selfOpensAt")
+    self_closes_at = seed["cycle"].get("selfClosesAt")
+    manager_opens_at = seed["cycle"].get("managerOpensAt")
+    manager_closes_at = seed["cycle"].get("managerClosesAt")
+    cycle = AppraisalCycle(
+        code=seed["cycle"]["id"],
+        name=seed["cycle"]["name"],
+        status="open",
+        opens_at=parse_optional_datetime(opens_at),
+        closes_at=parse_optional_datetime(closes_at),
+        self_opens_at=parse_optional_datetime(self_opens_at),
+        self_closes_at=parse_optional_datetime(self_closes_at),
+        manager_opens_at=parse_optional_datetime(manager_opens_at),
+        manager_closes_at=parse_optional_datetime(manager_closes_at),
+    )
     db.add(cycle)
     db.flush()
 
@@ -84,6 +148,7 @@ def bootstrap_from_seed(db: Session) -> None:
     for user_row in seed["users"]:
         user = User(
             username=user_row["username"],
+            email=user_row.get("email") or None,
             password_hash=hash_password(user_row["password"]),
             display_name=user_row["displayName"],
             is_active=True,

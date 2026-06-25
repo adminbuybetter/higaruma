@@ -12,6 +12,7 @@ class UserResponse(BaseModel):
     id: str
     username: str
     display_name: str
+    designation: str | None
     capabilities: list[str]
     employee_code: str | None
     manager_scopes: list[str]
@@ -83,6 +84,13 @@ class FinalResultResponse(BaseModel):
 
 class EmployeeWorkspaceResponse(BaseModel):
     cycle_code: str
+    cycle_closes_at: str | None
+    self_opens_at: str | None
+    self_closes_at: str | None
+    self_phase_state: str
+    manager_opens_at: str | None
+    manager_closes_at: str | None
+    manager_phase_state: str
     employee: EmployeeSummary
     assignments: list[AssignmentResponse]
     self_appraisal: SelfAppraisalResponse | None
@@ -91,6 +99,10 @@ class EmployeeWorkspaceResponse(BaseModel):
 
 class WorkspaceCollectionResponse(BaseModel):
     workspaces: list[EmployeeWorkspaceResponse]
+
+
+class SearchEmployeeCodesResponse(BaseModel):
+    employee_codes: list[str]
 
 
 class RoleKpiEntryRequest(BaseModel):

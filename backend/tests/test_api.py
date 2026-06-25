@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import tempfile
 import unittest
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -11,6 +12,7 @@ from sqlalchemy.orm import sessionmaker
 from app.bootstrap import bootstrap_from_seed
 from app.db import Base, get_db
 from app.main import create_app
+from app.models import AppraisalCycle
 
 
 class ApiTest(unittest.TestCase):
@@ -27,7 +29,7 @@ class ApiTest(unittest.TestCase):
         finally:
             db.close()
 
-        app = create_app(bootstrap=False, db_engine=self.engine)
+        app = create_app(db_engine=self.engine)
 
         def override_get_db():
             db = self.SessionLocal()
@@ -58,6 +60,7 @@ class ApiTest(unittest.TestCase):
         payload = response.json()
         self.assertEqual(payload["token_type"], "bearer")
         self.assertEqual(payload["user"]["username"], "francis.fanen")
+        self.assertEqual(payload["user"]["designation"], "Logistics Officer")
         self.assertIn("employee", payload["user"]["capabilities"])
         self.assertEqual(payload["user"]["employee_code"], "EMP-013")
 
@@ -72,8 +75,38 @@ class ApiTest(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         payload = response.json()
         self.assertEqual(payload["username"], "samuel.mbudinma")
+        self.assertEqual(payload["designation"], "Admin/People Operations Officer")
         self.assertIn("admin", payload["capabilities"])
         self.assertIn("employee", payload["capabilities"])
+
+    def test_login_sets_session_cookie_and_me_works_without_bearer_header(self):
+        response = self.client.post(
+            "/auth/login",
+            json={"username": "samuel.mbudinma", "password": "Appraise043!"},
+        )
+        self.assertEqual(response.status_code, 200)
+        set_cookie = response.headers.get("set-cookie", "")
+        self.assertIn("buybetter_appraisal_session=", set_cookie)
+        self.assertIn("HttpOnly", set_cookie)
+
+        me_response = self.client.get("/me")
+        self.assertEqual(me_response.status_code, 200)
+        payload = me_response.json()
+        self.assertEqual(payload["username"], "samuel.mbudinma")
+        self.assertIn("admin", payload["capabilities"])
+
+    def test_logout_clears_session_cookie(self):
+        login = self.client.post(
+            "/auth/login",
+            json={"username": "samuel.mbudinma", "password": "Appraise043!"},
+        )
+        self.assertEqual(login.status_code, 200)
+
+        logout = self.client.post("/auth/logout")
+        self.assertEqual(logout.status_code, 200)
+
+        me_response = self.client.get("/me")
+        self.assertEqual(me_response.status_code, 401)
 
     def test_employee_workspace_returns_assignments_and_self_appraisal(self):
         token = self.login("francis.fanen", "Appraise013!")
@@ -82,8 +115,13 @@ class ApiTest(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         payload = response.json()
         self.assertEqual(payload["cycle_code"], "2026-H1")
+        self.assertEqual(payload["cycle_closes_at"], "2026-06-30T23:59:59+01:00")
+        self.assertEqual(payload["self_closes_at"], "2026-06-30T23:59:59+01:00")
+        self.assertEqual(payload["manager_closes_at"], "2026-07-07T23:59:59+01:00")
+        self.assertEqual(payload["self_phase_state"], "open")
+        self.assertEqual(payload["manager_phase_state"], "upcoming")
         self.assertEqual(payload["employee"]["full_name"], "Francis Fanen")
-        self.assertEqual(payload["employee"]["designation"], "Order Processing Officer")
+        self.assertEqual(payload["employee"]["designation"], "Logistics Officer")
         self.assertGreater(len(payload["assignments"]), 0)
         self.assertIsNotNone(payload["self_appraisal"])
         self.assertEqual(payload["self_appraisal"]["status"], "draft")
@@ -134,6 +172,109 @@ class ApiTest(unittest.TestCase):
             "Closed all assigned fulfilment escalations on time.",
         )
 
+    def test_employee_self_appraisal_rejected_after_cycle_close(self):
+        db = self.SessionLocal()
+        try:
+            cycle = db.query(AppraisalCycle).filter(AppraisalCycle.code == "2026-H1").one()
+            cycle.self_closes_at = datetime.now(UTC) - timedelta(days=1)
+            db.commit()
+        finally:
+            db.close()
+
+        employee_token = self.login("francis.fanen", "Appraise013!")
+        employee_workspace = self.client.get(
+            "/employee/me/workspace",
+            headers={"Authorization": f"Bearer {employee_token}"},
+        ).json()
+
+        response = self.client.put(
+            "/employee/me/self-appraisal",
+            headers={"Authorization": f"Bearer {employee_token}"},
+            json={
+                "status": "draft",
+                "overall_achievements": "Late update",
+                "major_challenges": "",
+                "support_needed": "",
+                "development_focus": "",
+                "employee_comments": "",
+                "items": [
+                    {
+                        "employee_kpi_assignment_id": item["employee_kpi_assignment_id"],
+                        "self_score": 4,
+                        "reason_for_score": "Target met",
+                        "key_evidence": "",
+                        "challenges_faced": "",
+                    }
+                    for item in employee_workspace["self_appraisal"]["items"]
+                ],
+            },
+        )
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(response.json()["detail"], "Self appraisal editing is closed for this cycle")
+
+    def test_employee_self_appraisal_rejected_before_self_window_opens(self):
+        db = self.SessionLocal()
+        try:
+            cycle = db.query(AppraisalCycle).filter(AppraisalCycle.code == "2026-H1").one()
+            cycle.self_opens_at = datetime.now(UTC) + timedelta(days=1)
+            cycle.self_closes_at = datetime.now(UTC) + timedelta(days=3)
+            db.commit()
+        finally:
+            db.close()
+
+        employee_token = self.login("francis.fanen", "Appraise013!")
+        employee_workspace = self.client.get(
+            "/employee/me/workspace",
+            headers={"Authorization": f"Bearer {employee_token}"},
+        ).json()
+
+        response = self.client.put(
+            "/employee/me/self-appraisal",
+            headers={"Authorization": f"Bearer {employee_token}"},
+            json={
+                "status": "draft",
+                "overall_achievements": "Trying to submit early",
+                "major_challenges": "",
+                "support_needed": "",
+                "development_focus": "",
+                "employee_comments": "",
+                "items": [
+                    {
+                        "employee_kpi_assignment_id": item["employee_kpi_assignment_id"],
+                        "self_score": 4,
+                        "reason_for_score": "Target met",
+                        "key_evidence": "",
+                        "challenges_faced": "",
+                    }
+                    for item in employee_workspace["self_appraisal"]["items"]
+                ],
+            },
+        )
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(response.json()["detail"], "Self appraisal is not open yet for this cycle")
+
+    def test_manager_search_returns_matching_employee_codes_across_full_queue(self):
+        manager_token = self.login("dare.peters", "Appraise058!")
+
+        response = self.client.get(
+            "/manager/search",
+            headers={"Authorization": f"Bearer {manager_token}"},
+            params={"query": "francis"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("EMP-013", response.json()["employee_codes"])
+
+    def test_admin_search_returns_matching_employee_codes_for_release_queue(self):
+        admin_token = self.login("samuel.mbudinma", "Appraise043!")
+
+        response = self.client.get(
+            "/admin/search",
+            headers={"Authorization": f"Bearer {admin_token}"},
+            params={"query": "rebecca"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()["employee_codes"])
+
     def test_manager_update_assignment_recalculates_final_score(self):
         employee_token = self.login("francis.fanen", "Appraise013!")
         employee_workspace = self.client.get(
@@ -171,6 +312,15 @@ class ApiTest(unittest.TestCase):
         francis = next(item for item in manager_workspace if item["employee"]["employee_code"] == "EMP-013")
         assignment_id = francis["assignments"][0]["id"]
 
+        db = self.SessionLocal()
+        try:
+            cycle = db.query(AppraisalCycle).filter(AppraisalCycle.code == "2026-H1").one()
+            cycle.manager_opens_at = datetime.now(UTC) - timedelta(hours=1)
+            cycle.manager_closes_at = datetime.now(UTC) + timedelta(days=1)
+            db.commit()
+        finally:
+            db.close()
+
         response = self.client.patch(
             f"/manager/assignments/{assignment_id}",
             headers={"Authorization": f"Bearer {manager_token}"},
@@ -187,12 +337,123 @@ class ApiTest(unittest.TestCase):
         self.assertEqual(payload["assignments"][0]["manager_status"], "in_review")
         self.assertGreater(payload["final_result"]["final_score"], 0)
 
+    def test_manager_review_rejected_before_manager_window_opens(self):
+        employee_token = self.login("francis.fanen", "Appraise013!")
+        employee_workspace = self.client.get(
+            "/employee/me/workspace",
+            headers={"Authorization": f"Bearer {employee_token}"},
+        ).json()
+        self.client.put(
+            "/employee/me/self-appraisal",
+            headers={"Authorization": f"Bearer {employee_token}"},
+            json={
+                "status": "submitted",
+                "overall_achievements": "Ready for scoring",
+                "major_challenges": "",
+                "support_needed": "",
+                "development_focus": "",
+                "employee_comments": "",
+                "items": [
+                    {
+                        "employee_kpi_assignment_id": item["employee_kpi_assignment_id"],
+                        "self_score": 3,
+                        "reason_for_score": "",
+                        "key_evidence": "",
+                        "challenges_faced": "",
+                    }
+                    for item in employee_workspace["self_appraisal"]["items"]
+                ],
+            },
+        )
+
+        manager_token = self.login("dare.peters", "Appraise058!")
+        manager_workspace = self.client.get(
+            "/manager/workspace",
+            headers={"Authorization": f"Bearer {manager_token}"},
+        ).json()["workspaces"]
+        francis = next(item for item in manager_workspace if item["employee"]["employee_code"] == "EMP-013")
+        assignment_id = francis["assignments"][0]["id"]
+
+        db = self.SessionLocal()
+        try:
+            cycle = db.query(AppraisalCycle).filter(AppraisalCycle.code == "2026-H1").one()
+            cycle.manager_opens_at = datetime.now(UTC) + timedelta(days=1)
+            cycle.manager_closes_at = datetime.now(UTC) + timedelta(days=2)
+            db.commit()
+        finally:
+            db.close()
+
+        response = self.client.patch(
+            f"/manager/assignments/{assignment_id}",
+            headers={"Authorization": f"Bearer {manager_token}"},
+            json={"manager_score": 4},
+        )
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(response.json()["detail"], "Manager review is not open yet for this cycle")
+
+    def test_manager_review_rejected_after_manager_window_closes(self):
+        employee_token = self.login("francis.fanen", "Appraise013!")
+        employee_workspace = self.client.get(
+            "/employee/me/workspace",
+            headers={"Authorization": f"Bearer {employee_token}"},
+        ).json()
+        self.client.put(
+            "/employee/me/self-appraisal",
+            headers={"Authorization": f"Bearer {employee_token}"},
+            json={
+                "status": "submitted",
+                "overall_achievements": "Ready for scoring",
+                "major_challenges": "",
+                "support_needed": "",
+                "development_focus": "",
+                "employee_comments": "",
+                "items": [
+                    {
+                        "employee_kpi_assignment_id": item["employee_kpi_assignment_id"],
+                        "self_score": 3,
+                        "reason_for_score": "",
+                        "key_evidence": "",
+                        "challenges_faced": "",
+                    }
+                    for item in employee_workspace["self_appraisal"]["items"]
+                ],
+            },
+        )
+
+        manager_token = self.login("dare.peters", "Appraise058!")
+        manager_workspace = self.client.get(
+            "/manager/workspace",
+            headers={"Authorization": f"Bearer {manager_token}"},
+        ).json()["workspaces"]
+        francis = next(item for item in manager_workspace if item["employee"]["employee_code"] == "EMP-013")
+        assignment_id = francis["assignments"][0]["id"]
+
+        db = self.SessionLocal()
+        try:
+            cycle = db.query(AppraisalCycle).filter(AppraisalCycle.code == "2026-H1").one()
+            cycle.manager_opens_at = datetime.now(UTC) - timedelta(days=2)
+            cycle.manager_closes_at = datetime.now(UTC) - timedelta(hours=1)
+            db.commit()
+        finally:
+            db.close()
+
+        response = self.client.patch(
+            f"/manager/assignments/{assignment_id}",
+            headers={"Authorization": f"Bearer {manager_token}"},
+            json={"manager_score": 4},
+        )
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(response.json()["detail"], "Manager review is closed for this cycle")
+
     def test_admin_workspace_and_release_result(self):
         admin_token = self.login("sandra.dunkwu", "Appraise060!")
         workspace = self.client.get("/admin/workspace", headers={"Authorization": f"Bearer {admin_token}"})
         self.assertEqual(workspace.status_code, 200)
         payload = workspace.json()
-        self.assertTrue(any(item["designation"] == "Growth Lead" for item in payload["unresolved_designations"]))
+        self.assertFalse(any(item["designation"] == "Growth Lead" for item in payload["unresolved_designations"]))
+        ololade = next(item for item in payload["workspaces"] if item["employee"]["employee_code"] == "EMP-056")
+        self.assertEqual(ololade["employee"]["status"], "ready")
+        self.assertGreater(len(ololade["assignments"]), 0)
 
         release = self.client.patch(
             "/admin/final-results/EMP-013",
@@ -201,6 +462,27 @@ class ApiTest(unittest.TestCase):
         )
         self.assertEqual(release.status_code, 200)
         self.assertTrue(release.json()["final_result"]["released_to_employee"])
+
+    def test_chinwe_can_access_admin_and_manager_views_for_aestheticians(self):
+        token = self.login("chinwe.enemokwu", "AppraiseCEO2026!")
+
+        admin_workspace = self.client.get(
+            "/admin/workspace",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        self.assertEqual(admin_workspace.status_code, 200)
+        all_workspaces = admin_workspace.json()["workspaces"]
+        vivian = next(item for item in all_workspaces if item["employee"]["employee_code"] == "EMP-007")
+        self.assertEqual(vivian["employee"]["line_manager_label"], "Chinwe Enemokwu")
+
+        manager_workspace = self.client.get(
+            "/manager/workspace",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        self.assertEqual(manager_workspace.status_code, 200)
+        managed_codes = {item["employee"]["employee_code"] for item in manager_workspace.json()["workspaces"]}
+        self.assertIn("EMP-007", managed_codes)
+        self.assertIn("EMP-008", managed_codes)
 
     def test_admin_can_resolve_designation_setup(self):
         admin_token = self.login("sandra.dunkwu", "Appraise060!")

@@ -1,5 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { generatedSeed } from './data/seed.generated'
+import {
+  CasebookEmployeeWorkspace,
+  CasebookHrEmployeesWorkspace,
+  CasebookHrOverviewWorkspace,
+  CasebookHrReleaseWorkspace,
+  CasebookManagerWorkspace,
+  CasebookOverviewWorkspace,
+} from './casebook/WorkspaceViews'
+import { useAuth } from './domains/auth/hooks'
+import { ApiError, apiClient } from './shared/api/client'
 import type {
   AppState,
   AppUser,
@@ -16,27 +25,15 @@ import type {
   UnresolvedManager,
 } from './types'
 
-const STORAGE_KEY = 'buybetter-appraisal/v1'
-const LEGACY_STORAGE_KEY = 'buybetter-appraisal-prototype/v1'
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, '') ?? 'http://127.0.0.1:8000'
-
-interface BackendUserResponse {
-  id: string
-  username: string
-  display_name: string
-  capabilities: Array<'employee' | 'manager' | 'admin'>
-  employee_code: string | null
-  manager_scopes: string[]
-}
-
-interface BackendLoginResponse {
-  access_token: string
-  token_type: string
-  user: BackendUserResponse
-}
-
 interface BackendWorkspaceResponse {
   cycle_code: string
+  cycle_closes_at: string | null
+  self_opens_at: string | null
+  self_closes_at: string | null
+  self_phase_state: 'upcoming' | 'open' | 'closed'
+  manager_opens_at: string | null
+  manager_closes_at: string | null
+  manager_phase_state: 'upcoming' | 'open' | 'closed'
   employee: {
     employee_code: string
     full_name: string
@@ -128,117 +125,19 @@ interface BackendAdminWorkspaceResponse extends BackendWorkspaceCollectionRespon
   excluded_designations: BackendExcludedDesignationResponse[]
 }
 
-function cloneSeed(): AppState {
-  return JSON.parse(
-    JSON.stringify({
-      users: generatedSeed.users,
-      employees: generatedSeed.employees,
-      assignments: generatedSeed.assignments,
-      selfAppraisals: generatedSeed.selfAppraisals,
-      finalResults: generatedSeed.finalResults,
-      customRolePacks: generatedSeed.customRolePacks,
-      unresolvedDesignations: generatedSeed.unresolvedDesignations,
-      unresolvedEmployees: generatedSeed.unresolvedEmployees,
-      unresolvedManagers: generatedSeed.unresolvedManagers,
-      excludedDesignations: generatedSeed.excludedDesignations,
-    }),
-  ) as AppState
-}
-
-function loadState(): AppState {
-  const raw = localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem(LEGACY_STORAGE_KEY)
-  if (!raw) {
-    return cloneSeed()
-  }
-
-  try {
-    return normalizeState(JSON.parse(raw) as Partial<AppState>)
-  } catch {
-    return cloneSeed()
-  }
-}
-
-function normalizeState(raw: Partial<AppState>): AppState {
-  const seed = cloneSeed()
-
-  const users = (raw.users ?? seed.users).map((user) => {
-    const capabilities = user.capabilities?.length ? user.capabilities : [user.kind]
-    return {
-      ...user,
-      capabilities,
-      employeeId: capabilities.includes('employee') ? user.employeeId : undefined,
-      managerScopes: capabilities.includes('manager') ? user.managerScopes ?? [] : [],
-    }
-  })
-  const employees = raw.employees ?? seed.employees
-  const normalizedEmployees = employees.map((employee) => ({
-    ...employee,
-    excludedThisCycle: employee.excludedThisCycle ?? false,
-  }))
-  const assignments = raw.assignments ?? seed.assignments
-  const finalResults = raw.finalResults ?? seed.finalResults
-  const customRolePacks = raw.customRolePacks ?? seed.customRolePacks
-
-  const selfAppraisals = normalizedEmployees.map((employee) => {
-    const existing = raw.selfAppraisals?.find((record) => record.employeeId === employee.employeeId)
-    const fallback = seed.selfAppraisals.find((record) => record.employeeId === employee.employeeId)
-    const employeeAssignments = assignments.filter((assignment) => assignment.employeeId === employee.employeeId)
-    const legacyExisting = (existing ?? {}) as Partial<SelfAppraisalRecord> & {
-      achievements?: string
-      challenges?: string
-    }
-
-    return {
-      employeeId: employee.employeeId,
-      employeeName: employee.employeeName,
-      employeeUsername: employee.employeeUsername,
-      cycle: existing?.cycle ?? fallback?.cycle ?? '2026-H1',
-      kpiEntries:
-        existing?.kpiEntries?.length
-          ? existing.kpiEntries
-          : employeeAssignments.map((assignment) => ({
-              assignmentId: assignment.assignmentId,
-              kpiArea: assignment.kpiArea,
-              kpiStatement: assignment.kpiStatement,
-              selfScore: 0,
-              reasonForScore: '',
-              keyEvidence: '',
-              challengesFaced: '',
-            })),
-      overallAchievements:
-        existing?.overallAchievements ??
-        legacyExisting.achievements ??
-        fallback?.overallAchievements ??
-        '',
-      majorChallenges:
-        existing?.majorChallenges ??
-        legacyExisting.challenges ??
-        fallback?.majorChallenges ??
-        '',
-      supportNeeded: existing?.supportNeeded ?? fallback?.supportNeeded ?? '',
-      developmentFocus: existing?.developmentFocus ?? fallback?.developmentFocus ?? '',
-      employeeComments: existing?.employeeComments ?? '',
-      status: existing?.status ?? fallback?.status ?? 'draft',
-    }
-  })
-
+function createEmptyState(): AppState {
   return {
-    users,
-    employees: normalizedEmployees,
-    assignments,
-    selfAppraisals,
-    finalResults,
-    customRolePacks,
-    unresolvedDesignations: raw.unresolvedDesignations ?? seed.unresolvedDesignations,
-    unresolvedEmployees: raw.unresolvedEmployees ?? seed.unresolvedEmployees,
-    unresolvedManagers: raw.unresolvedManagers ?? seed.unresolvedManagers,
-    excludedDesignations: raw.excludedDesignations ?? seed.excludedDesignations,
+    users: [],
+    employees: [],
+    assignments: [],
+    selfAppraisals: [],
+    finalResults: [],
+    customRolePacks: [],
+    unresolvedDesignations: [],
+    unresolvedEmployees: [],
+    unresolvedManagers: [],
+    excludedDesignations: [],
   }
-}
-
-function saveState(state: AppState) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
-  localStorage.removeItem(LEGACY_STORAGE_KEY)
 }
 
 function mergeEmployeeWorkspaceIntoState(
@@ -300,6 +199,12 @@ function mergeEmployeeWorkspaceIntoState(
     employeeName,
     employeeUsername: username,
     cycle: workspace.cycle_code,
+    selfOpensAt: workspace.self_opens_at,
+    selfClosesAt: workspace.self_closes_at,
+    selfPhaseState: workspace.self_phase_state,
+    managerOpensAt: workspace.manager_opens_at,
+    managerClosesAt: workspace.manager_closes_at,
+    managerPhaseState: workspace.manager_phase_state,
     kpiEntries: assignmentsForEmployee.map((assignment) => {
       const item = selfItemsByAssignment.get(assignment.assignmentId)
       return {
@@ -318,6 +223,7 @@ function mergeEmployeeWorkspaceIntoState(
     developmentFocus: workspace.self_appraisal?.development_focus ?? '',
     employeeComments: workspace.self_appraisal?.employee_comments ?? '',
     status: workspace.self_appraisal?.status ?? 'draft',
+    submittedAt: workspace.self_appraisal?.submitted_at ?? null,
   }
 
   const existingFinal = current.finalResults.find((result) => result.employeeId === employeeId)
@@ -357,7 +263,6 @@ function mergeWorkspacesIntoState(current: AppState, workspaces: BackendWorkspac
     const existingEmployee = nextState.employees.find((employee) => employee.employeeId === workspace.employee.employee_code)
     const username =
       existingEmployee?.employeeUsername ??
-      nextState.users.find((user) => user.employeeId === workspace.employee.employee_code)?.username ??
       workspace.employee.full_name.trim().toLowerCase().replaceAll(/\s+/g, '.')
     return mergeEmployeeWorkspaceIntoState(nextState, workspace, username)
   }, current)
@@ -440,6 +345,15 @@ function buildSelfPayloadFromWorkspace(workspace: BackendWorkspaceResponse) {
       }
     }),
   })
+}
+
+function hasWindowClosed(closesAt: string | null) {
+  if (!closesAt) return false
+  return new Date(closesAt).getTime() <= Date.now()
+}
+
+function isUnauthorizedApiError(error: unknown) {
+  return error instanceof ApiError && error.status === 401
 }
 
 function toBackendAssignmentPatch(patch: Partial<AssignmentRecord>) {
@@ -567,24 +481,42 @@ function downloadFile(name: string, content: string, mime: string) {
   URL.revokeObjectURL(url)
 }
 
-function App() {
-  const [state, setState] = useState<AppState>(() => loadState())
-  const [sessionUserId, setSessionUserId] = useState<string | null>(null)
-  const [loginState, setLoginState] = useState({ username: '', password: '', error: '' })
-  const [backendToken, setBackendToken] = useState<string | null>(null)
+function AppraisalWorkspace({
+  mode,
+  page,
+}: {
+  mode: 'employee' | 'manager' | 'admin'
+  page: 'overview' | 'appraisal' | 'team' | 'release'
+}) {
+  const [state, setState] = useState<AppState>(createEmptyState)
+  const { authState, sessionPending, logout } = useAuth()
   const [workspaceLoadState, setWorkspaceLoadState] = useState({ loading: false, error: '', ready: false })
   const [reviewLoadState, setReviewLoadState] = useState({ loading: false, error: '', ready: false })
+  const [selfActionState, setSelfActionState] = useState<'idle' | 'saving' | 'submitting' | 'editing'>('idle')
+  const [teamSearchQuery, setTeamSearchQuery] = useState('')
+  const [teamSearchIds, setTeamSearchIds] = useState<string[] | null>(null)
+  const [teamSearchLoading, setTeamSearchLoading] = useState(false)
+  const [releaseSearchQuery, setReleaseSearchQuery] = useState('')
+  const [releaseSearchIds, setReleaseSearchIds] = useState<string[] | null>(null)
+  const [releaseSearchLoading, setReleaseSearchLoading] = useState(false)
+  const [reloadNonce, setReloadNonce] = useState(0)
   const lastSyncedSelfPayloadRef = useRef<string | null>(null)
   const autosaveTimerRef = useRef<number | null>(null)
 
-  useEffect(() => {
-    saveState(state)
-  }, [state])
+  const currentUser = useMemo<AppUser | null>(() => {
+    if (!authState) return null
+    return {
+      id: authState.id,
+      username: authState.username,
+      password: '',
+      displayName: authState.displayName,
+      kind: authState.capabilities[0] ?? 'employee',
+      capabilities: authState.capabilities,
+      employeeId: authState.employeeId,
+      managerScopes: authState.managerScopes,
+    }
+  }, [authState])
 
-  const currentUser = useMemo(
-    () => state.users.find((user) => user.id === sessionUserId) ?? null,
-    [sessionUserId, state.users],
-  )
   const rolePackLibrary = useMemo(() => buildRolePackLibrary(state), [state])
   const canUseEmployeeFlow = hasCapability(currentUser, 'employee')
   const canUseManagerFlow = hasCapability(currentUser, 'manager')
@@ -610,6 +542,17 @@ function App() {
     return state.finalResults.find((record) => record.employeeId === employeeRecord.employeeId) ?? null
   }, [employeeRecord, state.finalResults])
 
+  const activeEmployees = useMemo(() => {
+    const rank = { ready: 0, tentative: 1, blocked: 2 } as const
+    return [...state.employees]
+      .filter((employee) => !employee.excludedThisCycle)
+      .sort((left, right) => {
+        const byStatus = rank[left.status] - rank[right.status]
+        if (byStatus !== 0) return byStatus
+        return left.employeeName.localeCompare(right.employeeName)
+      })
+  }, [state.employees])
+
   const managedEmployees = useMemo(() => {
     if (!canUseManagerFlow) return []
     const rank = { ready: 0, tentative: 1, blocked: 2 } as const
@@ -625,34 +568,51 @@ function App() {
 
   const [selectedManagedEmployeeId, setSelectedManagedEmployeeId] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (managedEmployees.length && !managedEmployees.some((employee) => employee.employeeId === selectedManagedEmployeeId)) {
-      setSelectedManagedEmployeeId(managedEmployees[0].employeeId)
-    }
-  }, [managedEmployees, selectedManagedEmployeeId])
-
-  const managedEmployee = useMemo(
-    () => managedEmployees.find((employee) => employee.employeeId === selectedManagedEmployeeId) ?? null,
-    [managedEmployees, selectedManagedEmployeeId],
+  const reviewEmployees = useMemo(
+    () => (canUseAdminFlow ? activeEmployees : managedEmployees),
+    [activeEmployees, canUseAdminFlow, managedEmployees],
   )
 
-  const managedAssignments = useMemo(() => {
-    if (!managedEmployee) return []
-    return state.assignments.filter((assignment) => assignment.employeeId === managedEmployee.employeeId)
-  }, [managedEmployee, state.assignments])
+  const visibleReviewEmployees = useMemo(() => {
+    if (!teamSearchIds) return reviewEmployees
+    const allowedIds = new Set(teamSearchIds)
+    return reviewEmployees.filter((employee) => allowedIds.has(employee.employeeId))
+  }, [reviewEmployees, teamSearchIds])
 
-  const managedSelfRecord = useMemo(() => {
-    if (!managedEmployee) return null
-    return state.selfAppraisals.find((record) => record.employeeId === managedEmployee.employeeId) ?? null
-  }, [managedEmployee, state.selfAppraisals])
-
-  const managedFinalResult = useMemo(() => {
-    if (!managedEmployee) return null
-    return state.finalResults.find((record) => record.employeeId === managedEmployee.employeeId) ?? null
-  }, [managedEmployee, state.finalResults])
+  const visibleReleaseResults = useMemo(() => {
+    if (!releaseSearchIds) return state.finalResults
+    const allowedIds = new Set(releaseSearchIds)
+    return state.finalResults.filter((result) => allowedIds.has(result.employeeId))
+  }, [releaseSearchIds, state.finalResults])
 
   useEffect(() => {
-    if (!backendToken || !currentUser || !canUseEmployeeFlow || !currentUser.employeeId) {
+    if (visibleReviewEmployees.length && !visibleReviewEmployees.some((employee) => employee.employeeId === selectedManagedEmployeeId)) {
+      setSelectedManagedEmployeeId(visibleReviewEmployees[0].employeeId)
+    }
+  }, [visibleReviewEmployees, selectedManagedEmployeeId])
+
+  const selectedReviewEmployee = useMemo(
+    () => reviewEmployees.find((employee) => employee.employeeId === selectedManagedEmployeeId) ?? null,
+    [reviewEmployees, selectedManagedEmployeeId],
+  )
+
+  const selectedReviewAssignments = useMemo(() => {
+    if (!selectedReviewEmployee) return []
+    return state.assignments.filter((assignment) => assignment.employeeId === selectedReviewEmployee.employeeId)
+  }, [selectedReviewEmployee, state.assignments])
+
+  const selectedReviewSelfRecord = useMemo(() => {
+    if (!selectedReviewEmployee) return null
+    return state.selfAppraisals.find((record) => record.employeeId === selectedReviewEmployee.employeeId) ?? null
+  }, [selectedReviewEmployee, state.selfAppraisals])
+
+  const selectedReviewFinalResult = useMemo(() => {
+    if (!selectedReviewEmployee) return null
+    return state.finalResults.find((record) => record.employeeId === selectedReviewEmployee.employeeId) ?? null
+  }, [selectedReviewEmployee, state.finalResults])
+
+  useEffect(() => {
+    if (!currentUser || !canUseEmployeeFlow || !currentUser.employeeId) {
       setWorkspaceLoadState((current) =>
         current.loading || current.error || current.ready ? { loading: false, error: '', ready: false } : current,
       )
@@ -663,15 +623,7 @@ function App() {
     let cancelled = false
     setWorkspaceLoadState({ loading: true, error: '', ready: false })
 
-    fetch(`${API_BASE_URL}/employee/me/workspace`, {
-      headers: { Authorization: `Bearer ${backendToken}` },
-    })
-      .then(async (response) => {
-        if (!response.ok) {
-          throw new Error('Failed to load employee workspace.')
-        }
-        return (await response.json()) as BackendWorkspaceResponse
-      })
+    apiClient<BackendWorkspaceResponse>('/employee/me/workspace')
       .then((workspace) => {
         if (cancelled) return
         lastSyncedSelfPayloadRef.current = buildSelfPayloadFromWorkspace(workspace)
@@ -680,6 +632,9 @@ function App() {
       })
       .catch((error: unknown) => {
         if (cancelled) return
+        if (isUnauthorizedApiError(error)) {
+          void logout()
+        }
         const message = error instanceof Error ? error.message : 'Failed to load employee workspace.'
         setWorkspaceLoadState({ loading: false, error: message, ready: false })
       })
@@ -687,10 +642,10 @@ function App() {
     return () => {
       cancelled = true
     }
-  }, [backendToken, canUseEmployeeFlow, currentUser])
+  }, [canUseEmployeeFlow, currentUser, logout, reloadNonce])
 
   useEffect(() => {
-    if (!backendToken || !currentUser) return
+    if (!currentUser) return
     if (!canUseAdminFlow && !canUseManagerFlow) {
       setReviewLoadState((current) =>
         current.loading || current.error || current.ready ? { loading: false, error: '', ready: false } : current,
@@ -702,17 +657,7 @@ function App() {
     const endpoint = canUseAdminFlow ? '/admin/workspace' : '/manager/workspace'
     setReviewLoadState({ loading: true, error: '', ready: false })
 
-    fetch(`${API_BASE_URL}${endpoint}`, {
-      headers: { Authorization: `Bearer ${backendToken}` },
-    })
-      .then(async (response) => {
-        if (!response.ok) {
-          throw new Error('Failed to load review workspace.')
-        }
-        return canUseAdminFlow
-          ? ((await response.json()) as BackendAdminWorkspaceResponse)
-          : ((await response.json()) as BackendWorkspaceCollectionResponse)
-      })
+    apiClient<BackendAdminWorkspaceResponse | BackendWorkspaceCollectionResponse>(endpoint)
       .then((payload) => {
         if (cancelled) return
         setState((current) =>
@@ -724,6 +669,9 @@ function App() {
       })
       .catch((error: unknown) => {
         if (cancelled) return
+        if (isUnauthorizedApiError(error)) {
+          void logout()
+        }
         const message = error instanceof Error ? error.message : 'Failed to load review workspace.'
         setReviewLoadState({ loading: false, error: message, ready: false })
       })
@@ -731,17 +679,17 @@ function App() {
     return () => {
       cancelled = true
     }
-  }, [backendToken, canUseAdminFlow, canUseManagerFlow, currentUser])
+  }, [canUseAdminFlow, canUseManagerFlow, currentUser, logout, reloadNonce])
 
   useEffect(() => {
-    if (!backendToken || !currentUser || !canUseEmployeeFlow || !employeeRecord || !selfRecord || !workspaceLoadState.ready) {
+    if (!currentUser || !canUseEmployeeFlow || !employeeRecord || !selfRecord || !workspaceLoadState.ready) {
       if (autosaveTimerRef.current) {
         window.clearTimeout(autosaveTimerRef.current)
         autosaveTimerRef.current = null
       }
       return
     }
-    if (selfRecord.status !== 'draft') {
+    if (selfRecord.status !== 'draft' || selfRecord.selfPhaseState !== 'open' || hasWindowClosed(selfRecord.selfClosesAt) || selfActionState !== 'idle') {
       return
     }
 
@@ -757,22 +705,17 @@ function App() {
     autosaveTimerRef.current = window.setTimeout(() => {
       void (async () => {
         try {
-          const response = await fetch(`${API_BASE_URL}/employee/me/self-appraisal`, {
+          const workspace = await apiClient<BackendWorkspaceResponse>('/employee/me/self-appraisal', {
             method: 'PUT',
-            headers: {
-              Authorization: `Bearer ${backendToken}`,
-              'Content-Type': 'application/json',
-            },
             body: payload,
           })
-          if (!response.ok) {
-            throw new Error('Failed to autosave self appraisal draft.')
-          }
-          const workspace = (await response.json()) as BackendWorkspaceResponse
           lastSyncedSelfPayloadRef.current = buildSelfPayloadFromWorkspace(workspace)
           setState((current) => mergeEmployeeWorkspaceIntoState(current, workspace, currentUser.username))
           setWorkspaceLoadState((current) => ({ ...current, error: '' }))
         } catch (error: unknown) {
+          if (isUnauthorizedApiError(error)) {
+            void logout()
+          }
           const message = error instanceof Error ? error.message : 'Failed to autosave self appraisal draft.'
           setWorkspaceLoadState((current) => ({ ...current, error: message }))
         }
@@ -786,68 +729,14 @@ function App() {
       }
     }
   }, [
-    backendToken,
     canUseEmployeeFlow,
     currentUser,
     employeeAssignments,
     employeeRecord,
     selfRecord,
+    selfActionState,
     workspaceLoadState.ready,
   ])
-
-  async function handleLogin(event: React.FormEvent) {
-    event.preventDefault()
-    const normalizedUsername = loginState.username.trim().toLowerCase()
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          username: normalizedUsername,
-          password: loginState.password,
-        }),
-      })
-
-      if (!response.ok) {
-        if (response.status === 401 || response.status === 403) {
-          setLoginState((current) => ({ ...current, error: 'Invalid username or password.' }))
-          return
-        }
-        throw new Error('Backend sign-in failed.')
-      }
-
-      const payload = (await response.json()) as BackendLoginResponse
-      const matchedUser =
-        state.users.find((user) => user.username === payload.user.username) ??
-        state.users.find((user) => user.employeeId === payload.user.employee_code)
-
-      if (!matchedUser) {
-        setLoginState((current) => ({ ...current, error: 'Signed-in user is not mapped in the local roster.' }))
-        return
-      }
-
-      setBackendToken(payload.access_token)
-      setSessionUserId(matchedUser.id)
-      setWorkspaceLoadState({ loading: false, error: '', ready: false })
-      setReviewLoadState({ loading: false, error: '', ready: false })
-      lastSyncedSelfPayloadRef.current = null
-      setLoginState({ username: '', password: '', error: '' })
-      return
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Sign-in failed.'
-      setLoginState((current) => ({ ...current, error: message }))
-    }
-  }
-
-  function logout() {
-    setSessionUserId(null)
-    setSelectedManagedEmployeeId(null)
-    setBackendToken(null)
-    setWorkspaceLoadState({ loading: false, error: '', ready: false })
-    setReviewLoadState({ loading: false, error: '', ready: false })
-    lastSyncedSelfPayloadRef.current = null
-  }
 
   function updateSelfAppraisal(employeeId: string, patch: Partial<SelfAppraisalRecord>) {
     setState((current) => ({
@@ -863,50 +752,65 @@ function App() {
     }))
   }
 
-  async function submitSelfAppraisal(employeeId: string) {
+  async function persistSelfAppraisalStatus(
+    employeeId: string,
+    nextStatus: 'draft' | 'submitted',
+    action: 'saving' | 'submitting' | 'editing',
+  ) {
     if (autosaveTimerRef.current) {
       window.clearTimeout(autosaveTimerRef.current)
       autosaveTimerRef.current = null
     }
-    updateSelfAppraisal(employeeId, { status: 'submitted' })
-    if (!backendToken || !currentUser || currentUser.employeeId !== employeeId || !canUseEmployeeFlow) {
-      return
+    if (!currentUser || currentUser.employeeId !== employeeId || !canUseEmployeeFlow) {
+      return false
     }
 
     const record = state.selfAppraisals.find((item) => item.employeeId === employeeId)
-    if (!record) return
+    if (!record) return false
     const assignmentsForEmployee = state.assignments.filter((assignment) => assignment.employeeId === employeeId)
 
-    setWorkspaceLoadState((current) => ({ ...current, loading: true, error: '' }))
+    setSelfActionState(action)
+    setWorkspaceLoadState((current) => ({ ...current, error: '' }))
 
     try {
-      const response = await fetch(`${API_BASE_URL}/employee/me/self-appraisal`, {
+      const workspace = await apiClient<BackendWorkspaceResponse>('/employee/me/self-appraisal', {
         method: 'PUT',
-        headers: {
-          Authorization: `Bearer ${backendToken}`,
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify(
           buildSelfAppraisalPayload(
             {
               ...record,
-              status: 'submitted',
+              status: nextStatus,
             },
             assignmentsForEmployee,
           ),
         ),
       })
-      if (!response.ok) {
-        throw new Error('Failed to submit self appraisal.')
-      }
-      const workspace = (await response.json()) as BackendWorkspaceResponse
       lastSyncedSelfPayloadRef.current = buildSelfPayloadFromWorkspace(workspace)
       setState((current) => mergeEmployeeWorkspaceIntoState(current, workspace, currentUser.username))
-      setWorkspaceLoadState({ loading: false, error: '', ready: true })
+      setWorkspaceLoadState((current) => ({ ...current, error: '', ready: true }))
+      setSelfActionState('idle')
+      return true
     } catch (error: unknown) {
+      if (isUnauthorizedApiError(error)) {
+        void logout()
+      }
       const message = error instanceof Error ? error.message : 'Failed to submit self appraisal.'
       setWorkspaceLoadState((current) => ({ ...current, error: message }))
+      setSelfActionState('idle')
+      return false
     }
+  }
+
+  async function saveSelfAppraisalDraft(employeeId: string) {
+    return persistSelfAppraisalStatus(employeeId, 'draft', 'saving')
+  }
+
+  async function submitSelfAppraisal(employeeId: string) {
+    return persistSelfAppraisalStatus(employeeId, 'submitted', 'submitting')
+  }
+
+  async function editSubmittedSelfAppraisal(employeeId: string) {
+    return persistSelfAppraisalStatus(employeeId, 'draft', 'editing')
   }
 
   function updateSelfKpiEntry(employeeId: string, assignmentId: string, patch: Partial<SelfKpiEntry>) {
@@ -947,27 +851,22 @@ function App() {
       return { ...current, assignments, finalResults }
     })
 
-    if (!backendToken || !currentUser || !canUseManagerFlow) {
+    if (!currentUser || !canUseManagerFlow) {
       return
     }
 
     void (async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/manager/assignments/${assignmentId}`, {
+        const workspace = await apiClient<BackendWorkspaceResponse>(`/manager/assignments/${assignmentId}`, {
           method: 'PATCH',
-          headers: {
-            Authorization: `Bearer ${backendToken}`,
-            'Content-Type': 'application/json',
-          },
           body: JSON.stringify(toBackendAssignmentPatch(patch)),
         })
-        if (!response.ok) {
-          throw new Error('Failed to save manager review update.')
-        }
-        const workspace = (await response.json()) as BackendWorkspaceResponse
         setState((current) => mergeWorkspacesIntoState(current, [workspace]))
-      } catch {
-        // Keep optimistic local state if backend sync fails.
+      } catch (error: unknown) {
+        if (isUnauthorizedApiError(error)) {
+          void logout()
+        }
+        setReloadNonce((current) => current + 1)
       }
     })()
   }
@@ -980,31 +879,26 @@ function App() {
       ),
     }))
 
-    if (!backendToken || !currentUser || (!canUseManagerFlow && !canUseAdminFlow)) {
+    if (!currentUser || (!canUseManagerFlow && !canUseAdminFlow)) {
       return
     }
 
     const endpoint = canUseAdminFlow
-      ? `${API_BASE_URL}/admin/final-results/${employeeId}`
-      : `${API_BASE_URL}/manager/final-results/${employeeId}`
+      ? `/admin/final-results/${employeeId}`
+      : `/manager/final-results/${employeeId}`
 
     void (async () => {
       try {
-        const response = await fetch(endpoint, {
+        const workspace = await apiClient<BackendWorkspaceResponse>(endpoint, {
           method: 'PATCH',
-          headers: {
-            Authorization: `Bearer ${backendToken}`,
-            'Content-Type': 'application/json',
-          },
           body: JSON.stringify(toBackendFinalResultPatch(patch)),
         })
-        if (!response.ok) {
-          throw new Error('Failed to save final result update.')
-        }
-        const workspace = (await response.json()) as BackendWorkspaceResponse
         setState((current) => mergeWorkspacesIntoState(current, [workspace]))
-      } catch {
-        // Keep optimistic local state if backend sync fails.
+      } catch (error: unknown) {
+        if (isUnauthorizedApiError(error)) {
+          void logout()
+        }
+        setReloadNonce((current) => current + 1)
       }
     })()
   }
@@ -1026,15 +920,11 @@ function App() {
     reviewerLabel: string
     kpiOwnerLabel: string
   }) {
-    if (backendToken && currentUser && canUseAdminFlow) {
+    if (currentUser && canUseAdminFlow) {
       void (async () => {
         try {
-          const response = await fetch(`${API_BASE_URL}/admin/designation-mappings/resolve`, {
+          const payload = await apiClient<BackendAdminWorkspaceResponse>('/admin/designation-mappings/resolve', {
             method: 'POST',
-            headers: {
-              Authorization: `Bearer ${backendToken}`,
-              'Content-Type': 'application/json',
-            },
             body: JSON.stringify({
               designation,
               role_name: roleName,
@@ -1049,12 +939,11 @@ function App() {
               kpi_owner_label: kpiOwnerLabel,
             }),
           })
-          if (!response.ok) {
-            throw new Error('Failed to save designation setup.')
-          }
-          const payload = (await response.json()) as BackendAdminWorkspaceResponse
           setState((current) => mergeAdminWorkspaceIntoState(current, payload))
-        } catch {
+        } catch (error: unknown) {
+          if (isUnauthorizedApiError(error)) {
+            void logout()
+          }
           // Fall through to local-only setup if backend sync fails.
           setState((current) => current)
         }
@@ -1188,1201 +1077,279 @@ function App() {
     })
   }
 
-  function resetAppraisalData() {
-    const fresh = cloneSeed()
-    setState(fresh)
-    setSessionUserId(null)
-    setSelectedManagedEmployeeId(null)
+  function resolveSearchEndpoint(scope: 'manager' | 'admin') {
+    return scope === 'admin' ? '/admin/search' : '/manager/search'
+  }
+
+  async function searchEmployeeCodes(
+    query: string,
+    scope: 'manager' | 'admin',
+    setter: (employeeIds: string[] | null) => void,
+    loadingSetter: (loading: boolean) => void,
+  ) {
+    const normalized = query.trim()
+    if (!normalized) {
+      setter(null)
+      loadingSetter(false)
+      return
+    }
+
+    loadingSetter(true)
+    try {
+      const params = new URLSearchParams({ query: normalized })
+      const payload = await apiClient<{ employee_codes: string[] }>(`${resolveSearchEndpoint(scope)}?${params.toString()}`)
+      setter(payload.employee_codes)
+    } catch (error: unknown) {
+      if (isUnauthorizedApiError(error)) {
+        void logout()
+      }
+      setter([])
+    } finally {
+      loadingSetter(false)
+    }
+  }
+
+  useEffect(() => {
+    const scope = canUseAdminFlow ? 'admin' : 'manager'
+    if (!canUseManagerFlow && !canUseAdminFlow) {
+      setTeamSearchIds(null)
+      setTeamSearchLoading(false)
+      return
+    }
+
+    const timer = window.setTimeout(() => {
+      void searchEmployeeCodes(teamSearchQuery, scope, setTeamSearchIds, setTeamSearchLoading)
+    }, 250)
+
+    return () => window.clearTimeout(timer)
+  }, [canUseAdminFlow, canUseManagerFlow, logout, teamSearchQuery])
+
+  useEffect(() => {
+    if (!canUseAdminFlow) {
+      setReleaseSearchIds(null)
+      setReleaseSearchLoading(false)
+      return
+    }
+
+    const timer = window.setTimeout(() => {
+      void searchEmployeeCodes(releaseSearchQuery, 'admin', setReleaseSearchIds, setReleaseSearchLoading)
+    }, 250)
+
+    return () => window.clearTimeout(timer)
+  }, [canUseAdminFlow, logout, releaseSearchQuery])
+
+  if (sessionPending) {
+    return (
+      <section className="surface-card section-card">
+        <p className="subtle">Restoring your session…</p>
+      </section>
+    )
   }
 
   if (!currentUser) {
-    return <LoginScreen loginState={loginState} setLoginState={setLoginState} handleLogin={handleLogin} />
+    return null
   }
 
-  return (
-    <div className="page-shell">
-      <header className="topbar">
-        <div>
-          <h1>{canUseEmployeeFlow && employeeRecord ? `Hi 👋 ${currentUser.displayName}` : currentUser.displayName}</h1>
-          {!canUseEmployeeFlow || !employeeRecord ? (
-            <p className="subtle">
-              Signed in as {[
-                canUseAdminFlow ? 'HR Admin' : null,
-                canUseManagerFlow ? 'Appraisal Owner' : null,
-                canUseEmployeeFlow ? 'Employee' : null,
-              ]
-                .filter(Boolean)
-                .join(' · ')}
-            </p>
-          ) : null}
-        </div>
-        <div className="topbar-actions">
-          <button className="button subtle-button" onClick={logout}>
-            Logout
-          </button>
-        </div>
-      </header>
+  const employeeWorkspaceReady = !canUseEmployeeFlow || workspaceLoadState.ready
 
-      {canUseEmployeeFlow && !workspaceLoadState.ready ? (
+  if (page === 'appraisal') {
+    if (!canUseEmployeeFlow) {
+      return (
+        <section className="surface-card section-card">
+          <p className="subtle">You do not have access to the employee appraisal workspace.</p>
+        </section>
+      )
+    }
+    if (!workspaceLoadState.ready) {
+      return (
         <section className="surface-card section-card">
           <p className="subtle">{workspaceLoadState.loading ? 'Loading your appraisal workspace…' : 'Unable to load your appraisal workspace.'}</p>
           {workspaceLoadState.error ? <p className="error-text">{workspaceLoadState.error}</p> : null}
         </section>
-      ) : null}
-
-      {canUseEmployeeFlow && workspaceLoadState.ready && employeeRecord && selfRecord && finalResult ? (
-        <EmployeeWorkspace
-          employee={employeeRecord}
-          selfRecord={selfRecord}
-          assignments={employeeAssignments}
-          finalResult={finalResult}
-          workspaceLoading={workspaceLoadState.loading}
-          workspaceError={workspaceLoadState.error}
-          onUpdateSelf={updateSelfAppraisal}
-          onUpdateSelfKpiEntry={updateSelfKpiEntry}
-          onSubmitSelf={submitSelfAppraisal}
-        />
-      ) : null}
-
-      {(canUseManagerFlow || canUseAdminFlow) && !reviewLoadState.ready ? (
-        <>
-          {canUseManagerFlow ? (
-            <StepStrip
-              mode="manager"
-              employeeRecord={employeeRecord}
-              finalResult={finalResult}
-            />
-          ) : null}
-          {canUseAdminFlow ? (
-            <StepStrip
-              mode="admin"
-              employeeRecord={employeeRecord}
-              finalResult={finalResult}
-            />
-          ) : null}
-          <section className="surface-card section-card">
-            <p className="subtle">{reviewLoadState.loading ? 'Loading review workspace…' : 'Unable to load review workspace.'}</p>
-            {reviewLoadState.error ? <p className="error-text">{reviewLoadState.error}</p> : null}
-          </section>
-        </>
-      ) : null}
-
-      {canUseManagerFlow && reviewLoadState.ready ? (
-        <>
-          <StepStrip
-            mode="manager"
-            employeeRecord={employeeRecord}
-            finalResult={finalResult}
-          />
-          <ManagerWorkspace
-            currentUser={currentUser}
-            employees={managedEmployees}
-            selectedEmployee={managedEmployee}
-            assignments={managedAssignments}
-            selfRecord={managedSelfRecord}
-            finalResult={managedFinalResult}
-            onSelectEmployee={setSelectedManagedEmployeeId}
-            onUpdateAssignment={updateAssignment}
-            onUpdateFinalResult={updateFinalResult}
-          />
-        </>
-      ) : null}
-
-      {canUseAdminFlow && reviewLoadState.ready ? (
-        <>
-          <StepStrip
-            mode="admin"
-            employeeRecord={employeeRecord}
-            finalResult={finalResult}
-          />
-          <AdminWorkspace
-            state={state}
-            rolePackLibrary={rolePackLibrary}
-            onUpdateFinalResult={updateFinalResult}
-            onResolveDesignationSetup={resolveDesignationSetup}
-            onReset={resetAppraisalData}
-          />
-        </>
-      ) : null}
-    </div>
-  )
-}
-
-function LoginScreen({
-  loginState,
-  setLoginState,
-  handleLogin,
-}: {
-  loginState: { username: string; password: string; error: string }
-  setLoginState: React.Dispatch<
-    React.SetStateAction<{ username: string; password: string; error: string }>
-  >
-  handleLogin: (event: React.FormEvent) => void
-}) {
-  return (
-    <div className="page-shell login-shell">
-      <section className="hero-card login-card">
-        <div className="login-layout">
-          <div className="login-copy">
-            <span className="eyebrow">Performance reviews</span>
-            <h1>BuyBetter appraisal</h1>
-            <p className="lede">
-              Sign in to complete self appraisal, manager review, and final result release.
-            </p>
-            <div className="login-note">
-              <strong>What you can do here</strong>
-              <p>
-                Employees complete self-appraisal first, appraisal owners review next, and HR controls final release.
-              </p>
-            </div>
-          </div>
-
-          <form className="auth-form login-form-panel" onSubmit={handleLogin}>
-            <div className="login-form-intro">
-              <span className="eyebrow">Secure sign in</span>
-              <p className="subtle">Use the username and password assigned to you for this review cycle.</p>
-            </div>
-            <label className="auth-field">
-              <span>Username</span>
-              <input
-                value={loginState.username}
-                onChange={(event) =>
-                  setLoginState((current) => ({ ...current, username: event.target.value, error: '' }))
-                }
-                placeholder="first.last"
-              />
-            </label>
-            <label className="auth-field">
-              <span>Password</span>
-              <input
-                type="password"
-                value={loginState.password}
-                onChange={(event) =>
-                  setLoginState((current) => ({ ...current, password: event.target.value, error: '' }))
-                }
-                placeholder="Assigned password"
-              />
-            </label>
-            <button className="button primary login-submit" type="submit">Sign in</button>
-            {loginState.error ? <p className="error-text">{loginState.error}</p> : null}
-          </form>
-        </div>
-      </section>
-    </div>
-  )
-}
-
-function EmployeeWorkspace({
-  employee,
-  selfRecord,
-  assignments,
-  finalResult,
-  workspaceLoading,
-  workspaceError,
-  onUpdateSelf,
-  onUpdateSelfKpiEntry,
-  onSubmitSelf,
-}: {
-  employee: EmployeeRecord
-  selfRecord: SelfAppraisalRecord
-  assignments: AssignmentRecord[]
-  finalResult: FinalResultRecord
-  workspaceLoading: boolean
-  workspaceError: string
-  onUpdateSelf: (employeeId: string, patch: Partial<SelfAppraisalRecord>) => void
-  onUpdateSelfKpiEntry: (employeeId: string, assignmentId: string, patch: Partial<SelfKpiEntry>) => void
-  onSubmitSelf: (employeeId: string) => void
-}) {
-  const [selfPanelOpen, setSelfPanelOpen] = useState(false)
-  const [currentSelfStep, setCurrentSelfStep] = useState(0)
-  const totalSelfSteps = selfRecord.kpiEntries.length + 1
-  const currentEntry =
-    currentSelfStep < selfRecord.kpiEntries.length ? selfRecord.kpiEntries[currentSelfStep] : null
-  const isOverallStep = currentSelfStep === selfRecord.kpiEntries.length
-
-  useEffect(() => {
-    if (!selfPanelOpen) return
-    setCurrentSelfStep((current) => Math.min(current, totalSelfSteps - 1))
-  }, [selfPanelOpen, totalSelfSteps])
-
-  function openSelfPanel() {
-    setCurrentSelfStep(0)
-    setSelfPanelOpen(true)
-  }
-
-  function closeSelfPanel() {
-    setSelfPanelOpen(false)
-  }
-
-  return (
-    <>
-      <main className="employee-shell">
-        <div className="employee-top-grid">
-          <div className="employee-left-stack">
-            <StepStrip
-              mode="employee"
-              employeeRecord={employee}
-              finalResult={finalResult}
-            />
-
-            <section className="surface-card hero-section">
-              <div className="section-head">
-                <div>
-                  <div className="eyebrow">My appraisal</div>
-                  <h2>{employee.employeeName}</h2>
-                </div>
-                <StatusPill status={employee.status} />
-              </div>
-              <p className="subtle">
-                {employee.designation} · {employee.appraisalRole || 'Role mapping pending'} · Manager:{' '}
-                {employee.primaryOwnerLabel || 'Not mapped'}
-              </p>
-              {employee.blockers.length ? (
-                <div className="warning-box">
-                  <strong>Appraisal blockers</strong>
-                  <ul className="bullet-list compact">
-                    {employee.blockers.map((blocker) => (
-                      <li key={blocker}>{blocker}</li>
-                    ))}
-                  </ul>
-                </div>
-              ) : null}
-            </section>
-          </div>
-
-          <aside className="surface-card summary-card employee-summary-card">
-            <div className="summary-label">Appraisal completion</div>
-            <div className="summary-figure">{selfRecord.status === 'submitted' ? 'Ready' : 'Draft'}</div>
-            <div className="summary-gap" aria-hidden="true" />
-
-            <div className="summary-metrics">
-              <Metric label="KPI rows" value={`${assignments.length}`} compact />
-              <Metric label="Result" value={finalResult.releasedToEmployee ? 'Live' : 'Held'} compact />
-            </div>
-          </aside>
-        </div>
-
-        <section className="surface-card section-card full-width-card">
-          <div className="section-head">
-            <div>
-              <div className="eyebrow">Assigned KPIs</div>
-              <h2>{assignments.length} scored areas</h2>
-            </div>
-            <button className="button" onClick={openSelfPanel}>
-              Open self appraisal
-            </button>
-          </div>
-          {workspaceLoading ? <p className="subtle">Refreshing your appraisal workspace…</p> : null}
-          {workspaceError ? <p className="error-text">{workspaceError}</p> : null}
-          <div className="stack">
-            {assignments.map((assignment) => (
-              <article key={assignment.assignmentId} className="kpi-card">
-                <div className="kpi-meta">
-                  <strong>{assignment.kpiArea}</strong>
-                  <span>{assignment.weightPercent}%</span>
-                </div>
-                <p>{assignment.kpiStatement}</p>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        <section className="surface-card section-card full-width-card">
-          <div className="section-head">
-            <div>
-              <div className="eyebrow">Final result</div>
-              <h2>{finalResult.releasedToEmployee ? 'Released to you' : 'Held until release'}</h2>
-            </div>
-          </div>
-          {finalResult.releasedToEmployee ? (
-            <div className="stack">
-              <TextBlock title="Manager summary" value={finalResult.managerSummary} />
-              <TextBlock title="Final recommendation" value={finalResult.finalRecommendation} />
-            </div>
-          ) : (
-            <p className="subtle">
-              Your manager appraisal stays hidden until HR releases the final result.
-            </p>
-          )}
-        </section>
-      </main>
-
-      {selfPanelOpen ? (
-        <div className="drawer-backdrop" onClick={closeSelfPanel}>
-          <aside className="drawer-panel" onClick={(event) => event.stopPropagation()}>
-            <div className="section-head">
-              <div>
-                <div className="eyebrow">Self appraisal</div>
-                <h2>{isOverallStep ? 'Complete your overall reflection' : 'Score one appraisal area at a time'}</h2>
-              </div>
-              <button className="button subtle-button" onClick={closeSelfPanel}>
-                Close
-              </button>
-            </div>
-            <div className="stack">
-              <div className="employee-details-card">
-                <div className="detail-grid compact">
-                  <DetailItem label="Name" value={employee.employeeName} />
-                  <DetailItem label="Role / department" value={`${employee.designation} · ${employee.department}`} />
-                  <DetailItem label="Review period" value={selfRecord.cycle} />
-                  <DetailItem label="Manager" value={employee.primaryOwnerLabel || 'Not mapped'} />
-                </div>
-              </div>
-
-              <section className="score-legend-card">
-                <div className="eyebrow">Score guide</div>
-                <div className="score-legend-grid">
-                  <div className="score-legend-item"><strong>1</strong><span>Far below expectation</span></div>
-                  <div className="score-legend-item"><strong>2</strong><span>Below expectation</span></div>
-                  <div className="score-legend-item"><strong>3</strong><span>Meets expectation</span></div>
-                  <div className="score-legend-item"><strong>4</strong><span>Above expectation</span></div>
-                  <div className="score-legend-item"><strong>5</strong><span>Exceptional</span></div>
-                </div>
-              </section>
-
-              {!isOverallStep && currentEntry ? (
-                <article className="kpi-card self-kpi-card self-kpi-focus-card">
-                  <div className="self-kpi-prompt">
-                    <div>
-                      <div className="self-step-meta">
-                        <span className="step-count">Step {currentSelfStep + 1} of {totalSelfSteps}</span>
-                        <span className="step-type">Scored area</span>
-                      </div>
-                      <h3>{currentEntry.kpiArea}</h3>
-                    </div>
-                    <label className="score-field score-field-highlight">
-                      <span>Self-score</span>
-                      <select
-                        value={currentEntry.selfScore}
-                        onChange={(event) =>
-                          onUpdateSelfKpiEntry(employee.employeeId, currentEntry.assignmentId, {
-                            selfScore: Number(event.target.value),
-                          })
-                        }
-                      >
-                        <option value={0}>Select</option>
-                        <option value={1}>1</option>
-                        <option value={2}>2</option>
-                        <option value={3}>3</option>
-                        <option value={4}>4</option>
-                        <option value={5}>5</option>
-                      </select>
-                    </label>
-                  </div>
-                  <div className="question-card">
-                    <div className="eyebrow">Question</div>
-                    <p>{currentEntry.kpiStatement}</p>
-                  </div>
-                  <div className="stack tight">
-                    <TextAreaField
-                      label="Reason for score"
-                      value={currentEntry.reasonForScore}
-                      onChange={(value) =>
-                        onUpdateSelfKpiEntry(employee.employeeId, currentEntry.assignmentId, {
-                          reasonForScore: value,
-                        })
-                      }
-                    />
-                    <TextAreaField
-                      label="Key achievements / evidence"
-                      value={currentEntry.keyEvidence}
-                      onChange={(value) =>
-                        onUpdateSelfKpiEntry(employee.employeeId, currentEntry.assignmentId, {
-                          keyEvidence: value,
-                        })
-                      }
-                    />
-                    <TextAreaField
-                      label="Challenges faced"
-                      value={currentEntry.challengesFaced}
-                      onChange={(value) =>
-                        onUpdateSelfKpiEntry(employee.employeeId, currentEntry.assignmentId, {
-                          challengesFaced: value,
-                        })
-                      }
-                    />
-                  </div>
-                </article>
-              ) : (
-                <section className="overall-reflection-card">
-                  <div className="self-step-meta">
-                    <span className="step-count">Step {totalSelfSteps} of {totalSelfSteps}</span>
-                    <span className="step-type">Overall reflection</span>
-                  </div>
-                  <h3>Overall reflection</h3>
-                  <div className="stack">
-                    <TextAreaField
-                      label="Overall achievements"
-                      value={selfRecord.overallAchievements}
-                      onChange={(value) => onUpdateSelf(employee.employeeId, { overallAchievements: value })}
-                    />
-                    <TextAreaField
-                      label="Major challenges"
-                      value={selfRecord.majorChallenges}
-                      onChange={(value) => onUpdateSelf(employee.employeeId, { majorChallenges: value })}
-                    />
-                    <TextAreaField
-                      label="Support needed from manager / company"
-                      value={selfRecord.supportNeeded}
-                      onChange={(value) => onUpdateSelf(employee.employeeId, { supportNeeded: value })}
-                    />
-                    <TextAreaField
-                      label="Development focus for next review period"
-                      value={selfRecord.developmentFocus}
-                      onChange={(value) => onUpdateSelf(employee.employeeId, { developmentFocus: value })}
-                    />
-                    <TextAreaField
-                      label="Employee comments"
-                      value={selfRecord.employeeComments}
-                      onChange={(value) => onUpdateSelf(employee.employeeId, { employeeComments: value })}
-                    />
-                  </div>
-                </section>
-              )}
-            </div>
-            <div className="button-row drawer-actions drawer-actions-split">
-              <div className="button-row">
-                <button
-                  className="button"
-                  onClick={() => setCurrentSelfStep((current) => Math.max(0, current - 1))}
-                  disabled={currentSelfStep === 0}
-                >
-                  Back
-                </button>
-                {!isOverallStep ? (
-                  <button
-                    className="button primary"
-                    onClick={() => setCurrentSelfStep((current) => Math.min(totalSelfSteps - 1, current + 1))}
-                  >
-                    Next
-                  </button>
-                ) : (
-                  <button
-                    className="button primary"
-                    onClick={() => onSubmitSelf(employee.employeeId)}
-                  >
-                    Mark self appraisal submitted
-                  </button>
-                )}
-              </div>
-              <span className="subtle">Current status: {selfRecord.status}</span>
-            </div>
-          </aside>
-        </div>
-      ) : null}
-    </>
-  )
-}
-
-function ManagerWorkspace({
-  currentUser,
-  employees,
-  selectedEmployee,
-  assignments,
-  selfRecord,
-  finalResult,
-  onSelectEmployee,
-  onUpdateAssignment,
-  onUpdateFinalResult,
-}: {
-  currentUser: AppUser
-  employees: EmployeeRecord[]
-  selectedEmployee: EmployeeRecord | null
-  assignments: AssignmentRecord[]
-  selfRecord: SelfAppraisalRecord | null
-  finalResult: FinalResultRecord | null
-  onSelectEmployee: (employeeId: string) => void
-  onUpdateAssignment: (assignmentId: string, patch: Partial<AssignmentRecord>) => void
-  onUpdateFinalResult: (employeeId: string, patch: Partial<FinalResultRecord>) => void
-}) {
-  const selfSubmitted = Boolean(selfRecord?.status === 'submitted')
-  return (
-    <main className="calculator-shell">
-      <div className="calculator-main">
-        <section className="surface-card hero-section">
-          <div className="section-head">
-            <div>
-              <div className="eyebrow">Appraisal owner</div>
-              <h2>{currentUser.displayName}</h2>
-            </div>
-          </div>
-          <p className="subtle">
-            Review direct reports, score KPI rows, then prepare the final recommendation.
-          </p>
-        </section>
-
+      )
+    }
+    if (!employeeRecord || !selfRecord || !finalResult) {
+      return (
         <section className="surface-card section-card">
-          <div className="section-head">
-            <div>
-              <div className="eyebrow">Direct reports</div>
-              <h2>Select who to review</h2>
-            </div>
-          </div>
-          <div className="stack">
-            {employees.map((employee) => (
-              <button
-                key={employee.employeeId}
-                className={`list-row ${selectedEmployee?.employeeId === employee.employeeId ? 'is-active' : ''}`}
-                onClick={() => onSelectEmployee(employee.employeeId)}
-              >
-                <div>
-                  <strong>{employee.employeeName}</strong>
-                  <p>{employee.designation}</p>
-                </div>
-                <StatusPill status={employee.status} />
-              </button>
-            ))}
-          </div>
+          <p className="subtle">No employee appraisal workspace is available for this account.</p>
         </section>
-
-        {selectedEmployee ? (
-          <>
-            <section className="surface-card section-card">
-              <div className="section-head">
-                <div>
-                  <div className="eyebrow">Employee summary</div>
-                  <h2>{selectedEmployee.employeeName}</h2>
-                </div>
-              </div>
-              <p className="subtle">
-                {selectedEmployee.designation} · {selectedEmployee.appraisalRole || 'Role mapping pending'}
-              </p>
-              {selfRecord ? <TextBlock title="Employee self summary" value={selfRecord.overallAchievements || 'No self summary yet.'} /> : null}
-              {!selfSubmitted ? (
-                <div className="warning-box small">
-                  <strong>Waiting on self appraisal</strong>
-                  <p>Manager review unlocks only after the employee submits their self appraisal.</p>
-                </div>
-              ) : null}
-            </section>
-
-            <section className="surface-card section-card">
-              <div className="section-head">
-                <div>
-                  <div className="eyebrow">Manager scoring</div>
-                  <h2>{assignments.length} KPI rows</h2>
-                </div>
-              </div>
-              <div className="stack">
-                {assignments.map((assignment) => (
-                  <article key={assignment.assignmentId} className="kpi-card">
-                    <div className="kpi-meta">
-                      <strong>{assignment.kpiArea}</strong>
-                      <span>{assignment.weightPercent}%</span>
-                    </div>
-                    <p>{assignment.kpiStatement}</p>
-                    <div className="kpi-edit-grid">
-                      <label>
-                        <span>Score (1-5)</span>
-                        <input
-                          type="number"
-                          min={0}
-                          max={5}
-                          value={assignment.score}
-                          disabled={!selfSubmitted}
-                          onChange={(event) =>
-                            onUpdateAssignment(assignment.assignmentId, {
-                              score: Number(event.target.value),
-                              status: 'in_review',
-                            })
-                          }
-                        />
-                      </label>
-                      <label>
-                        <span>Evidence note</span>
-                        <input
-                          value={assignment.evidenceNote}
-                          disabled={!selfSubmitted}
-                          onChange={(event) =>
-                            onUpdateAssignment(assignment.assignmentId, {
-                              evidenceNote: event.target.value,
-                            })
-                          }
-                        />
-                      </label>
-                    </div>
-                    <label>
-                      <span>Manager comment</span>
-                      <textarea
-                        value={assignment.managerComment}
-                        disabled={!selfSubmitted}
-                        onChange={(event) =>
-                          onUpdateAssignment(assignment.assignmentId, {
-                            managerComment: event.target.value,
-                          })
-                        }
-                      />
-                    </label>
-                  </article>
-                ))}
-              </div>
-            </section>
-
-            {finalResult ? (
-              <section className="surface-card section-card">
-                <div className="section-head">
-                  <div>
-                    <div className="eyebrow">Closeout</div>
-                    <h2>Draft your recommendation</h2>
-                  </div>
-                  <span className="pill">{finalResult.performanceBand}</span>
-                </div>
-                <TextAreaField
-                  label="Manager summary"
-                  value={finalResult.managerSummary}
-                  disabled={!selfSubmitted}
-                  onChange={(value) => onUpdateFinalResult(selectedEmployee.employeeId, { managerSummary: value })}
-                />
-                <TextAreaField
-                  label="Final recommendation"
-                  value={finalResult.finalRecommendation}
-                  disabled={!selfSubmitted}
-                  onChange={(value) =>
-                    onUpdateFinalResult(selectedEmployee.employeeId, { finalRecommendation: value })
-                  }
-                />
-              </section>
-            ) : null}
-          </>
-        ) : (
-          <section className="surface-card section-card">
-            <p className="subtle">No direct reports assigned to this appraisal owner account yet.</p>
-          </section>
-        )}
-      </div>
-
-      <aside className="summary-rail">
-        <div className="section-head">
-          <div>
-            <div className="eyebrow">Review status</div>
-            <h2>Summary rail</h2>
-          </div>
-        </div>
-        <section className="surface-card summary-card sticky-card">
-          {selectedEmployee ? (
-            <>
-              <div className="summary-label">Selected employee</div>
-              <div className="summary-figure slim">{selectedEmployee.employeeName}</div>
-              <div className="summary-subtitle">{selectedEmployee.designation}</div>
-              <div className="summary-metrics">
-                <Metric label="KPI rows" value={`${assignments.length}`} compact />
-                <Metric label="Current score" value={`${finalResult?.finalScore ?? 0}`} compact />
-                <Metric label="Band" value={finalResult?.performanceBand ?? 'Not rated'} compact />
-              </div>
-            </>
-          ) : (
-            <p className="subtle">Pick a direct report to start reviewing.</p>
-          )}
-        </section>
-      </aside>
-    </main>
-  )
-}
-
-function AdminWorkspace({
-  state,
-  rolePackLibrary,
-  onUpdateFinalResult,
-  onResolveDesignationSetup,
-  onReset,
-}: {
-  state: AppState
-  rolePackLibrary: Map<string, RoleKpiEntry[]>
-  onUpdateFinalResult: (employeeId: string, patch: Partial<FinalResultRecord>) => void
-  onResolveDesignationSetup: (input: {
-    designation: string
-    roleName: string
-    sourceRoleName: string
-    entries: RoleKpiEntry[]
-    managerLabel: string
-    reviewerLabel: string
-    kpiOwnerLabel: string
-  }) => void
-  onReset: () => void
-}) {
-  const activeEmployees = state.employees.filter((employee) => !employee.excludedThisCycle)
-  const activeUnresolvedEmployees = state.unresolvedEmployees.filter(
-    (employee) => !state.employees.find((record) => record.employeeId === employee.employeeId)?.excludedThisCycle,
-  )
-  const [designationDrafts, setDesignationDrafts] = useState<
-    Record<
-      string,
-      {
-        roleName: string
-        sourceRoleName: string
-        managerLabel: string
-        reviewerLabel: string
-        kpiOwnerLabel: string
-        customKpis: string
-      }
-    >
-  >({})
-
-  const readyEmployees = activeEmployees.filter((employee) => employee.status === 'ready').length
-  const tentativeEmployees = activeEmployees.filter((employee) => employee.status === 'tentative').length
-  const blockedEmployees = activeEmployees.filter((employee) => employee.status === 'blocked').length
-  const unresolvedKpiCount = state.unresolvedDesignations.length
-  const excludedCount = state.excludedDesignations.length
-  const selfSubmittedCount = state.selfAppraisals.filter((record) => record.status === 'submitted').length
-  const releasedCount = state.finalResults.filter((result) => result.releasedToEmployee).length
-  const roleOptions = [...rolePackLibrary.keys()].sort((left, right) => left.localeCompare(right))
-
-  const reviewPackets = activeEmployees
-    .map((employee) => ({
-      employee,
-      selfRecord: state.selfAppraisals.find((record) => record.employeeId === employee.employeeId) ?? null,
-      finalResult: state.finalResults.find((record) => record.employeeId === employee.employeeId) ?? null,
-      assignments: state.assignments.filter((assignment) => assignment.employeeId === employee.employeeId),
-    }))
-    .filter((packet) => packet.selfRecord || packet.finalResult)
-    .sort((left, right) => left.employee.employeeName.localeCompare(right.employee.employeeName))
-
-  function draftFor(designation: string, defaults?: { role?: string; manager?: string }) {
+      )
+    }
     return (
-      designationDrafts[designation] ?? {
-        roleName: defaults?.role ?? '',
-        sourceRoleName: defaults?.role ?? '',
-        managerLabel: defaults?.manager ?? '',
-        reviewerLabel: '',
-        kpiOwnerLabel: defaults?.manager ?? '',
-        customKpis: '',
-      }
+      <CasebookEmployeeWorkspace
+        employee={employeeRecord}
+        selfRecord={selfRecord}
+        assignments={employeeAssignments}
+        finalResult={finalResult}
+        workspaceLoading={workspaceLoadState.loading}
+        workspaceError={workspaceLoadState.error}
+        selfActionState={selfActionState}
+        onUpdateSelf={updateSelfAppraisal}
+        onUpdateSelfKpiEntry={updateSelfKpiEntry}
+        onSaveSelfDraft={saveSelfAppraisalDraft}
+        onSubmitSelf={submitSelfAppraisal}
+        onEditSelf={editSubmittedSelfAppraisal}
+      />
     )
   }
 
-  function updateDraft(
-    designation: string,
-    patch: Partial<{
-      roleName: string
-      sourceRoleName: string
-      managerLabel: string
-      reviewerLabel: string
-      kpiOwnerLabel: string
-      customKpis: string
-    }>,
-  ) {
-    setDesignationDrafts((current) => ({
-      ...current,
-      [designation]: {
-        ...draftFor(designation),
-        ...current[designation],
-        ...patch,
-      },
-    }))
+  if (page === 'overview') {
+    if (mode === 'manager' && !canUseManagerFlow) {
+      return (
+        <section className="surface-card section-card">
+          <p className="subtle">You do not have access to the overview workspace.</p>
+        </section>
+      )
+    }
+
+    if (mode === 'admin' && !canUseAdminFlow) {
+      return (
+        <section className="surface-card section-card">
+          <p className="subtle">You do not have access to the overview workspace.</p>
+        </section>
+      )
+    }
+
+    if (!reviewLoadState.ready || !employeeWorkspaceReady) {
+      const message = reviewLoadState.loading || workspaceLoadState.loading
+        ? 'Loading overview…'
+        : 'Unable to load overview.'
+      const error = reviewLoadState.error || workspaceLoadState.error
+      return (
+        <section className="surface-card section-card">
+          <p className="subtle">{message}</p>
+          {error ? <p className="error-text">{error}</p> : null}
+        </section>
+      )
+    }
+
+    if (mode === 'admin') {
+      return (
+        <CasebookHrOverviewWorkspace
+          currentUser={currentUser}
+          state={state}
+          rolePackLibrary={rolePackLibrary}
+          onResolveDesignationSetup={resolveDesignationSetup}
+        />
+      )
+    }
+
+    return (
+      <CasebookOverviewWorkspace
+        variant="manager"
+        currentUser={currentUser}
+        employee={employeeRecord}
+        selfRecord={selfRecord}
+        assignments={employeeAssignments}
+        finalResult={finalResult}
+        reviewEmployees={reviewEmployees}
+        state={state}
+      />
+    )
   }
 
-  function parseKpiLines(lines: string) {
-    return lines
-      .split('\n')
-      .map((line) => line.trim())
-      .filter(Boolean)
-      .map((line) => {
-        const [kpiArea, kpiStatement, weightRaw] = line.split('|').map((part) => part.trim())
-        const weightPercent = Number(weightRaw ?? 0)
-        if (!kpiArea || !kpiStatement || !weightPercent) return null
-        return { kpiArea, kpiStatement, weightPercent }
-      })
-      .filter((entry): entry is RoleKpiEntry => Boolean(entry))
+  if (page === 'team') {
+    if (mode === 'manager' && !canUseManagerFlow) {
+      return (
+        <section className="surface-card section-card">
+          <p className="subtle">You do not have access to the team review workspace.</p>
+        </section>
+      )
+    }
+
+    if (mode === 'admin' && !canUseAdminFlow) {
+      return (
+        <section className="surface-card section-card">
+          <p className="subtle">You do not have access to the team review workspace.</p>
+        </section>
+      )
+    }
+
+    if (!reviewLoadState.ready) {
+      return (
+        <section className="surface-card section-card">
+          <p className="subtle">{reviewLoadState.loading ? 'Loading team review workspace…' : 'Unable to load team review workspace.'}</p>
+          {reviewLoadState.error ? <p className="error-text">{reviewLoadState.error}</p> : null}
+        </section>
+      )
+    }
+
+    if (mode === 'manager') {
+      return (
+        <CasebookManagerWorkspace
+          state={state}
+          employees={visibleReviewEmployees}
+          selectedEmployee={selectedReviewEmployee}
+          assignments={selectedReviewAssignments}
+          selfRecord={selectedReviewSelfRecord}
+          finalResult={selectedReviewFinalResult}
+          searchQuery={teamSearchQuery}
+          searchLoading={teamSearchLoading}
+          onSearchChange={setTeamSearchQuery}
+          onSelectEmployee={setSelectedManagedEmployeeId}
+          onUpdateAssignment={updateAssignment}
+          onUpdateFinalResult={updateFinalResult}
+        />
+      )
+    }
+
+    return (
+      <CasebookHrEmployeesWorkspace
+        state={state}
+        employees={visibleReviewEmployees}
+        selectedEmployee={selectedReviewEmployee}
+        assignments={selectedReviewAssignments}
+        selfRecord={selectedReviewSelfRecord}
+        finalResult={selectedReviewFinalResult}
+        searchQuery={teamSearchQuery}
+        searchLoading={teamSearchLoading}
+        onSearchChange={setTeamSearchQuery}
+        onSelectEmployee={setSelectedManagedEmployeeId}
+        onUpdateFinalResult={updateFinalResult}
+      />
+    )
+  }
+
+  if (page === 'release') {
+    if (!canUseAdminFlow || mode !== 'admin') {
+      return (
+        <section className="surface-card section-card">
+          <p className="subtle">You do not have access to the release control workspace.</p>
+        </section>
+      )
+    }
+
+    if (!reviewLoadState.ready) {
+      return (
+        <section className="surface-card section-card">
+          <p className="subtle">{reviewLoadState.loading ? 'Loading release control…' : 'Unable to load release control.'}</p>
+          {reviewLoadState.error ? <p className="error-text">{reviewLoadState.error}</p> : null}
+        </section>
+      )
+    }
+
+    return (
+      <CasebookHrReleaseWorkspace
+        state={state}
+        selectedEmployee={selectedReviewEmployee}
+        assignments={selectedReviewAssignments}
+        selfRecord={selectedReviewSelfRecord}
+        finalResult={selectedReviewFinalResult}
+        results={visibleReleaseResults}
+        searchQuery={releaseSearchQuery}
+        searchLoading={releaseSearchLoading}
+        onSearchChange={setReleaseSearchQuery}
+        onSelectEmployee={setSelectedManagedEmployeeId}
+        onUpdateFinalResult={updateFinalResult}
+      />
+    )
   }
 
   return (
-    <main className="workspace-grid admin-grid">
-      <section className="surface-card alert-card">
-        <div className="section-head">
-          <div>
-            <div className="eyebrow">HR action required</div>
-            <h2>Missing KPI mappings still block part of the cycle</h2>
-          </div>
-          <span className="pill status-blocked">{unresolvedKpiCount} unresolved</span>
-        </div>
-        <p className="subtle">
-          These unresolved designation-to-KPI mappings need HR or leadership decisions before those staff can be fully appraised.
-        </p>
-        <div className="tag-cloud">
-          {state.unresolvedDesignations.map((item) => (
-            <span key={item.designation} className="pill issue-pill">
-              {item.designation}
-            </span>
-          ))}
-        </div>
-      </section>
-
-      <section className="surface-card">
-        <div className="section-head">
-          <div>
-            <div className="eyebrow">HR overview</div>
-            <h2>Appraisal status</h2>
-          </div>
-        </div>
-        <div className="metric-grid">
-          <Metric label="Employees" value={`${state.employees.length}`} />
-          <Metric label="Ready" value={`${readyEmployees}`} />
-          <Metric label="Tentative" value={`${tentativeEmployees}`} />
-          <Metric label="Blocked" value={`${blockedEmployees}`} />
-          <Metric label="Excluded" value={`${excludedCount}`} />
-          <Metric label="Self submitted" value={`${selfSubmittedCount}`} />
-          <Metric label="Released" value={`${releasedCount}`} />
-        </div>
-        <div className="button-row">
-          <button
-            className="button primary"
-            onClick={() =>
-              downloadFile(
-                'appraisal-export.json',
-                JSON.stringify(state, null, 2),
-                'application/json',
-              )
-            }
-          >
-            Export JSON
-          </button>
-          <button
-            className="button"
-            onClick={() =>
-              downloadFile(
-                'appraisal-assignments.csv',
-                toCsv(state.assignments as unknown as Record<string, unknown>[]),
-                'text/csv',
-              )
-            }
-          >
-            Export assignments CSV
-          </button>
-          <button className="button subtle-button" onClick={onReset}>
-            Reset appraisal data
-          </button>
-        </div>
-      </section>
-
-      <section className="surface-card">
-        <div className="section-head">
-          <div>
-            <div className="eyebrow">Release control</div>
-            <h2>Final result visibility</h2>
-          </div>
-        </div>
-        <div className="stack">
-          {state.finalResults.map((result) => (
-            <article key={result.employeeId} className="list-row static-row">
-              <div>
-                <strong>{result.employeeName}</strong>
-                <p>
-                  {result.performanceBand} · score {result.finalScore}
-                </p>
-              </div>
-              <button
-                className={`button ${result.releasedToEmployee ? '' : 'primary'}`}
-                onClick={() =>
-                  onUpdateFinalResult(result.employeeId, {
-                    releasedToEmployee: !result.releasedToEmployee,
-                  })
-                }
-              >
-                {result.releasedToEmployee ? 'Hide result' : 'Release result'}
-              </button>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="surface-card">
-        <div className="section-head">
-          <div>
-            <div className="eyebrow">Review packets</div>
-            <h2>Self + manager review visibility</h2>
-          </div>
-        </div>
-        <div className="stack">
-          {reviewPackets.map(({ employee, selfRecord, finalResult, assignments }) => (
-            <article key={employee.employeeId} className="list-row static-row packet-row">
-              <div>
-                <strong>{employee.employeeName}</strong>
-                <p>
-                  {employee.designation} · self {selfRecord?.status ?? 'not started'} · manager score{' '}
-                  {finalResult?.finalScore ?? 0}
-                </p>
-                <p className="subtle">
-                  Self summary: {selfRecord?.overallAchievements || 'No self summary yet'} · Manager summary:{' '}
-                  {finalResult?.managerSummary || 'No manager summary yet'}
-                </p>
-              </div>
-              <span className="pill">{assignments.length} KPI rows</span>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="surface-card">
-        <div className="section-head">
-          <div>
-            <div className="eyebrow">Setup unresolved roles</div>
-            <h2>Create KPI packs and routing from inside HR</h2>
-          </div>
-        </div>
-        <div className="stack">
-          {state.unresolvedDesignations.map((item) => {
-            const draft = draftFor(item.designation, {
-              role: item.suggestedAppraisalRole,
-              manager: item.lineManagerLabel,
-            })
-            return (
-              <article key={item.designation} className="warning-box small">
-                <div className="section-head">
-                  <div>
-                    <strong>{item.designation}</strong>
-                    <p className="subtle">{item.notes || 'No notes provided.'}</p>
-                  </div>
-                  <span className="pill issue-pill">Needs setup</span>
-                </div>
-                <div className="kpi-edit-grid">
-                  <label>
-                    <span>Mapped appraisal role</span>
-                    <input
-                      value={draft.roleName}
-                      onChange={(event) => updateDraft(item.designation, { roleName: event.target.value })}
-                      placeholder="Finance Officer"
-                    />
-                  </label>
-                  <label>
-                    <span>Copy KPI pack from</span>
-                    <select
-                      value={draft.sourceRoleName}
-                      onChange={(event) => updateDraft(item.designation, { sourceRoleName: event.target.value })}
-                    >
-                      <option value="">Select existing role</option>
-                      {roleOptions.map((role) => (
-                        <option key={role} value={role}>
-                          {role}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label>
-                    <span>Line manager / appraisal owner</span>
-                    <input
-                      value={draft.managerLabel}
-                      onChange={(event) => updateDraft(item.designation, { managerLabel: event.target.value })}
-                      placeholder="Chief of Staff"
-                    />
-                  </label>
-                  <label>
-                    <span>Reviewer</span>
-                    <input
-                      value={draft.reviewerLabel}
-                      onChange={(event) => updateDraft(item.designation, { reviewerLabel: event.target.value })}
-                      placeholder="Chief of Staff"
-                    />
-                  </label>
-                  <label>
-                    <span>KPI owner</span>
-                    <input
-                      value={draft.kpiOwnerLabel}
-                      onChange={(event) => updateDraft(item.designation, { kpiOwnerLabel: event.target.value })}
-                      placeholder="Chief of Staff"
-                    />
-                  </label>
-                </div>
-                <label>
-                  <span>Custom KPI lines</span>
-                  <textarea
-                    value={draft.customKpis}
-                    onChange={(event) => updateDraft(item.designation, { customKpis: event.target.value })}
-                    placeholder="KPI Area | KPI Statement | Weight"
-                  />
-                </label>
-                <div className="button-row">
-                  <button
-                    className="button primary"
-                    onClick={() =>
-                      onResolveDesignationSetup({
-                        designation: item.designation,
-                        roleName: draft.roleName,
-                        sourceRoleName: draft.sourceRoleName,
-                        entries: parseKpiLines(draft.customKpis),
-                        managerLabel: draft.managerLabel,
-                        reviewerLabel: draft.reviewerLabel,
-                        kpiOwnerLabel: draft.kpiOwnerLabel,
-                      })
-                    }
-                  >
-                    Save setup
-                  </button>
-                  <span className="subtle">
-                    Use either an existing KPI pack or paste custom KPI lines in `Area | Statement | Weight` format.
-                  </span>
-                </div>
-              </article>
-            )
-          })}
-        </div>
-      </section>
-
-      <section className="surface-card">
-        <div className="section-head">
-          <div>
-            <div className="eyebrow">Unresolved gaps</div>
-            <h2>Employee and manager mapping issues</h2>
-          </div>
-        </div>
-        <div className="split-grid">
-          <article>
-            <h3>Employees still waiting on setup</h3>
-            <div className="stack tight">
-              {activeUnresolvedEmployees.map((item) => (
-                <div key={item.employeeId} className="warning-box small">
-                  <strong>{item.employeeName}</strong>
-                  <p>{item.designation}</p>
-                  <p>{item.blockers.join(' · ')}</p>
-                </div>
-              ))}
-            </div>
-          </article>
-          <article>
-            <h3>Manager routing issues</h3>
-            <div className="stack tight">
-              {state.unresolvedManagers.map((item) => (
-                <div key={`${item.employeeName}-${item.designation}`} className="warning-box small">
-                  <strong>{item.employeeName}</strong>
-                  <p>{item.designation}</p>
-                  <p>{item.issue}</p>
-                </div>
-              ))}
-            </div>
-          </article>
-        </div>
-      </section>
-
-      <section className="surface-card">
-        <div className="section-head">
-          <div>
-            <div className="eyebrow">Excluded this cycle</div>
-            <h2>Non-core roles left out on purpose</h2>
-          </div>
-          <span className="pill">{excludedCount}</span>
-        </div>
-        <div className="stack tight">
-          {state.excludedDesignations.map((item) => (
-            <div key={item.designation} className="text-block">
-              <h3>{item.designation}</h3>
-              <p>{item.notes || 'Excluded from this cycle by decision.'}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="surface-card">
-        <div className="section-head">
-          <div>
-            <div className="eyebrow">Generated accounts</div>
-            <h2>Generated credentials</h2>
-          </div>
-        </div>
-        <div className="credential-list dense">
-          {state.users.map((user) => (
-            <div key={user.id} className="credential-row">
-              <strong>{user.displayName}</strong>
-              <span>{user.username}</span>
-              <code>{user.password}</code>
-              <span className="pill">{user.capabilities.join(' · ')}</span>
-            </div>
-          ))}
-        </div>
-      </section>
-    </main>
-  )
-}
-
-function StatusPill({ status }: { status: EmployeeRecord['status'] }) {
-  return <span className={`pill status-${status}`}>{status}</span>
-}
-
-function StepStrip({
-  mode,
-  employeeRecord,
-  finalResult,
-}: {
-  mode: 'employee' | 'manager' | 'admin'
-  employeeRecord: EmployeeRecord | null
-  finalResult: FinalResultRecord | null
-}) {
-  const steps =
-    mode === 'employee'
-      ? [
-          { label: 'Sign in', active: true },
-          { label: 'Fill self appraisal', active: Boolean(employeeRecord?.canSelfAppraise) },
-          { label: 'Manager review', active: true },
-          { label: 'Final result', active: Boolean(finalResult?.releasedToEmployee) },
-        ]
-      : mode === 'manager'
-        ? [
-            { label: 'Sign in', active: true },
-            { label: 'Review direct reports', active: true },
-            { label: 'Score KPI rows', active: true },
-            { label: 'Draft recommendation', active: true },
-          ]
-        : [
-            { label: 'Sign in', active: true },
-            { label: 'Review unresolved mappings', active: true },
-            { label: 'Release results', active: true },
-            { label: 'Export records', active: true },
-          ]
-
-  return (
-    <section className="step-strip surface-card">
-      {steps.map((step, index) => (
-        <div key={step.label} className={`step-item ${step.active ? 'is-active' : ''}`}>
-          <span className="step-index">{index + 1}</span>
-          <span>{step.label}</span>
-        </div>
-      ))}
+    <section className="surface-card section-card">
+      <p className="subtle">This page is not available for your role.</p>
     </section>
   )
 }
 
-function TextAreaField({
-  label,
-  value,
-  disabled = false,
-  onChange,
-}: {
-  label: string
-  value: string
-  disabled?: boolean
-  onChange: (value: string) => void
-}) {
-  return (
-    <label>
-      <span>{label}</span>
-      <textarea disabled={disabled} value={value} onChange={(event) => onChange(event.target.value)} />
-    </label>
-  )
-}
-
-function TextBlock({ title, value }: { title: string; value: string }) {
-  return (
-    <div className="text-block">
-      <h3>{title}</h3>
-      <p>{value || 'No entry yet.'}</p>
-    </div>
-  )
-}
-
-function DetailItem({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="detail-item">
-      <span>{label}</span>
-      <strong>{value}</strong>
-    </div>
-  )
-}
-
-function Metric({ label, value, compact = false }: { label: string; value: string; compact?: boolean }) {
-  return (
-    <article className={`metric-card ${compact ? 'compact' : ''}`}>
-      <span>{label}</span>
-      <strong>{value}</strong>
-    </article>
-  )
-}
-
-export default App
+export default AppraisalWorkspace

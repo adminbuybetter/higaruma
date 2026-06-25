@@ -24,6 +24,16 @@ class Settings(BaseSettings):
     secret_key: str = "dev-only-change-me"
     access_token_ttl_minutes: int = 720
     cors_allow_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
+    session_cookie_name: str = "buybetter_appraisal_session"
+    session_cookie_samesite: str = "lax"
+    session_cookie_secure: bool = False
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_username: str = ""
+    smtp_password: str = ""
+    smtp_from_name: str = ""
+    smtp_from_email: str = ""
+    smtp_secure: bool = False
 
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -38,6 +48,33 @@ class Settings(BaseSettings):
     @property
     def cors_origins(self) -> list[str]:
         return parse_cors_allow_origins(self.cors_allow_origins)
+
+    @property
+    def is_hosted_env(self) -> bool:
+        return self.app_env.lower() in {"staging", "production"}
+
+    @property
+    def effective_session_cookie_samesite(self) -> str:
+        if self.is_hosted_env and self.session_cookie_samesite.lower() == "lax":
+            return "none"
+        return self.session_cookie_samesite
+
+    @property
+    def effective_session_cookie_secure(self) -> bool:
+        if self.is_hosted_env and not self.session_cookie_secure:
+            return True
+        return self.session_cookie_secure
+
+    @property
+    def smtp_configured(self) -> bool:
+        return all(
+            [
+                self.smtp_host.strip(),
+                self.smtp_username.strip(),
+                self.smtp_password.strip(),
+                self.smtp_from_email.strip(),
+            ]
+        )
 
 
 @lru_cache

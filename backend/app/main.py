@@ -1,18 +1,17 @@
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta, timezone
 from decimal import Decimal
 from uuid import UUID
 
-from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi import Depends, FastAPI, HTTPException, Query, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import Engine, select
 from sqlalchemy.orm import Session, selectinload
 
-from app.bootstrap import bootstrap_from_seed
 from app.config import get_settings
-from app.db import Base, engine, get_db
+from app.db import engine, get_db
 from app.deps import get_current_user
 from app.models import (
     AppraisalCycle,
@@ -40,6 +39,7 @@ from app.schemas import (
     LoginResponse,
     ManagerAssignmentUpdateRequest,
     ResolveDesignationSetupRequest,
+    SearchEmployeeCodesResponse,
     SelfAppraisalItemResponse,
     SelfAppraisalResponse,
     SelfAppraisalUpdateRequest,
@@ -49,6 +49,12 @@ from app.schemas import (
     UserResponse,
     WorkspaceCollectionResponse,
 )
+
+APP_TIMEZONE = timezone(timedelta(hours=1))
+DEFAULT_SELF_OPENS_AT = datetime(2026, 6, 16, 9, 0, 0, tzinfo=APP_TIMEZONE)
+DEFAULT_SELF_CLOSES_AT = datetime(2026, 6, 30, 23, 59, 59, tzinfo=APP_TIMEZONE)
+DEFAULT_MANAGER_OPENS_AT = datetime(2026, 7, 1, 0, 0, 0, tzinfo=APP_TIMEZONE)
+DEFAULT_MANAGER_CLOSES_AT = datetime(2026, 7, 7, 23, 59, 59, tzinfo=APP_TIMEZONE)
 from app.security import create_access_token, verify_password
 
 
@@ -70,13 +76,14 @@ def _manager_scopes(user: User) -> list[str]:
 
 
 def build_user_response(db: Session, user: User) -> UserResponse:
-    employee_code = db.scalar(select(Employee.employee_code).where(Employee.user_id == user.id))
+    employee = db.scalar(select(Employee).where(Employee.user_id == user.id))
     return UserResponse(
         id=str(user.id),
         username=user.username,
         display_name=user.display_name,
+        designation=employee.designation if employee else None,
         capabilities=sorted(_capabilities(user)),
-        employee_code=employee_code,
+        employee_code=employee.employee_code if employee else None,
         manager_scopes=_manager_scopes(user),
     )
 
@@ -243,11 +250,82 @@ def ensure_final_result(assignment: EmployeeCycleAssignment) -> FinalResult:
     return assignment.final_result
 
 
-def ensure_manager_can_score(assignment: EmployeeCycleAssignment) -> None:
+def ensure_manager_can_score(assignment: EmployeeCycleAssignment, cycle: AppraisalCycle) -> None:
     if not assignment.self_appraisal or assignment.self_appraisal.status != "submitted":
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Manager review unlocks only after the employee submits self appraisal",
+        )
+    phase_state = manager_phase_state(cycle)
+    if phase_state == "upcoming":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Manager review is not open yet for this cycle",
+        )
+    if phase_state == "closed":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Manager review is closed for this cycle",
+        )
+
+
+def normalize_cycle_datetime(value: datetime | None, fallback: datetime) -> datetime:
+    next_value = value or fallback
+    if next_value.tzinfo is None:
+        return next_value.replace(tzinfo=APP_TIMEZONE)
+    return next_value.astimezone(APP_TIMEZONE)
+
+
+def effective_self_opens_at(cycle: AppraisalCycle) -> datetime:
+    return normalize_cycle_datetime(cycle.self_opens_at or cycle.opens_at, DEFAULT_SELF_OPENS_AT)
+
+
+def effective_self_closes_at(cycle: AppraisalCycle) -> datetime:
+    return normalize_cycle_datetime(cycle.self_closes_at or cycle.closes_at, DEFAULT_SELF_CLOSES_AT)
+
+
+def effective_manager_opens_at(cycle: AppraisalCycle) -> datetime:
+    return normalize_cycle_datetime(cycle.manager_opens_at, DEFAULT_MANAGER_OPENS_AT)
+
+
+def effective_manager_closes_at(cycle: AppraisalCycle) -> datetime:
+    return normalize_cycle_datetime(cycle.manager_closes_at, DEFAULT_MANAGER_CLOSES_AT)
+
+
+def phase_state(*, opens_at: datetime, closes_at: datetime) -> str:
+    now = datetime.now(UTC)
+    if now < opens_at:
+        return "upcoming"
+    if now > closes_at:
+        return "closed"
+    return "open"
+
+
+def self_phase_state(cycle: AppraisalCycle) -> str:
+    return phase_state(
+        opens_at=effective_self_opens_at(cycle),
+        closes_at=effective_self_closes_at(cycle),
+    )
+
+
+def manager_phase_state(cycle: AppraisalCycle) -> str:
+    return phase_state(
+        opens_at=effective_manager_opens_at(cycle),
+        closes_at=effective_manager_closes_at(cycle),
+    )
+
+
+def ensure_self_appraisal_open(cycle: AppraisalCycle) -> None:
+    state = self_phase_state(cycle)
+    if state == "upcoming":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Self appraisal is not open yet for this cycle",
+        )
+    if state == "closed":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Self appraisal editing is closed for this cycle",
         )
 
 
@@ -271,7 +349,7 @@ def record_audit_event(
     )
 
 
-def serialize_workspace(assignment: EmployeeCycleAssignment, cycle_code: str) -> EmployeeWorkspaceResponse:
+def serialize_workspace(assignment: EmployeeCycleAssignment, cycle: AppraisalCycle) -> EmployeeWorkspaceResponse:
     employee = assignment.employee
     kpi_assignments = sorted(assignment.kpi_assignments, key=lambda item: item.sort_order)
     blockers = list(assignment.blockers_json or [])
@@ -321,7 +399,14 @@ def serialize_workspace(assignment: EmployeeCycleAssignment, cycle_code: str) ->
         )
 
     return EmployeeWorkspaceResponse(
-        cycle_code=cycle_code,
+        cycle_code=cycle.code,
+        cycle_closes_at=effective_self_closes_at(cycle).isoformat(),
+        self_opens_at=effective_self_opens_at(cycle).isoformat(),
+        self_closes_at=effective_self_closes_at(cycle).isoformat(),
+        self_phase_state=self_phase_state(cycle),
+        manager_opens_at=effective_manager_opens_at(cycle).isoformat(),
+        manager_closes_at=effective_manager_closes_at(cycle).isoformat(),
+        manager_phase_state=manager_phase_state(cycle),
         employee=EmployeeSummary(
             employee_code=employee.employee_code,
             full_name=employee.full_name,
@@ -420,9 +505,32 @@ def build_excluded_designations(assignments: list[EmployeeCycleAssignment]) -> l
     return sorted(grouped.values(), key=lambda item: item.designation.lower())
 
 
-def serialize_admin_workspace(assignments: list[EmployeeCycleAssignment], cycle_code: str) -> AdminWorkspaceResponse:
+def normalize_search_query(query: str) -> str:
+    return " ".join(query.strip().lower().split())
+
+
+def assignment_matches_search(assignment: EmployeeCycleAssignment, query: str) -> bool:
+    normalized = normalize_search_query(query)
+    if not normalized:
+        return True
+
+    employee = assignment.employee
+    searchable_parts = [
+        employee.employee_code,
+        employee.full_name,
+        employee.designation,
+        employee.department or "",
+        assignment.appraisal_role_name or "",
+        assignment.line_manager_label or "",
+        assignment.primary_owner_label or "",
+    ]
+    haystack = " ".join(part.lower() for part in searchable_parts if part)
+    return normalized in haystack
+
+
+def serialize_admin_workspace(assignments: list[EmployeeCycleAssignment], cycle: AppraisalCycle) -> AdminWorkspaceResponse:
     return AdminWorkspaceResponse(
-        workspaces=[serialize_workspace(assignment, cycle_code) for assignment in assignments],
+        workspaces=[serialize_workspace(assignment, cycle) for assignment in assignments],
         unresolved_designations=build_unresolved_designations(assignments),
         unresolved_employees=build_unresolved_employees(assignments),
         unresolved_managers=build_unresolved_managers(assignments),
@@ -479,23 +587,16 @@ def recreate_assignment_kpis(
         )
 
 
-def create_app(*, bootstrap: bool = True, db_engine: Engine = engine) -> FastAPI:
+def create_app(*, db_engine: Engine = engine) -> FastAPI:
     @asynccontextmanager
     async def lifespan(_: FastAPI):
-        Base.metadata.create_all(bind=db_engine)
-        if bootstrap:
-            db = next(get_db())
-            try:
-                bootstrap_from_seed(db)
-            finally:
-                db.close()
         yield
 
     app = FastAPI(title=settings.app_title, lifespan=lifespan)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins,
-        allow_credentials=False,
+        allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
     )
@@ -505,7 +606,7 @@ def create_app(*, bootstrap: bool = True, db_engine: Engine = engine) -> FastAPI
         return {"status": "ok", "environment": settings.app_env}
 
     @app.post("/auth/login", response_model=LoginResponse)
-    def login(payload: LoginRequest, db: Session = Depends(get_db)) -> LoginResponse:
+    def login(payload: LoginRequest, response: Response, db: Session = Depends(get_db)) -> LoginResponse:
         user = db.scalar(
             select(User)
             .where(User.username == payload.username.strip().lower())
@@ -516,7 +617,27 @@ def create_app(*, bootstrap: bool = True, db_engine: Engine = engine) -> FastAPI
         if not user.is_active:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User is inactive")
         token = create_access_token(user_id=str(user.id))
+        response.set_cookie(
+            key=settings.session_cookie_name,
+            value=token,
+            max_age=settings.access_token_ttl_minutes * 60,
+            httponly=True,
+            samesite=settings.effective_session_cookie_samesite,
+            secure=settings.effective_session_cookie_secure,
+            path="/",
+        )
         return LoginResponse(access_token=token, user=build_user_response(db, user))
+
+    @app.post("/auth/logout")
+    def logout(response: Response) -> dict[str, str]:
+        response.delete_cookie(
+            key=settings.session_cookie_name,
+            httponly=True,
+            samesite=settings.effective_session_cookie_samesite,
+            secure=settings.effective_session_cookie_secure,
+            path="/",
+        )
+        return {"status": "ok"}
 
     @app.get("/me", response_model=UserResponse)
     def me(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> UserResponse:
@@ -529,7 +650,7 @@ def create_app(*, bootstrap: bool = True, db_engine: Engine = engine) -> FastAPI
     ) -> EmployeeWorkspaceResponse:
         assignment = get_employee_assignment_for_current_user(db, current_user)
         cycle = get_open_cycle(db)
-        return serialize_workspace(assignment, cycle.code)
+        return serialize_workspace(assignment, cycle)
 
     @app.put("/employee/me/self-appraisal", response_model=EmployeeWorkspaceResponse)
     def update_employee_self_appraisal(
@@ -540,6 +661,9 @@ def create_app(*, bootstrap: bool = True, db_engine: Engine = engine) -> FastAPI
         assignment = get_employee_assignment_for_current_user(db, current_user)
         if not assignment.employee.can_self_appraise:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Self appraisal is disabled for this employee")
+
+        cycle = get_open_cycle(db)
+        ensure_self_appraisal_open(cycle)
 
         self_appraisal = sync_self_items_with_kpis(assignment)
         self_appraisal.status = payload.status
@@ -578,9 +702,8 @@ def create_app(*, bootstrap: bool = True, db_engine: Engine = engine) -> FastAPI
         )
         db.commit()
 
-        cycle = get_open_cycle(db)
         refreshed = get_assignment_by_id(db, assignment.id)
-        return serialize_workspace(refreshed, cycle.code)
+        return serialize_workspace(refreshed, cycle)
 
     @app.get("/manager/workspace", response_model=WorkspaceCollectionResponse)
     def manager_workspace(
@@ -589,7 +712,22 @@ def create_app(*, bootstrap: bool = True, db_engine: Engine = engine) -> FastAPI
     ) -> WorkspaceCollectionResponse:
         cycle = get_open_cycle(db)
         assignments = get_managed_assignments(db, current_user, cycle)
-        return WorkspaceCollectionResponse(workspaces=[serialize_workspace(item, cycle.code) for item in assignments])
+        return WorkspaceCollectionResponse(workspaces=[serialize_workspace(item, cycle) for item in assignments])
+
+    @app.get("/manager/search", response_model=SearchEmployeeCodesResponse)
+    def manager_search(
+        query: str = Query(default=""),
+        current_user: User = Depends(get_current_user),
+        db: Session = Depends(get_db),
+    ) -> SearchEmployeeCodesResponse:
+        cycle = get_open_cycle(db)
+        assignments = get_managed_assignments(db, current_user, cycle)
+        matching_codes = [
+            item.employee.employee_code
+            for item in assignments
+            if assignment_matches_search(item, query)
+        ]
+        return SearchEmployeeCodesResponse(employee_codes=matching_codes)
 
     @app.patch("/manager/assignments/{assignment_id}", response_model=EmployeeWorkspaceResponse)
     def update_manager_assignment(
@@ -603,7 +741,8 @@ def create_app(*, bootstrap: bool = True, db_engine: Engine = engine) -> FastAPI
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="KPI assignment not found")
         assignment = get_assignment_by_id(db, kpi_assignment.employee_cycle_assignment_id)
         require_manager_scope(current_user, assignment)
-        ensure_manager_can_score(assignment)
+        cycle = get_open_cycle(db)
+        ensure_manager_can_score(assignment, cycle)
 
         if payload.manager_score is not None:
             kpi_assignment.manager_score = payload.manager_score
@@ -627,9 +766,8 @@ def create_app(*, bootstrap: bool = True, db_engine: Engine = engine) -> FastAPI
         )
         db.commit()
 
-        cycle = get_open_cycle(db)
         refreshed = get_assignment_by_id(db, assignment.id)
-        return serialize_workspace(refreshed, cycle.code)
+        return serialize_workspace(refreshed, cycle)
 
     @app.patch("/manager/final-results/{employee_code}", response_model=EmployeeWorkspaceResponse)
     def update_manager_final_result(
@@ -641,7 +779,7 @@ def create_app(*, bootstrap: bool = True, db_engine: Engine = engine) -> FastAPI
         cycle = get_open_cycle(db)
         assignment = get_assignment_by_employee_code(db, employee_code, cycle)
         require_manager_scope(current_user, assignment)
-        ensure_manager_can_score(assignment)
+        ensure_manager_can_score(assignment, cycle)
 
         final_result = ensure_final_result(assignment)
         if payload.self_summary is not None:
@@ -662,7 +800,7 @@ def create_app(*, bootstrap: bool = True, db_engine: Engine = engine) -> FastAPI
         db.commit()
 
         refreshed = get_assignment_by_id(db, assignment.id)
-        return serialize_workspace(refreshed, cycle.code)
+        return serialize_workspace(refreshed, cycle)
 
     @app.get("/admin/workspace", response_model=AdminWorkspaceResponse)
     def admin_workspace(
@@ -672,7 +810,23 @@ def create_app(*, bootstrap: bool = True, db_engine: Engine = engine) -> FastAPI
         require_capability(current_user, "admin")
         cycle = get_open_cycle(db)
         assignments = get_all_assignments(db, cycle)
-        return serialize_admin_workspace(assignments, cycle.code)
+        return serialize_admin_workspace(assignments, cycle)
+
+    @app.get("/admin/search", response_model=SearchEmployeeCodesResponse)
+    def admin_search(
+        query: str = Query(default=""),
+        current_user: User = Depends(get_current_user),
+        db: Session = Depends(get_db),
+    ) -> SearchEmployeeCodesResponse:
+        require_capability(current_user, "admin")
+        cycle = get_open_cycle(db)
+        assignments = get_all_assignments(db, cycle)
+        matching_codes = [
+            item.employee.employee_code
+            for item in assignments
+            if assignment_matches_search(item, query)
+        ]
+        return SearchEmployeeCodesResponse(employee_codes=matching_codes)
 
     @app.patch("/admin/final-results/{employee_code}", response_model=EmployeeWorkspaceResponse)
     def update_admin_final_result(
@@ -708,7 +862,7 @@ def create_app(*, bootstrap: bool = True, db_engine: Engine = engine) -> FastAPI
         db.commit()
 
         refreshed = get_assignment_by_id(db, assignment.id)
-        return serialize_workspace(refreshed, cycle.code)
+        return serialize_workspace(refreshed, cycle)
 
     @app.post("/admin/designation-mappings/resolve", response_model=AdminWorkspaceResponse)
     def resolve_designation_setup(
@@ -818,7 +972,7 @@ def create_app(*, bootstrap: bool = True, db_engine: Engine = engine) -> FastAPI
         db.commit()
 
         assignments = get_all_assignments(db, cycle)
-        return serialize_admin_workspace(assignments, cycle.code)
+        return serialize_admin_workspace(assignments, cycle)
 
     return app
 

@@ -83,9 +83,10 @@ These designations remain intentionally excluded:
 
 The prototype regenerates:
 
-- `src/data/seed.generated.ts`
-- `src/data/credentials.generated.csv`
-- `src/data/unresolved.generated.md`
+- `frontend/generated/seed.generated.json`
+- `frontend/generated/credentials.generated.csv`
+- `frontend/generated/login_mailmerge.generated.csv`
+- `frontend/generated/unresolved.generated.md`
 
 ### Current credential model
 
