@@ -375,7 +375,7 @@ export function CasebookEmployeeWorkspace({
   const [resultOpen, setResultOpen] = useState(false)
   const [toast, setToast] = useState<ToastMessage | null>(null)
   const greeting = partOfDayGreeting()
-  const dueCopy = buildEmployeeDueCopy(selfRecord.cycleClosesAt)
+  const dueCopy = buildEmployeeDueCopy(selfRecord)
 
   return (
     <>
@@ -508,6 +508,11 @@ export function CasebookManagerWorkspace({
   const [toast, setToast] = useState<ToastMessage | null>(null)
   const [employeePage, setEmployeePage] = useState(1)
   const pagedEmployees = paginateRows(employees, employeePage)
+  const timingRecord = employees.reduce<SelfAppraisalRecord | null>(
+    (match, employee) => match ?? state.selfAppraisals.find((record) => record.employeeId === employee.employeeId) ?? null,
+    null,
+  )
+  const dueCopy = timingRecord ? buildManagerDueCopy(timingRecord) : 'Manager review dates will be shared shortly.'
 
   useEffect(() => {
     setEmployeePage(1)
@@ -519,7 +524,7 @@ export function CasebookManagerWorkspace({
         <div className="topbar">
           <div>
             <h1>My Team</h1>
-            <div className="meta">H1 2026 Cycle · Review direct reports, score KPI rows, then draft your recommendation</div>
+            <div className="meta">{dueCopy}</div>
           </div>
         </div>
 
@@ -1479,11 +1484,12 @@ function SelfDrawer({
   const [openItems, setOpenItems] = useState<Record<string, boolean>>({})
   const [step, setStep] = useState<'kpis' | 'reflection'>('kpis')
   const progress = selfRecord.kpiEntries.filter((entry) => entry.selfScore > 0).length
-  const deadlineClosed = hasCycleClosed(selfRecord.cycleClosesAt)
+  const deadlineClosed = selfRecord.selfPhaseState === 'closed' || hasWindowClosed(selfRecord.selfClosesAt)
+  const selfWindowUpcoming = selfRecord.selfPhaseState === 'upcoming'
   const submitted = selfRecord.status === 'submitted'
   const pending = selfActionState !== 'idle'
   const showEditAction = submitted && !deadlineClosed
-  const locked = deadlineClosed || submitted || pending
+  const locked = selfWindowUpcoming || deadlineClosed || submitted || pending
   const canAdvanceToReflection = assignments.every((assignment) => {
     const entry = selfRecord.kpiEntries.find((record) => record.assignmentId === assignment.assignmentId)
     return Boolean(entry && entry.selfScore > 0 && entry.reasonForScore.trim())
@@ -1509,7 +1515,7 @@ function SelfDrawer({
             <div>
               <h2>Self-Appraisal</h2>
               <div className="sub">
-                {selfRecord.cycle} Cycle · <span>{progress} of {selfRecord.kpiEntries.length} rated</span> · Deadline {formatDeadline(selfRecord.cycleClosesAt)}
+                {selfRecord.cycle} Cycle · <span>{progress} of {selfRecord.kpiEntries.length} rated</span> · Deadline {formatDeadline(selfRecord.selfClosesAt)}
               </div>
             </div>
             <button className="close-x" onClick={onClose}>
@@ -1520,12 +1526,14 @@ function SelfDrawer({
           </div>
         </div>
         <div className="drawer-body">
-          <div className={`drawer-status ${deadlineClosed ? 'locked' : submitted ? 'submitted' : 'draft'}`}>
-            {deadlineClosed
-              ? `Editing closed on ${formatDeadline(selfRecord.cycleClosesAt)}.`
+          <div className={`drawer-status ${selfWindowUpcoming || deadlineClosed ? 'locked' : submitted ? 'submitted' : 'draft'}`}>
+            {selfWindowUpcoming
+              ? `Editing opens on ${formatDeadline(selfRecord.selfOpensAt)}.`
+              : deadlineClosed
+                ? `Editing closed on ${formatDeadline(selfRecord.selfClosesAt)}.`
               : submitted
                 ? `Submitted${selfRecord.submittedAt ? ` on ${formatSubmittedAt(selfRecord.submittedAt)}` : ''}.`
-                : `Draft mode. You can edit until ${formatDeadline(selfRecord.cycleClosesAt)}.`}
+                : `Draft mode. You can edit until ${formatDeadline(selfRecord.selfClosesAt)}.`}
           </div>
           <div className="mini-stepper" aria-label="Self appraisal steps">
             <div className={`mini-step ${step === 'reflection' ? 'done' : 'current'}`}>
@@ -1617,14 +1625,16 @@ function SelfDrawer({
         </div>
         <div className="drawer-footer">
           <span className="left-note">
-            {deadlineClosed
-              ? 'Editing is closed for this cycle.'
+            {selfWindowUpcoming
+              ? `Self-appraisal opens on ${formatDeadline(selfRecord.selfOpensAt)}.`
+              : deadlineClosed
+                ? 'Editing is closed for this cycle.'
               : submitted
                 ? 'Submitted appraisals stay locked unless you tap Edit before the deadline.'
                 : 'Saved drafts stay editable until you submit.'}
           </span>
           <div style={{ display: 'flex', gap: 8 }}>
-            {!submitted && !deadlineClosed ? (
+            {!submitted && !selfWindowUpcoming && !deadlineClosed ? (
               <button className="btn btn--secondary btn--sm" onClick={onSaveDraft} disabled={pending}>
                 {selfActionState === 'saving' ? 'Saving...' : 'Save draft'}
               </button>
@@ -1638,7 +1648,7 @@ function SelfDrawer({
                 Next
               </button>
             ) : null}
-            {!submitted && !deadlineClosed && step === 'reflection' ? (
+            {!submitted && !selfWindowUpcoming && !deadlineClosed && step === 'reflection' ? (
               <button className="btn btn--primary btn--sm" onClick={() => onSubmitSelf(employee.employeeId)} disabled={pending}>
                 {selfActionState === 'submitting' ? 'Submitting...' : 'Submit'}
               </button>
@@ -1682,7 +1692,10 @@ function ReviewDrawer({
 }) {
   const [openItems, setOpenItems] = useState<Record<string, boolean>>({})
   if (!employee) return null
-  const locked = selfRecord?.status !== 'submitted'
+  const managerWindowState = selfRecord?.managerPhaseState ?? 'upcoming'
+  const managerOpenAt = selfRecord?.managerOpensAt ?? null
+  const managerDeadline = selfRecord?.managerClosesAt ?? null
+  const locked = selfRecord?.status !== 'submitted' || managerWindowState !== 'open'
 
   return (
     <>
@@ -1705,13 +1718,29 @@ function ReviewDrawer({
         </div>
         <div className="drawer-body">
           <div className="section-label">What they said</div>
-          {locked ? (
+          {selfRecord?.status !== 'submitted' ? (
             <div className="locked-banner">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
                 <rect x="5" y="11" width="14" height="9" rx="1.5" />
                 <path d="M8 11V7a4 4 0 0 1 8 0v4" />
               </svg>
               No self-summary yet. Review unlocks once {firstName(employee.employeeName)} submits a self-appraisal.
+            </div>
+          ) : managerWindowState === 'upcoming' ? (
+            <div className="locked-banner">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 7v5l3 2" />
+              </svg>
+              Manager review opens on {formatDeadline(managerOpenAt)}.
+            </div>
+          ) : managerWindowState === 'closed' ? (
+            <div className="locked-banner">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M8 8l8 8M16 8l-8 8" />
+              </svg>
+              Manager review closed on {formatDeadline(managerDeadline)}.
             </div>
           ) : (
             <div className="self-summary-box">
@@ -1804,7 +1833,15 @@ function ReviewDrawer({
         </div>
         <div className="drawer-footer">
           <span className="left-note">
-            {variant === 'admin' ? 'HR controls final visibility and can override release status.' : 'Visible to the employee only after HR releases results.'}
+            {selfRecord?.status !== 'submitted'
+              ? 'Scoring stays locked until the employee submits a self-appraisal.'
+              : managerWindowState === 'upcoming'
+                ? `Manager review opens on ${formatDeadline(managerOpenAt)}.`
+                : managerWindowState === 'closed'
+                  ? `Manager review closed on ${formatDeadline(managerDeadline)}.`
+                  : variant === 'admin'
+                    ? 'HR controls final visibility and can override release status.'
+                    : `Visible to the employee only after HR releases results. Deadline ${formatDeadline(managerDeadline)}.`}
           </span>
           <div style={{ display: 'flex', gap: 8 }}>
             <button className="btn btn--secondary btn--sm" onClick={onSaveDraft} disabled={locked}>
@@ -2091,18 +2128,18 @@ function initials(name: string) {
     .join('')
 }
 
-function hasCycleClosed(cycleClosesAt: string | null) {
-  if (!cycleClosesAt) return false
-  return new Date(cycleClosesAt).getTime() <= Date.now()
+function hasWindowClosed(closesAt: string | null) {
+  if (!closesAt) return false
+  return new Date(closesAt).getTime() <= Date.now()
 }
 
-function formatDeadline(cycleClosesAt: string | null) {
-  if (!cycleClosesAt) return 'Not set'
+function formatDeadline(closesAt: string | null) {
+  if (!closesAt) return 'Not set'
   return new Intl.DateTimeFormat('en-GB', {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
-  }).format(new Date(cycleClosesAt))
+  }).format(new Date(closesAt))
 }
 
 function formatSubmittedAt(submittedAt: string) {
@@ -2126,23 +2163,41 @@ function partOfDayGreeting() {
   return 'Good evening'
 }
 
-function daysLeftUntil(cycleClosesAt: string | null) {
-  if (!cycleClosesAt) return null
-  const close = new Date(cycleClosesAt)
+function daysLeftUntil(closesAt: string | null) {
+  if (!closesAt) return null
+  const close = new Date(closesAt)
   const now = new Date()
   const msPerDay = 1000 * 60 * 60 * 24
   const diff = close.getTime() - now.getTime()
   return Math.max(0, Math.ceil(diff / msPerDay))
 }
 
-function buildEmployeeDueCopy(cycleClosesAt: string | null) {
-  if (!cycleClosesAt) return 'Your submission deadline will be shared shortly.'
-  if (hasCycleClosed(cycleClosesAt)) {
-    return `Your submission window closed on ${formatDeadline(cycleClosesAt)}.`
+function buildEmployeeDueCopy(selfRecord: SelfAppraisalRecord) {
+  if (!selfRecord.selfClosesAt) return 'Your submission deadline will be shared shortly.'
+  if (selfRecord.selfPhaseState === 'upcoming') {
+    return `Your self-appraisal opens on ${formatDeadline(selfRecord.selfOpensAt)}.`
   }
-  const daysLeft = daysLeftUntil(cycleClosesAt)
+  if (selfRecord.selfPhaseState === 'closed' || hasWindowClosed(selfRecord.selfClosesAt)) {
+    return `Your submission window closed on ${formatDeadline(selfRecord.selfClosesAt)}.`
+  }
+  const daysLeft = daysLeftUntil(selfRecord.selfClosesAt)
   if (daysLeft === 0) {
-    return `You have less than 1 day left and your submission is due by ${formatDeadline(cycleClosesAt)}.`
+    return `You have less than 1 day left and your submission is due by ${formatDeadline(selfRecord.selfClosesAt)}.`
   }
-  return `You have ${daysLeft} day${daysLeft === 1 ? '' : 's'} left and your submission is due by ${formatDeadline(cycleClosesAt)}.`
+  return `You have ${daysLeft} day${daysLeft === 1 ? '' : 's'} left and your submission is due by ${formatDeadline(selfRecord.selfClosesAt)}.`
+}
+
+function buildManagerDueCopy(selfRecord: SelfAppraisalRecord) {
+  if (!selfRecord.managerClosesAt) return 'Manager review dates will be shared shortly.'
+  if (selfRecord.managerPhaseState === 'upcoming') {
+    return `Manager review opens on ${formatDeadline(selfRecord.managerOpensAt)} and closes on ${formatDeadline(selfRecord.managerClosesAt)}.`
+  }
+  if (selfRecord.managerPhaseState === 'closed' || hasWindowClosed(selfRecord.managerClosesAt)) {
+    return `Manager review closed on ${formatDeadline(selfRecord.managerClosesAt)}.`
+  }
+  const daysLeft = daysLeftUntil(selfRecord.managerClosesAt)
+  if (daysLeft === 0) {
+    return `You have less than 1 day left to complete manager reviews by ${formatDeadline(selfRecord.managerClosesAt)}.`
+  }
+  return `You have ${daysLeft} day${daysLeft === 1 ? '' : 's'} left to complete manager reviews by ${formatDeadline(selfRecord.managerClosesAt)}.`
 }

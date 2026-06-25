@@ -9,7 +9,7 @@ APP_DIR = Path(__file__).resolve().parent.parent
 GENERATED_DIR = APP_DIR / "generated"
 SEED_PATH = GENERATED_DIR / "seed.generated.json"
 
-PORTAL_URL = "https://appraisal-frontend-staging.up.railway.app"
+PORTAL_URL = "https://people.buybetter.ng"
 
 
 def split_name(full_name: str) -> tuple[str, str]:
@@ -70,7 +70,7 @@ def main() -> None:
         assignments_by_employee.setdefault(row["employeeId"], []).append(row)
 
     cycle_name = seed["cycle"]["name"]
-    deadline = format_deadline(seed["cycle"].get("closesAt", ""))
+    deadline = format_deadline(seed["cycle"].get("selfClosesAt") or seed["cycle"].get("closesAt", ""))
 
     staff_rows: list[dict[str, str]] = []
     reviewer_rows: list[dict[str, str]] = []

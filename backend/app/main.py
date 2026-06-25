@@ -51,7 +51,10 @@ from app.schemas import (
 )
 
 APP_TIMEZONE = timezone(timedelta(hours=1))
-DEFAULT_CYCLE_CLOSES_AT = datetime(2026, 6, 30, 23, 59, 59, tzinfo=APP_TIMEZONE)
+DEFAULT_SELF_OPENS_AT = datetime(2026, 6, 16, 9, 0, 0, tzinfo=APP_TIMEZONE)
+DEFAULT_SELF_CLOSES_AT = datetime(2026, 6, 30, 23, 59, 59, tzinfo=APP_TIMEZONE)
+DEFAULT_MANAGER_OPENS_AT = datetime(2026, 7, 1, 0, 0, 0, tzinfo=APP_TIMEZONE)
+DEFAULT_MANAGER_CLOSES_AT = datetime(2026, 7, 7, 23, 59, 59, tzinfo=APP_TIMEZONE)
 from app.security import create_access_token, verify_password
 
 
@@ -247,23 +250,79 @@ def ensure_final_result(assignment: EmployeeCycleAssignment) -> FinalResult:
     return assignment.final_result
 
 
-def ensure_manager_can_score(assignment: EmployeeCycleAssignment) -> None:
+def ensure_manager_can_score(assignment: EmployeeCycleAssignment, cycle: AppraisalCycle) -> None:
     if not assignment.self_appraisal or assignment.self_appraisal.status != "submitted":
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Manager review unlocks only after the employee submits self appraisal",
         )
+    phase_state = manager_phase_state(cycle)
+    if phase_state == "upcoming":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Manager review is not open yet for this cycle",
+        )
+    if phase_state == "closed":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Manager review is closed for this cycle",
+        )
 
 
-def effective_cycle_closes_at(cycle: AppraisalCycle) -> datetime:
-    close_at = cycle.closes_at or DEFAULT_CYCLE_CLOSES_AT
-    if close_at.tzinfo is None:
-        return close_at.replace(tzinfo=APP_TIMEZONE)
-    return close_at.astimezone(APP_TIMEZONE)
+def normalize_cycle_datetime(value: datetime | None, fallback: datetime) -> datetime:
+    next_value = value or fallback
+    if next_value.tzinfo is None:
+        return next_value.replace(tzinfo=APP_TIMEZONE)
+    return next_value.astimezone(APP_TIMEZONE)
+
+
+def effective_self_opens_at(cycle: AppraisalCycle) -> datetime:
+    return normalize_cycle_datetime(cycle.self_opens_at or cycle.opens_at, DEFAULT_SELF_OPENS_AT)
+
+
+def effective_self_closes_at(cycle: AppraisalCycle) -> datetime:
+    return normalize_cycle_datetime(cycle.self_closes_at or cycle.closes_at, DEFAULT_SELF_CLOSES_AT)
+
+
+def effective_manager_opens_at(cycle: AppraisalCycle) -> datetime:
+    return normalize_cycle_datetime(cycle.manager_opens_at, DEFAULT_MANAGER_OPENS_AT)
+
+
+def effective_manager_closes_at(cycle: AppraisalCycle) -> datetime:
+    return normalize_cycle_datetime(cycle.manager_closes_at, DEFAULT_MANAGER_CLOSES_AT)
+
+
+def phase_state(*, opens_at: datetime, closes_at: datetime) -> str:
+    now = datetime.now(UTC)
+    if now < opens_at:
+        return "upcoming"
+    if now > closes_at:
+        return "closed"
+    return "open"
+
+
+def self_phase_state(cycle: AppraisalCycle) -> str:
+    return phase_state(
+        opens_at=effective_self_opens_at(cycle),
+        closes_at=effective_self_closes_at(cycle),
+    )
+
+
+def manager_phase_state(cycle: AppraisalCycle) -> str:
+    return phase_state(
+        opens_at=effective_manager_opens_at(cycle),
+        closes_at=effective_manager_closes_at(cycle),
+    )
 
 
 def ensure_self_appraisal_open(cycle: AppraisalCycle) -> None:
-    if effective_cycle_closes_at(cycle) <= datetime.now(UTC):
+    state = self_phase_state(cycle)
+    if state == "upcoming":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Self appraisal is not open yet for this cycle",
+        )
+    if state == "closed":
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Self appraisal editing is closed for this cycle",
@@ -341,7 +400,13 @@ def serialize_workspace(assignment: EmployeeCycleAssignment, cycle: AppraisalCyc
 
     return EmployeeWorkspaceResponse(
         cycle_code=cycle.code,
-        cycle_closes_at=effective_cycle_closes_at(cycle).isoformat(),
+        cycle_closes_at=effective_self_closes_at(cycle).isoformat(),
+        self_opens_at=effective_self_opens_at(cycle).isoformat(),
+        self_closes_at=effective_self_closes_at(cycle).isoformat(),
+        self_phase_state=self_phase_state(cycle),
+        manager_opens_at=effective_manager_opens_at(cycle).isoformat(),
+        manager_closes_at=effective_manager_closes_at(cycle).isoformat(),
+        manager_phase_state=manager_phase_state(cycle),
         employee=EmployeeSummary(
             employee_code=employee.employee_code,
             full_name=employee.full_name,
@@ -676,7 +741,8 @@ def create_app(*, db_engine: Engine = engine) -> FastAPI:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="KPI assignment not found")
         assignment = get_assignment_by_id(db, kpi_assignment.employee_cycle_assignment_id)
         require_manager_scope(current_user, assignment)
-        ensure_manager_can_score(assignment)
+        cycle = get_open_cycle(db)
+        ensure_manager_can_score(assignment, cycle)
 
         if payload.manager_score is not None:
             kpi_assignment.manager_score = payload.manager_score
@@ -700,7 +766,6 @@ def create_app(*, db_engine: Engine = engine) -> FastAPI:
         )
         db.commit()
 
-        cycle = get_open_cycle(db)
         refreshed = get_assignment_by_id(db, assignment.id)
         return serialize_workspace(refreshed, cycle)
 
@@ -714,7 +779,7 @@ def create_app(*, db_engine: Engine = engine) -> FastAPI:
         cycle = get_open_cycle(db)
         assignment = get_assignment_by_employee_code(db, employee_code, cycle)
         require_manager_scope(current_user, assignment)
-        ensure_manager_can_score(assignment)
+        ensure_manager_can_score(assignment, cycle)
 
         final_result = ensure_final_result(assignment)
         if payload.self_summary is not None:
