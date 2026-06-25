@@ -3,11 +3,11 @@
     "id": "2026-H1",
     "name": "2026 Mid-Year Appraisal",
     "opensAt": "2026-06-16T09:00:00+01:00",
-    "closesAt": "2026-06-30T23:59:59+01:00",
+    "closesAt": "2026-07-03T23:59:59+01:00",
     "selfOpensAt": "2026-06-16T09:00:00+01:00",
-    "selfClosesAt": "2026-06-30T23:59:59+01:00",
-    "managerOpensAt": "2026-07-01T00:00:00+01:00",
-    "managerClosesAt": "2026-07-07T23:59:59+01:00",
+    "selfClosesAt": "2026-07-03T23:59:59+01:00",
+    "managerOpensAt": "2026-07-04T00:00:00+01:00",
+    "managerClosesAt": "2026-07-13T23:59:59+01:00",
     "prototype": true
   },
   "users": [

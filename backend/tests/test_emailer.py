@@ -22,7 +22,7 @@ class EmailerTest(unittest.TestCase):
         self.assertEqual(context.username, "kamsiriochi.nwaukwa")
         self.assertEqual(context.appraisal_role, "Head of Information Technology")
         self.assertEqual(context.line_manager, "Sandra Dunkwu")
-        self.assertEqual(context.deadline, "30 June 2026")
+        self.assertEqual(context.deadline, "3 July 2026")
         self.assertIn("Architecture & Change Control", context.kpi_areas)
 
     def test_render_launch_email_contains_friendly_copy(self):

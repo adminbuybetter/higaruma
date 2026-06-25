@@ -52,9 +52,9 @@ from app.schemas import (
 
 APP_TIMEZONE = timezone(timedelta(hours=1))
 DEFAULT_SELF_OPENS_AT = datetime(2026, 6, 16, 9, 0, 0, tzinfo=APP_TIMEZONE)
-DEFAULT_SELF_CLOSES_AT = datetime(2026, 6, 30, 23, 59, 59, tzinfo=APP_TIMEZONE)
-DEFAULT_MANAGER_OPENS_AT = datetime(2026, 7, 1, 0, 0, 0, tzinfo=APP_TIMEZONE)
-DEFAULT_MANAGER_CLOSES_AT = datetime(2026, 7, 7, 23, 59, 59, tzinfo=APP_TIMEZONE)
+DEFAULT_SELF_CLOSES_AT = datetime(2026, 7, 3, 23, 59, 59, tzinfo=APP_TIMEZONE)
+DEFAULT_MANAGER_OPENS_AT = datetime(2026, 7, 4, 0, 0, 0, tzinfo=APP_TIMEZONE)
+DEFAULT_MANAGER_CLOSES_AT = datetime(2026, 7, 13, 23, 59, 59, tzinfo=APP_TIMEZONE)
 from app.security import create_access_token, verify_password
 
 
