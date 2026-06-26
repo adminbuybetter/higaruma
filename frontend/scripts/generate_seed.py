@@ -127,12 +127,18 @@ ADMIN_CAPABILITY_EMPLOYEES = {
 
 EMPLOYEE_ROLE_OVERRIDES = {
     "Vivian Udu": {
+        "appraisal_role": "Aesthetician",
         "manager_label": "Chinwe Enemokwu",
         "kpi_owner_label": "Chinwe Enemokwu",
     },
     "Benedicta Chidubem Udeigwe": {
+        "appraisal_role": "Aesthetician",
         "manager_label": "Chinwe Enemokwu",
         "kpi_owner_label": "Chinwe Enemokwu",
+    },
+    "Patrick Ikegwuonu": {
+        "manager_label": "Ololade Shoyemi",
+        "kpi_owner_label": "Ololade Shoyemi",
     },
     "Alice Ochigbo": {
         "appraisal_role": "Inventory Officers & Leads",
@@ -322,6 +328,68 @@ DESIGNATION_FIELD_OVERRIDES = {
 }
 
 ROLE_KPI_OVERRIDES = {
+    "Aesthetician": [
+        {
+            "kpiArea": "Customer Satisfaction (CSAT) Score",
+            "kpiStatement": "Deliver consistently positive customer feedback across post-purchase surveys, receipts, digital kiosks, or mystery shopper checks, with a target above 90% positive satisfaction.",
+            "weightPercent": 10,
+        },
+        {
+            "kpiArea": "Consultation Quality & Treatment Recommendation Accuracy",
+            "kpiStatement": "Assess customer skin concerns carefully, give safe and appropriate product or treatment guidance, and communicate recommendations clearly and professionally during consultation moments.",
+            "weightPercent": 10,
+        },
+        {
+            "kpiArea": "Upselling Execution (Routine Upgrades)",
+            "kpiStatement": "Upgrade customers smoothly from individual products to premium variants or larger sizes by clearly explaining long-term skincare and value benefits.",
+            "weightPercent": 8,
+        },
+        {
+            "kpiArea": "Cross-Selling Capability (Multi-Step Regimens)",
+            "kpiStatement": "Build complete routines by pairing primary purchases with relevant supporting products, measured through average items per transaction targets.",
+            "weightPercent": 7,
+        },
+        {
+            "kpiArea": "Ingredient Proficiency & Skin Types",
+            "kpiStatement": "Explain key ingredients accurately and match them correctly to relevant skin types and customer concerns.",
+            "weightPercent": 8,
+        },
+        {
+            "kpiArea": "Application Techniques & Brand Protocols",
+            "kpiStatement": "Demonstrate correct application, treatment-prep, and product-trial techniques while following brand instructions, safety constraints, and store protocols.",
+            "weightPercent": 7,
+        },
+        {
+            "kpiArea": "Tester & Tool Sanitation",
+            "kpiStatement": "Maintain strict hygiene standards by sanitizing testers, using disposable tools properly, and keeping consultation areas visibly clean.",
+            "weightPercent": 8,
+        },
+        {
+            "kpiArea": "Shelf Maintenance & Freshness",
+            "kpiStatement": "Keep shelves tidy, front-faced, dust-free, and checked for freshness, manufacturing dates, and product expiry timelines.",
+            "weightPercent": 7,
+        },
+        {
+            "kpiArea": "Team Collaboration & Communication",
+            "kpiStatement": "Work positively with colleagues, support the team during busy trading periods, and contribute reliably to daily store goals.",
+            "weightPercent": 8,
+        },
+        {
+            "kpiArea": "Punctuality, Dress Code & Presentation",
+            "kpiStatement": "Arrive on time consistently and maintain the expected standard of grooming, uniform compliance, and professional presentation.",
+            "weightPercent": 7,
+        },
+        {
+            "kpiArea": "POS Accuracy & Client Profiling",
+            "kpiStatement": "Record customer and transaction details accurately in POS or CRM systems, including relevant consultation notes without avoidable errors.",
+            "weightPercent": 10,
+        },
+        {
+            "kpiArea": "Inventory Care & Expiry Tracking",
+            "kpiStatement": "Follow FIFO and stock-handling rules carefully to protect product integrity and reduce losses from expiry or avoidable inventory errors.",
+            "weightPercent": 10,
+        },
+    ],
     "Beauty Attendant": [
         {
             "kpiArea": "Customer Satisfaction (CSAT) Score",
