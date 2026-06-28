@@ -260,7 +260,7 @@ EMAIL_BY_NAME = {
     normalize_name("Chisom Ugoh"): "chisom.ugoh@buybetter.ng",
     normalize_name("Victoria Daniel Igo"): "victoria@buybetter.ng",
     normalize_name("Eniola Ojekunle"): "eniola.ojekunle@buybetter.ng",
-    normalize_name("Happiness Oyewale"): "eniola.ojekunle@buybetter.ng",
+    normalize_name("Happiness Oyewale"): "happiness@buybetter.ng",
     normalize_name("Pamela Edeh"): "pamela@buybetter.ng",
     normalize_name("Mary Edun Abidemi"): "mary@buybetter.ng",
     normalize_name("Rose Udoh"): "rose.uka@buybetter.ng",

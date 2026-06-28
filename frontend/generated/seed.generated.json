@@ -254,7 +254,7 @@
       "username": "eniola.ojekunle",
       "password": "Appraise025!",
       "displayName": "Eniola Ojekunle",
-      "email": "",
+      "email": "eniola.ojekunle@buybetter.ng",
       "kind": "employee",
       "capabilities": [
         "employee"
@@ -324,14 +324,14 @@
       "username": "happiness.oyewale",
       "password": "Appraise030!",
       "displayName": "Happiness  Oyewale",
-      "email": "",
+      "email": "happiness@buybetter.ng",
       "kind": "employee",
       "capabilities": [
         "employee"
       ],
       "employeeId": "EMP-030",
       "managerScopes": [],
-      "outreachEmail": "eniola.ojekunle@buybetter.ng"
+      "outreachEmail": "happiness@buybetter.ng"
     },
     {
       "id": "EMP-031",
