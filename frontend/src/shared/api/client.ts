@@ -1,3 +1,5 @@
+const ACCESS_TOKEN_STORAGE_KEY = 'buybetter_appraisal_access_token'
+
 function resolveApiBaseUrl() {
   const configured = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.trim()
   if (configured) {
@@ -16,6 +18,29 @@ function resolveApiBaseUrl() {
 
 const API_BASE = resolveApiBaseUrl()
 
+function canUseStorage() {
+  return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined'
+}
+
+export function readStoredAccessToken() {
+  if (!canUseStorage()) return ''
+  return window.localStorage.getItem(ACCESS_TOKEN_STORAGE_KEY)?.trim() ?? ''
+}
+
+export function storeAccessToken(token: string) {
+  if (!canUseStorage()) return
+  if (!token.trim()) {
+    window.localStorage.removeItem(ACCESS_TOKEN_STORAGE_KEY)
+    return
+  }
+  window.localStorage.setItem(ACCESS_TOKEN_STORAGE_KEY, token.trim())
+}
+
+export function clearStoredAccessToken() {
+  if (!canUseStorage()) return
+  window.localStorage.removeItem(ACCESS_TOKEN_STORAGE_KEY)
+}
+
 export class ApiError extends Error {
   status: number
 
@@ -27,11 +52,13 @@ export class ApiError extends Error {
 }
 
 export async function apiClient<T>(path: string, options?: RequestInit): Promise<T> {
+  const accessToken = readStoredAccessToken()
   const response = await fetch(`${API_BASE}${path}`, {
     ...options,
     credentials: options?.credentials ?? 'include',
     headers: {
       'Content-Type': 'application/json',
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
       ...(options?.headers ?? {}),
     },
   })

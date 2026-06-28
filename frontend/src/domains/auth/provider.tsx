@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState, type PropsWithChildren } fro
 import { fetchSession, loginRequest, logoutRequest } from './api'
 import { AuthContext, type AuthContextValue } from './context'
 import type { AuthState, LoginPayload, SessionResponse } from './contracts'
+import { clearStoredAccessToken, storeAccessToken } from '../../shared/api/client'
 
 function toAuthState(payload: SessionResponse): AuthState {
   return {
@@ -47,6 +48,7 @@ export function BrowserAuthProvider({ children }: PropsWithChildren) {
     setLoginPending(true)
     try {
       const response = await loginRequest(payload)
+      storeAccessToken(response.access_token)
       setAuthState(toAuthState(response.user))
     } finally {
       setLoginPending(false)
@@ -58,6 +60,7 @@ export function BrowserAuthProvider({ children }: PropsWithChildren) {
     try {
       await logoutRequest()
     } finally {
+      clearStoredAccessToken()
       setAuthState(null)
       setLogoutPending(false)
     }

@@ -1,4 +1,4 @@
-import { ApiError, apiClient } from '../../shared/api/client'
+import { ApiError, apiClient, clearStoredAccessToken } from '../../shared/api/client'
 import { API_PATHS } from '../../contracts/paths'
 import type { LoginPayload, LoginResponse, SessionResponse } from './contracts'
 
@@ -7,6 +7,7 @@ export async function fetchSession() {
     return await apiClient<SessionResponse>(API_PATHS.auth.me)
   } catch (error) {
     if (error instanceof ApiError && error.status === 401) {
+      clearStoredAccessToken()
       return null
     }
     throw error
