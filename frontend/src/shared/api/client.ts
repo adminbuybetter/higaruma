@@ -11,6 +11,9 @@ function resolveApiBaseUrl() {
     if (hostname === 'localhost' || hostname === '127.0.0.1') {
       return 'http://127.0.0.1:8000'
     }
+    if (hostname === 'people.buybetter.ng' || hostname.endsWith('.buybetter.ng')) {
+      return 'https://people-backend.buybetter.ng'
+    }
   }
 
   return 'https://appraisal-backend-staging.up.railway.app'
